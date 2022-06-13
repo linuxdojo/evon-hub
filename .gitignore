@@ -1,0 +1,3 @@
+bootstrap.sh
+openvpn_secrets.conf
+openvpn*.conf.inc
