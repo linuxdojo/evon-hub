@@ -8,7 +8,7 @@
 EVON_PEER=10.111.0.1
 
 # setup logging
-logfile="/root/ur-install_bootstrap-$(date +%s)"
+logfile="/root/evon.link_bootstrap-$(date +%s)"
 exec > >(tee -i $logfile)
 exec 2>&1
 
@@ -51,7 +51,6 @@ function extract_payload() {
 
 # identify CentOS 6, 7 or 8
 redhat_release=$(cat /etc/redhat-release)
-echo $redhat_release | grep -q "Unified Recording" && distro=centos6
 echo $redhat_release | grep -q " 6" && distro=centos6
 echo $redhat_release | grep -q " 7" && distro=centos7
 echo $redhat_release | grep -q " 8" && distro=centos8
@@ -86,7 +85,7 @@ elif [ "$1" == "--help" ]; then
     echo "  --uninstall    Uninstall bootstrap config (remove OpenVPN and Squid proxy env vars)"
     echo "  --help         This help text"
     echo "Environment Variables:"
-    echo "  evon_SECRET    If set, its value will be used as the evon Secret key for decrypting the OpenVPN secret"
+    echo "  EVON_SECRET    If set, its value will be used as the evon Secret key for decrypting the OpenVPN secret"
     echo "                 config, and will cause this script to run non-interactively. If not set, you will be"
     echo "                 prompted for the secret key."
     exit 0
@@ -199,10 +198,10 @@ if [ "$installed" != "1" ]; then
     extract_payload
     cd $tmpdir
     # decrypt the secrets conf file.
-    if [ -n "$evon_SECRET" ]; then
-        openssl enc -d -pass "pass:${evon_SECRET}" -aes-256-cbc -in openvpn_secrets.conf.aes -out openvpn_secrets.conf 2>/dev/null
+    if [ -n "$EVON_SECRET" ]; then
+        openssl enc -d -pass "pass:${EVON_SECRET}" -aes-256-cbc -in openvpn_secrets.conf.aes -out openvpn_secrets.conf 2>/dev/null
         if [ $? -ne 0 ]; then
-            echo "Error: env var evon_SECRET does not contain the correct evon secret string. Please change it and re-run this script."
+            echo "Error: env var EVON_SECRET does not contain the correct evon secret string. Please change it and re-run this script."
             exit 1
         fi
     else
@@ -233,8 +232,8 @@ if [ "$installed" != "1" ]; then
     cd -
     echo -e "Current contents of OpenVPN Proxy Configuration ($ovpn_conf_dir/openvpn_proxy.conf.inc) is:\n"
     cat $ovpn_conf_dir/openvpn_proxy.conf.inc | sed 's/^/    /'
-    # Prompt for editing proxy settings if $evon_SECRET is not defined (be non-interactive if it is and don't prompt)
-    if [ -z "$evon_SECRET" ]; then
+    # Prompt for editing proxy settings if $EVON_SECRET is not defined (be non-interactive if it is and don't prompt)
+    if [ -z "$EVON_SECRET" ]; then
         echo -n "Would you like to edit the above file before we attempt to start OpenVPN? (y/N): "
         read response
         if [ "${response,,}" == "y" ]; then
