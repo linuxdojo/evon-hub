@@ -1,0 +1,2 @@
+python-dotenv==0.15.0
+route53==1.0.1

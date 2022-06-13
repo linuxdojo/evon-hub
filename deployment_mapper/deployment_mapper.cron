@@ -1,0 +1,3 @@
+MAILTO=""
+*/5 * * * * root /opt/deployment_mapper/deployment_mapper.py
+
