@@ -1,4 +1,4 @@
-![EVON Logo](evon_logo.png)
+![EVON Logo](assets/evon_logo.png)
 # evon.link - Elastic Virtual Overlay Network
 
 1. [Description](#description)
