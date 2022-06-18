@@ -1,0 +1,37 @@
+---
+
+- name: validate Amazon Linux
+  shell: grep "Amazon Linux" /etc/system-release
+  changed_when: false
+
+- name: install epel release
+  shell: |
+    rpm -qi epel-release >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      yes | amazon-linux-extras install epel
+    fi
+  register: shell_output
+  changed_when: "'Installing:' in shell_output.stdout"
+
+- name: install required base packages
+  action: >
+    {{ ansible_pkg_mgr }} name={{ item }} state=present update_cache=yes
+  with_items:
+    - openvpn
+    - sslh
+    - nginx
+    - squid
+    - tmux
+    - vim
+    - htop
+
+- name: upgrade all packages
+  yum: 
+    name: '*'
+    state: latest
+
+- name: enable ipv4 forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    reload: yes
