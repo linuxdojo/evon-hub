@@ -13,17 +13,18 @@
   register: shell_output
   changed_when: "'Installing:' in shell_output.stdout"
 
-- name: install required base packages
-  action: >
-    {{ ansible_pkg_mgr }} name={{ item }} state=present update_cache=yes
-  with_items:
-    - openvpn
-    - sslh
-    - nginx
-    - squid
-    - tmux
-    - vim
-    - htop
+- name: install latest required base packages
+  ansible.builtin.yum:
+    name:
+      - openvpn
+      - easy-rsa
+      - sslh
+      - nginx
+      - squid
+      - tmux
+      - vim
+      - htop
+    state: latest
 
 - name: upgrade all packages
   yum: 
