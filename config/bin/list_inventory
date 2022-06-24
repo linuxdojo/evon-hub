@@ -1,0 +1,11 @@
+#!/bin/bash
+inv=$(cat /var/www/html/inventory | awk -F\" '{print $2 ":" $4}' | sort)
+stats=$(sudo cat /etc/openvpn/server/openvpn-status_tcp.log)
+echo -e "*** Evon Inventory - Online: $(echo $inv | sed 's/ /\n/g' | wc -l) ***"
+echo -e "IP_ADDRESS\tUUID                                            HOSTNAME"
+echo "$inv" | awk -F: '{print $2 " " $1}' | while read l; do
+    ip=$(echo $l | cut -d" " -f1 )
+    hostname=$(echo $l | cut -d" " -f2 )
+    uuid=$(echo -e "$stats" | grep -E '^CLIENT_LIST' | grep $ip | cut -d, -f2)
+    echo -e "${ip}\t${uuid}\t${hostname}"
+done

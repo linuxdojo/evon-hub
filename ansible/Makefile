@@ -1,6 +1,5 @@
 .SILENT:
 INVENTORY_FILE := inventory/hosts
-SSH_PRIVATE_KEY := ~/.ssh/linuxdojo/id_rsa-evon
 TARGET := all
 
 help: # Show this help
@@ -19,7 +18,7 @@ test: # test local playbooks for validity
 	find ./ -maxdepth 1 -name '*.yml' | egrep -v 'requirements.yml|circle.yml' | xargs -n1 ansible-playbook -i ./hosts --syntax-check --list-tasks
 
 ping: # ping target hosts in inventory, eg TARGET=all make ping, TARGET=dev make ping, TARGET=somehost.example.com make ping, etc
-	ansible -i inventory $(TARGET) -m ping --private-key=$(SSH_PRIVATE_KEY)
+	ansible -i inventory $(TARGET) -m ping
 
 deploy: # deploy
 	ansible-playbook evon-hub.yml

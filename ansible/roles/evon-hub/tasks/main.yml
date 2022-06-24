@@ -1,5 +1,7 @@
 ---
 
+# Setup base OS
+
 - name: validate Amazon Linux
   shell: grep "Amazon Linux" /etc/system-release
   changed_when: false
@@ -24,6 +26,8 @@
       - tmux
       - vim
       - htop
+      - certbot
+      - python2-certbot-nginx
     state: latest
 
 - name: upgrade all packages
@@ -36,3 +40,4 @@
     name: net.ipv4.ip_forward
     value: "1"
     reload: yes
+
