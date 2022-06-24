@@ -16,12 +16,12 @@ bootstrap: # Append OpenVPN config payload (with encrypted secrets) to bootstrap
 	chmod +x bootstrap.sh
 	echo "Done."
 
-deploy: # Build and deploy latest bootstrap.sh and deployment_mapper to etph.link
+deploy: # Build and deploy latest bootstrap.sh and deployment_mapper to {{ account_name }}.evon.link
 	# build and deploy bootstrap
 	make bootstrap
 	echo "Deploying bootstrap..."
-	scp bootstrap.sh openiq@etph.link:/tmp
-	ssh openiq@etph.link " \
+	scp bootstrap.sh ec2-user@{{ account_name }}.evon.link:/tmp
+	ssh ec2-user@{{ account_name }}.evon.link " \
 		sudo mv -f /tmp/bootstrap.sh /var/www/html/; \
 		sudo rm -f /var/www/html/bootstrap; \
 		sudo ln -s /var/www/html/bootstrap.sh /var/www/html/bootstrap; \
@@ -29,9 +29,9 @@ deploy: # Build and deploy latest bootstrap.sh and deployment_mapper to etph.lin
 	# deploy deployment mapper and cron trigger
 	rm -f /tmp/deployment_mapper.tgz >/dev/null 2>&1 || :
 	cd deployment_mapper && tar -zcvf /tmp/deployment_mapper.tgz .env deployment_mapper.py requirements.txt deployment_mapper.cron && cd ..
-	scp /tmp/deployment_mapper.tgz openiq@etph.link:/tmp
+	scp /tmp/deployment_mapper.tgz ec2-user@{{ account_name }}.evon.link:/tmp
 	rm -f /tmp/deployment_mapper.tgz
-	ssh openiq@etph.link " \
+	ssh ec2-user@{{ account_name }}.evon.link " \
 		sudo mkdir -p /opt/deployment_mapper; \
 		sudo mv /tmp/deployment_mapper.tgz /opt/deployment_mapper; \
 		cd /opt/deployment_mapper; \
@@ -44,7 +44,7 @@ deploy: # Build and deploy latest bootstrap.sh and deployment_mapper to etph.lin
 		"
 	# done
 	echo "Done: "
-	echo "  - new bootstrap is now available at https://<username>:<password>@etph.link/bootstrap"
+	echo "  - new bootstrap is now available at https://<username>:<password>@{{ account_name }}.evon.link/bootstrap"
 
 encrypt: # Encrypt openvpn_secrets.conf and output as openvpn_secrets.conf.aes
 	echo "  WARNING: ***************************************************************************"

@@ -1,0 +1,39 @@
+*nat
+:PREROUTING ACCEPT [324189:15395606]
+:INPUT ACCEPT [278279:12710251]
+:POSTROUTING ACCEPT [72381:5125779]
+:OUTPUT ACCEPT [298752:14715579]
+-A POSTROUTING -o tun0 -s 10.{{ subnet_id }}.0.0/17 -j MASQUERADE
+-A POSTROUTING -o tun1 -s 10.{{ subnet_id }}.0.0/17 -j MASQUERADE
+COMMIT
+*raw
+:PREROUTING ACCEPT [39911553:16465877315]
+:OUTPUT ACCEPT [37272595:19025699958]
+COMMIT
+*mangle
+:PREROUTING ACCEPT [39911553:16465877315]
+:INPUT ACCEPT [37309665:15192555547]
+:FORWARD ACCEPT [2601490:1273299968]
+:OUTPUT ACCEPT [37272595:19025699958]
+:POSTROUTING ACCEPT [39874186:20299004936]
+COMMIT
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [2601482:1273299488]
+:OUTPUT ACCEPT [37272595:19025699958]
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT
+-A INPUT -p udp -m state --state NEW -m udp --dport 1194 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp -s 10.{{ subnet_id }}.0.0/16 --dport 3128 -j ACCEPT
+-A INPUT -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -s 10.{{ subnet_id }}.0.0/17 -j ACCEPT
+# example allowing single host 10.{{ subnet_id }}.128.54/32 to be reachable on TCP/10050 from any evon endpoint
+#-A FORWARD -d 10.{{ subnet_id }}.128.54/32 -p tcp -m tcp --dport 10050 -j ACCEPT
+#-A FORWARD -s 10.{{ subnet_id }}.128.54/32 -p tcp -m tcp --dport 10050 -j ACCEPT
+-A FORWARD -s 10.{{ subnet_id }}.128.0/17 -j REJECT --reject-with icmp-port-unreachable
+COMMIT
