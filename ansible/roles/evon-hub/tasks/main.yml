@@ -41,3 +41,26 @@
     value: "1"
     reload: yes
 
+# Setup sslh
+
+- name: check if sslh config file is modified
+  shell: rpm -Vf /etc/sslh.cfg
+  register: ssllh_cfg
+  changed_when: false
+  failed_when: false
+
+- name: update sslh config file
+  ansible.builtin.copy:
+    src: sslh/sslh.cfg
+    dest: /etc/sslh.cfg
+  when: ssllh_cfg.rc == 0
+  register: sslh_cfg_copy
+
+- name: restart sslh service
+  service:
+    name: sslh
+    state: restarted
+  when: sslh_cfg_copy.changed
+
+
+
