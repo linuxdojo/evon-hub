@@ -22,6 +22,7 @@
       - easy-rsa
       - htop
       - jq
+      - iptables-services
       - nginx
       - openvpn
       - python2-certbot-nginx
@@ -58,7 +59,7 @@
   register: sslh_cfg_copy
 
 - name: restart sslh service
-  service:
+  ansible.builtin.service:
     name: sslh
     state: restarted
   when: sslh_cfg_copy.changed
@@ -71,5 +72,25 @@
     dest: /usr/local/bin/
     mode: 755
 
+# setup iptables
 
+- name: configure iptables
+  ansible.builtin.template:
+    src: iptables/iptables
+    dest: /etc/sysconfig/iptables
+  register: iptables_copy
+
+- name: start and persist iptables
+  ansible.builtin.service:
+    name: iptables
+    enabled: true
+    state: started
+  when: not iptables_copy.changed
+
+- name: restart and persist iptables service
+  ansible.builtin.service:
+    name: iptables
+    state: restarted
+    enabled: true
+  when: iptables_copy.changed
 
