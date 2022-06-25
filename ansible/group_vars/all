@@ -1,5 +1,5 @@
 ---
 
-AWS_ACCOUN: linuxdojo
-SUBNET_ID: 111
+aws_account: linuxdojo
+subnet_id: 111
 
