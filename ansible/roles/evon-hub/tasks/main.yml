@@ -94,3 +94,11 @@
     enabled: true
   when: iptables_copy.changed
 
+# setup squid
+
+- name: configure squid
+  ansible.builtin.service:
+    name: squid
+    enabled: true
+    state: started
+
