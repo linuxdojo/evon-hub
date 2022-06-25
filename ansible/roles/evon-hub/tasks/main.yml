@@ -18,16 +18,17 @@
 - name: install latest required base packages
   ansible.builtin.yum:
     name:
-      - openvpn
+      - certbot
       - easy-rsa
-      - sslh
+      - htop
+      - jq
       - nginx
+      - openvpn
+      - python2-certbot-nginx
       - squid
+      - sslh
       - tmux
       - vim
-      - htop
-      - certbot
-      - python2-certbot-nginx
     state: latest
 
 - name: upgrade all packages
@@ -61,6 +62,14 @@
     name: sslh
     state: restarted
   when: sslh_cfg_copy.changed
+
+# setup bins
+
+- name: copy bin files
+  ansible.builtin.copy:
+    src: bin/
+    dest: /usr/local/bin/
+    mode: 755
 
 
 
