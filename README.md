@@ -127,23 +127,6 @@ rpm -ivh *.rpm
 ```
 Then, re-run `bootstrap.sh`
 
-
-
-#### Alternate .com FQDN
-
-For odd customer-side proxy servers that only accept `.com` TLD's, the `evon.urcallcast.com` FQDN is setup to resolve to the same IP address as `evon.link`. To use this alternative:
-- Replace `evon.link` in your curl requests from `evon.link` to `evon.urcallcast.com` and add the `-k` option to curl  as the SSL Cert is valid for `evon.link` only.
-- Replace references to `evon.link` with `evon.urcallcast.com` in the `evon.conf` file under `/etc/openvpn` and restart OpenVPN on the deployment.
-
-To restart the OpenVPN client on a server, type:
-```
-# for CentOS6:
-service openvpn restart
-
-# for CentOS8:
-systemctl restart openvpn-client@evon
-```
-
 ## Listing Deployments
 
 An inventory list of all deployments showing their `<hostname>.evon.link` FQDN and associated VPN IP address can be obtained anywhere on the Internet by running (or browsing to):
