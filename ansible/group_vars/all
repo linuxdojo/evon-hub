@@ -1,5 +1,5 @@
 ---
 
-aws_account: linuxdojo
 subnet_id: 111
+endpoint_pool_persist: 7776000
 
