@@ -1,6 +1,6 @@
 .SILENT:
 INVENTORY_FILE := inventory/hosts
-TARGET := all
+TARGET := localhost
 
 help: # Show this help
 	@echo Make targets:
@@ -11,14 +11,8 @@ help: # Show this help
 deps: # Install dependencies from ansible-galaxy (stored in requirements.yml)
 	ansible-galaxy install --roles-path roles -r requirements.yml
 
-lshosts: # list all hosts in static hosts file
-	sed '/\[.*/q' $(INVENTORY_FILE) | grep -v '^\s*[\[#].*' | sed '/^\s*$$/d' | sed 's/#.*//' | sed 's/ *$$//'
-
 test: # test local playbooks for validity
-	find ./ -maxdepth 1 -name '*.yml' | egrep -v 'requirements.yml|circle.yml' | xargs -n1 ansible-playbook -i ./hosts --syntax-check --list-tasks
-
-ping: # ping target hosts in inventory, eg TARGET=all make ping, TARGET=dev make ping, TARGET=somehost.example.com make ping, etc
-	ansible -i inventory $(TARGET) -m ping
+	find ./ -maxdepth 1 -name '*.yml' | grep -v requirements | xargs -n1 ansible-playbook -i $(INVENTORY_FILE) --syntax-check --list-tasks
 
 deploy: # deploy
 	ansible-playbook evon-hub.yml

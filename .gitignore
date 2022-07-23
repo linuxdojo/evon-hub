@@ -1,3 +1,5 @@
 bootstrap.sh
 openvpn_secrets.conf
 openvpn*.conf.inc
+*.tgz
+*.tar.gz

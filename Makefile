@@ -8,5 +8,10 @@ help: # Show this help
 	  sed -e 's/# //; s/^/    /' | \
 	  column -s: -t
 
-deploy: # deploy
-	cd ansible && ansible-playbook evon-hub.yml
+package: # produce package artefact ready for publishing
+	tar -zcf evon.tgz --exclude .gitignore --exclude .git --exclude .env --exclude requirements.txt ansible/
+	echo #TODO
+
+publish: # publish package to AWS S3
+	echo #TODO
+

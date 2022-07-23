@@ -3,8 +3,8 @@
 :INPUT ACCEPT
 :POSTROUTING ACCEPT
 :OUTPUT ACCEPT
--A POSTROUTING -o tun0 -s 100.{{ subnet_id }}.251.0/24 -j MASQUERADE
--A POSTROUTING -o tun1 -s 100.{{ subnet_id }}.252.0/22 -j MASQUERADE
+-A POSTROUTING -o tun0 -s 100.{{ subnet_key }}.251.0/24 -j MASQUERADE
+-A POSTROUTING -o tun1 -s 100.{{ subnet_key }}.252.0/22 -j MASQUERADE
 COMMIT
 *raw
 :PREROUTING ACCEPT
@@ -28,21 +28,21 @@ COMMIT
 -A INPUT -p tcp --match state --state NEW --match tcp --dport 80 -j ACCEPT
 -A INPUT -p tcp --match state --state NEW --match tcp --dport 443 -j ACCEPT
 -A INPUT -p udp --match state --state NEW --match udp --dport 1194 -j ACCEPT
--A INPUT -p tcp --match state --match iprange --state NEW --match tcp --src-range 100.{{ subnet_id }}.251.1-100.{{ subnet_id }}.255.254 --dport 3128 -j ACCEPT
+-A INPUT -p tcp --match state --match iprange --state NEW --match tcp --src-range 100.{{ subnet_key }}.251.1-100.{{ subnet_key }}.255.254 --dport 3128 -j ACCEPT
 -A INPUT -j REJECT --reject-with icmp-host-prohibited
 -A FORWARD --match state --state RELATED,ESTABLISHED -j ACCEPT
 # Allow all Admin VPN clients to reach any server
--A FORWARD -s 100.{{ subnet_id }}.0.0/17 -j ACCEPT
+-A FORWARD -s 100.{{ subnet_key }}.0.0/17 -j ACCEPT
 
-# Example: Allow a single endpoint server at 100.{{ subnet_id }}.252.58/32 to be reachable from all endpoint servers
-#-A FORWARD -s 100.{{ subnet_id }}.252.58/32 -j ACCEPT
-#-A FORWARD -d 100.{{ subnet_id }}.252.58/32 -j ACCEPT
+# Example: Allow a single endpoint server at 100.{{ subnet_key }}.252.58/32 to be reachable from all endpoint servers
+#-A FORWARD -s 100.{{ subnet_key }}.252.58/32 -j ACCEPT
+#-A FORWARD -d 100.{{ subnet_key }}.252.58/32 -j ACCEPT
 
-# Example: Allow a single endpoint server at 100.{{ subnet_id }}.252.62/32 to be reachable on TCP/80 and TCP/443 from all endpoint servers
-#-A FORWARD -d 100.{{ subnet_id }}.252.62/32 -p tcp --match tcp --match multiport --dport 80,443 -j ACCEPT
-#-A FORWARD -s 100.{{ subnet_id }}.252.62/32 -p tcp --match tcp --match multiport --dport 80,443 -j ACCEPT
+# Example: Allow a single endpoint server at 100.{{ subnet_key }}.252.62/32 to be reachable on TCP/80 and TCP/443 from all endpoint servers
+#-A FORWARD -d 100.{{ subnet_key }}.252.62/32 -p tcp --match tcp --match multiport --dport 80,443 -j ACCEPT
+#-A FORWARD -s 100.{{ subnet_key }}.252.62/32 -p tcp --match tcp --match multiport --dport 80,443 -j ACCEPT
 
 # default reject all other endpoint-to-endpoint communications
--A FORWARD --match iprange --src-range 100.{{ subnet_id }}.252.1-100.{{ subnet_id  }}.255.254 -j REJECT --reject-with icmp-port-unreachable
+-A FORWARD --match iprange --src-range 100.{{ subnet_key }}.252.1-100.{{ subnet_key  }}.255.254 -j REJECT --reject-with icmp-port-unreachable
 
 COMMIT
