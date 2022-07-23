@@ -102,3 +102,10 @@
     enabled: true
     state: started
 
+# TODO:
+# setup Nginx
+# setup CertBot
+# setup OpenVPN
+# setup Mapper
+# setup Bootstrapper
+

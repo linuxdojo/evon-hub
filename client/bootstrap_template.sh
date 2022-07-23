@@ -57,9 +57,9 @@ echo $redhat_release | grep -q " 8" && distro=centos8
 
 # main installer
 echo ""
-echo "         .************************."
-echo '---+++===] evon.link bootstrapper [===+++---'
-echo "         '************************'"
+echo "       ............................"
+echo '+++===] Evon Endpoint bootstrapper [===+++'
+echo '       ````````````````````````````'
 
 if [ "$1" == "--uninstall" ]; then
     echo "Uninstalling..."

@@ -1,5 +1,6 @@
 ---
 
-subnet_id: 111
+account_domain: ``account_domain`` 
+subnet_key: ``subnet_key``
 endpoint_pool_persist: 7776000
 
