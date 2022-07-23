@@ -1,42 +1,31 @@
 #!/usr/bin/env python3
 
 #################################
-#
-# EVON Deployment Mapper
-#
+# EVON Mapper
 #################################
 
 
-from multiprocessing import Pool
-from pathlib import Path
-import logging.handlers
-import subprocess
-import ipaddress
-import traceback
-import textwrap
-import logging
-import signal
 import glob
-import time
+import ipaddress
 import json
-import sys
+import logging
+import logging.handlers
 import os
+import signal
+import subprocess
+import sys
+import textwrap
+import time
+import traceback
 
-import route53
-import dotenv
+import requests
 
-# load env vars from .env file
-dotenv.load_dotenv(dotenv_path=Path(os.path.dirname(os.path.realpath(__file__))) / '.env')
 
 # number of concurrent ssh connections to deployments for hostname retrieval
-NPROCS = 10
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 ZONE_ID = os.environ.get("ROUTE53_ZONE_ID")
 IGNORED_RECORDS = {'_': 'evon.link.', 'www': 'www.evon.link.'}
-CCD = "/etc/openvpn/ccd"
 CLIENTS_CACHE = None
-POOL_CONFIG_PATH = "/etc/openvpn/server/server_tcp-scope.conf"
+
 
 # setup logging
 logger = logging.getLogger()
@@ -47,6 +36,9 @@ handler.setFormatter(fmt)
 logger.addHandler(handler)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
+
+# TODO: create persisted random 0-300s offset sleep before starting (AWS API stampede prevention)
+#       use random.randint(0,300) and persist, then sleep for this time on entry
 
 def get_openvpn_clients():
     """

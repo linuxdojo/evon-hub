@@ -1,5 +1,7 @@
+# Boostrap artefacts
 bootstrap.sh
 openvpn_secrets.conf
 openvpn*.conf.inc
-*.tgz
-*.tar.gz
+
+# Package artefacts
+evon-hub_*.sh
