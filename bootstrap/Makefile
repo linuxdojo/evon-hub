@@ -64,7 +64,7 @@ decrypt: # Decrypt openvpn_secrets.conf.aes as openvpn_secrets.conf (openvpn_sec
 	echo "    however if you copy or rename it, take care not to git commit/push it. "
 	echo "  ********************************************************************************"
 
-test-connect: # Connect to EVON OpenVPN server, impersonating an endpoint server using config in this directory
+test-connect: # Connect to evon OpenVPN server, impersonating an endpoint server using config in this directory
 	sudo mkdir -p /etc/openvpn
 	sudo [ -e /etc/openvpn/evon.uuid ] || \
 		sudo bash --login -c 'echo -e "endpoint-$(uuidgen)\nnull" > /etc/openvpn/evon.uuid'

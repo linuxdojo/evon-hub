@@ -43,6 +43,7 @@
     value: "1"
     reload: yes
 
+
 # Setup sslh
 
 - name: check if sslh config file is modified
@@ -63,6 +64,7 @@
     name: sslh
     state: restarted
   when: sslh_cfg_copy.changed
+
 
 # setup bins
 
@@ -94,6 +96,7 @@
     enabled: true
   when: iptables_copy.changed
 
+
 # setup squid
 
 - name: configure squid
@@ -101,6 +104,26 @@
     name: squid
     enabled: true
     state: started
+
+
+# setup rsyslog and logrotate
+
+- name: configure rsyslog
+  ansible.builtin.copy:
+    src: rsyslog/evon.conf
+    dest: /etc/rsyslog.d/evon.conf
+  register: rsyslog_copy
+
+- name: restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+  when: rsyslog_copy.changed
+
+- name: configure logrotate
+  ansible.builtin.copy:
+    src: logrotate/evon
+    dest: /etc/logrotate.d/evon
 
 # TODO:
 # setup Nginx

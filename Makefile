@@ -10,7 +10,7 @@ help: # Show this help
 package: # produce package artefact ready for publishing
 	# create archive
 	rm -f /tmp/evon_hub.tar.gz || :
-	tar -zcf /tmp/evon_hub.tar.gz --exclude .gitignore --exclude .git --exclude .env ansible requirements.txt version.txt
+	tar -zcf /tmp/evon_hub.tar.gz --exclude '*.log' --exclude '*.swp' --exclude .gitignore --exclude .git --exclude .env ansible mapper bootstrap requirements.txt version.txt
 	# Generate output package filename
 	$(eval NAME=$(PACKAGE_NAME)-$(BRANCH))
 	$(eval GITCOUNT=$(shell git rev-list HEAD --count))
@@ -26,7 +26,7 @@ package: # produce package artefact ready for publishing
 
 publish: # publish package to AWS S3
 	# FIXME shortcut for dev only, make this publish to s3
-	scp evon-hub_0.1.15.sh  ec2-user@ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com:; ssh ec2-user@ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com "chmod +x evon-hub*.sh"
+	scp evon-hub_*.sh  ec2-user@ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com:evon-hub_latest.sh; ssh ec2-user@ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com "chmod +x evon-hub*.sh"
 
 deploy:
 	make package
