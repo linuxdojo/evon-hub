@@ -101,6 +101,11 @@ fi
 echo '### Installing Python deps...'
 . .env/bin/activate && pip install pip -U
 . .env/bin/activate && pip install -r requirements.txt
+. .env/bin/activate && pip install -e .
+
+echo '### Linking evon cli...'
+rm -f /usr/local/bin/evon || :
+ln -s /opt/evon-hub/.env/bin/evon /usr/local/bin/evon
 
 # To generate payload below, run: make package
 exit 0
