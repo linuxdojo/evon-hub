@@ -2,8 +2,11 @@
 
 import logging
 import logging.handlers
+import sys
 
 import requests
+
+from evon import mapper
 
 
 # setup logging
@@ -16,3 +19,10 @@ syslog_handler.setFormatter(fmt)
 stdout_handler.setFormatter(fmt)
 logger.addHandler(syslog_handler)
 
+
+def main():
+    logger.info(f"evon client starting - {sys.version}")
+
+
+if __name__ == "__main__":
+    main()
