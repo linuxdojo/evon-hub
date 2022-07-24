@@ -1,3 +1,0 @@
-MAILTO=""
-*/5 * * * * root sleep {{ cron_offset }}; /opt/deployment_mapper/deployment_mapper.py
-

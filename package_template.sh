@@ -5,6 +5,7 @@
 ########################################
 
 VERSION=__VERSION__
+PY_VERSION="3.10.5"
 
 # setup logging
 logfile="~/evon.hub_installer-$(date +%s)"
@@ -51,10 +52,16 @@ function extract_payload() {
     echo -n Extracting...
     tail -n +$payload_start $src | base64 -d | gunzip | cpio -id -H tar
     rm -f $src
-    cd /tmp
+    if [ -d /opt/evon-hub/.env ]; then 
+        virtualenv_ver=$(. /opt/evon-hub/.env/bin/activate && python --version | awk '{print $NF}')
+    fi
+    rm -rf /opt/.evon_venv_backup || :
+    [ "${virtualenv_ver}" == "${PY_VERSION}" ] && mv /opt/evon-hub/.env /opt/.evon_venv_backup
     rm -rf /opt/evon-hub || :
     mkdir -p /opt/evon-hub
     mv $tmpdir/* /opt/evon-hub/
+    echo $VERSION > /opt/evon-hub/version.txt
+    chown -R root:root /opt/evon-hub
     cd $pwd
 }
 
@@ -68,29 +75,31 @@ echo "### Installing version: ${VERSION}"
 extract_payload
 
 echo '### Installing Deps...'
-yum -y install gcc zlib-devel bzip2 bzip2-devel patch readline-devel sqlite sqlite-devel openssl11 openssl11-devel tk-devel libffi-devel xz-devel git
+yum -y install \
+    gcc zlib-devel bzip2 bzip2-devel patch readline-devel sqlite sqlite-devel openssl11 openssl11-devel \
+    tk-devel libffi-devel xz-devel git
 
 echo '### Installing pyenv...'
-if grep -q "# Pyenv Configuration" ~/.bash_profile; then
-    echo pyenv installed, skipping
-else
+if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
     git clone https://github.com/pyenv/pyenv.git ~/.pyenv
     echo ' ' >> ~/.bash_profile
-    echo '# Pyenv Configuration' >> ~/.bash_profile
     echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bash_profile
     echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
     echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
 fi
-source ~/.bash_profile
-pyenv install -s 3.10.5
+. ~/.bash_profile
+pyenv install -s ${PY_VERSION}
 
 echo '### Building env...'
+[ -d /opt/.evon_venv_backup ] && mv /opt/.evon_venv_backup /opt/evon-hub/.env
 cd /opt/evon-hub
 if [ ! -d .env  ]; then
-    virtualenv -p ~/.pyenv/versions/3.10.5/bin/python .env
+    echo Creating new virtualenv with version: ${PY_VERSION}
+    virtualenv -p ~/.pyenv/versions/${PY_VERSION}/bin/python .env
 fi
 
-echo '## Installing Python deps...'
+echo '### Installing Python deps...'
+. .env/bin/activate && pip install pip -U
 . .env/bin/activate && pip install -r requirements.txt
 
 # To generate payload below, run: make package
