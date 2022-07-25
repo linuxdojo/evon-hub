@@ -8,7 +8,7 @@ VERSION=__VERSION__
 PY_VERSION="3.10.5"
 
 # setup logging
-logfile="~/evon.hub_installer-$(date +%s)"
+logfile="${HOME}/evon.hub_installer-$(date +%s)"
 exec > >(tee -i $logfile)
 exec 2>&1
 
