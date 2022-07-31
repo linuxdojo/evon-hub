@@ -75,9 +75,10 @@ echo "### Installing version: ${VERSION}"
 extract_payload
 
 echo '### Installing Deps...'
-yum -y install \
-    gcc zlib-devel bzip2 bzip2-devel patch readline-devel sqlite sqlite-devel openssl11 openssl11-devel \
-    tk-devel libffi-devel xz-devel git
+package_list='
+    gcc zlib-devel bzip2 bzip2-devel patch readline-devel sqlite sqlite-devel
+    openssl11 openssl11-devel tk-devel libffi-devel xz-devel git'
+yum -y install $package_list
 
 echo '### Installing pyenv...'
 if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
