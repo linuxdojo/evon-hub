@@ -13,6 +13,7 @@ import pkg_resources
 import sys
 
 import click
+from dotenv import dotenv_values
 import requests
 
 from evon import log, api
@@ -22,8 +23,9 @@ EVON_DEBUG = os.environ.get('EVON_DEBUG', '').upper() == "TRUE"
 if EVON_DEBUG:
     logger.setLevel(logging.DEBUG)
 EVON_VERSION = pkg_resources.require('evon')[0].version
-EVON_API_KEY = os.environ.get("EVON_API_KEY")
-EVON_API_URL = os.environ.get("EVON_API_URL")
+evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
+EVON_API_KEY = evon_env["EVON_API_KEY"]
+EVON_API_URL = evon_env["EVON_API_URL"]
 
 
 def get_inventory():
