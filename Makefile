@@ -1,6 +1,7 @@
 .SILENT:
 PACKAGE_NAME := evon-hub
-EC2_HOST := ec2-user@ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
+EC2_USER := ec2_user
+EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
 ENV := dev
 
 
@@ -15,9 +16,17 @@ test: # Run unit tests
 	flake8 --ignore=E501 evon/
 
 package: # produce package artefact ready for publishing
+	# generate env
+	ENV=$(ENV) support/gen_env.py
 	# create archive
 	rm -f /tmp/evon_hub.tar.gz || :
-	tar -zcf /tmp/evon_hub.tar.gz --exclude '*.log' --exclude '*.swp' --exclude .gitignore --exclude .git --exclude .env ansible evon bootstrap requirements.txt version.txt setup.py
+	tar -zcf /tmp/evon_hub.tar.gz \
+		--exclude '*.log' \
+		--exclude '*.swp' \
+		--exclude .gitignore \
+		--exclude .git \
+		--exclude .env \
+		ansible evon bootstrap requirements.txt version.txt setup.py
 	# Generate output package filename
 	$(eval NAME=$(PACKAGE_NAME)-$(BRANCH))
 	$(eval GITCOUNT=$(shell git rev-list HEAD --count))
@@ -32,7 +41,7 @@ package: # produce package artefact ready for publishing
 	echo Wrote package file: $(OUTFILE)
 
 publish: # publish package
-	scp evon-hub_*.sh  $(EC2_HOST):evon-hub_latest.sh
+	scp evon-hub_*.sh  $(EC2_USER)@$(EC2_HOST):evon-hub_latest.sh
 	rm -f evon-hub_*.sh
 	# TODO publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
 
@@ -40,5 +49,8 @@ deploy: # make package, publish and run installer on remote host
 	#make test #TODO uncomment
 	make package
 	make publish
-	echo "Deploying to host: $(EC2_HOST)"
-	ssh $(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'; rm -f evon-hub_latest.sh"
+	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
+	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'; rm -f evon-hub_latest.sh"
+
+quick-deploy: # upload evon/ to /opt/evon-hub/ (assumes root ssh with pka is setup)
+	scp -r evon/ root@$(EC2_HOST):/opt/evon-hub/
