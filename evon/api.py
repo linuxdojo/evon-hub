@@ -50,8 +50,7 @@ def do_request(url, requests_method, headers, body={}):
         response = requests_method(url, **request_kwargs)
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
-        logger.error(f"Got error response from {requests_method} at {url}: {err}")
-        raise err
+        logger.error(f"{requests_method.__name__.upper()} request failed: '{err}' ")
     return response
 
 

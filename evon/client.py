@@ -5,6 +5,7 @@
 #################################
 
 
+import json
 import logging
 import logging.handlers
 import os
@@ -25,25 +26,42 @@ EVON_API_KEY = os.environ.get("EVON_API_KEY")
 EVON_API_URL = os.environ.get("EVON_API_URL")
 
 
-def register():
-    ...
-
-
 def get_inventory():
     response = api.get_records(EVON_API_URL, EVON_API_KEY)
-    return response
+    formatted_inventory = json.dumps(json.loads(response), indent=2)
+    return formatted_inventory
+
 
 @click.command()
-@click.option("--get-inventory", is_flag=True, help="show inventory")
+@click.option(
+    "--get-inventory",
+    cls=log.MutuallyExclusiveOption,
+    mutually_exclusive=["set_inventory"],
+    is_flag=True, help="show inventory"
+)
+@click.option(
+    "--set-inventory",
+    cls=log.MutuallyExclusiveOption,
+    mutually_exclusive=["get_inventory"],
+    metavar="JSON",
+    help=("Upsert/delete zone records specified as JSON in the following format: "
+          """'{"upsert": {"fqdn": "ipv4", ...}, "delete": {"fqdn": "ipv4", ...}}'"""
+    )
+)
 @click.option("--silent", is_flag=True, help="suppress all logs on stderr (logs will still be written to syslog)")
+@click.option("--debug", is_flag=True, help="enable debug logging")
 def main(**kwargs):
     """
-    Evon Hub CLI
+    Evon Hub CLI. All logs are written to syslog, and will be printed to stderr unless --silent is specified.
     """
+    if kwargs["debug"]:
+        logger.setLevel(logging.DEBUG)
     if kwargs["silent"]:
-        logger.setLevel(logging.WARNING)
+        logger.handlers = [h for h in logger.handlers if "StreamHandler" not in h.__repr__()]
     logger.info(f"Evon client v{EVON_VERSION} starting - {sys.version}")
 
     if kwargs["get_inventory"]:
-        click.echo(get_inventory())
+        logger.info("fetching inventory...")
+        inventory = get_inventory()
+        click.echo(inventory)
 

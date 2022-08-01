@@ -5,4 +5,7 @@
     monthly
     compress
     delaycompress
+    postrotate
+        /usr/bin/systemctl kill -s HUP rsyslog.service 
+    endscript
 }
