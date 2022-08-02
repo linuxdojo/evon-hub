@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+Generates file `evon/.evon_env` containing env respective api key/url as part of packaging.
+"""
+
 import os
 
 import boto3
