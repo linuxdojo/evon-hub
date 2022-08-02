@@ -5,7 +5,6 @@
 #################################
 
 
-import json
 import logging
 import logging.handlers
 import os
@@ -28,13 +27,7 @@ EVON_API_KEY = evon_env["EVON_API_KEY"]
 EVON_API_URL = evon_env["EVON_API_URL"]
 
 
-def get_inventory():
-    response = api.get_records(EVON_API_URL, EVON_API_KEY)
-    formatted_inventory = json.dumps(json.loads(response), indent=2)
-    return formatted_inventory
-
-
-@click.command()
+@click.command(no_args_is_help=True)
 @click.option(
     "--get-inventory",
     cls=log.MutuallyExclusiveOption,
@@ -52,6 +45,7 @@ def get_inventory():
 )
 @click.option("--silent", is_flag=True, help="suppress all logs on stderr (logs will still be written to syslog)")
 @click.option("--debug", is_flag=True, help="enable debug logging")
+@click.option("--version", is_flag=True, help="show version and exit")
 def main(**kwargs):
     """
     Evon Hub CLI. All logs are written to syslog, and will be printed to stderr unless --silent is specified.
@@ -60,10 +54,22 @@ def main(**kwargs):
         logger.setLevel(logging.DEBUG)
     if kwargs["silent"]:
         logger.handlers = [h for h in logger.handlers if "StreamHandler" not in h.__repr__()]
+
     logger.info(f"Evon client v{EVON_VERSION} starting - {sys.version}")
+
+    if kwargs["version"]:
+        click.echo(EVON_VERSION)
+        sys.exit()
 
     if kwargs["get_inventory"]:
         logger.info("fetching inventory...")
-        inventory = get_inventory()
+        inventory = api.get_records(EVON_API_URL, EVON_API_KEY)
         click.echo(inventory)
+
+    if kwargs["set_inventory"]:
+        json_payload = kwargs["set_inventory"]
+        logger.info("setting inventory...")
+        logger.debug(f"updating inventory with payload: {json_payload}")
+        result = api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
+        click.echo(result)
 
