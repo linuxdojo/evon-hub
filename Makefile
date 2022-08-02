@@ -1,6 +1,7 @@
 .SILENT:
 PACKAGE_NAME := evon-hub
-EC2_USER := ec2_user
+EC2_USER := ec2-user
+# FIXME move the below nonsense to a config file or something.
 EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
 ENV := dev
 
@@ -33,7 +34,7 @@ package: # produce package artefact ready for publishing
 	$(eval VER=$(shell cat version.txt).$(GITCOUNT))
 	$(eval OUTFILE=$(PACKAGE_NAME)_$(VER).sh)
 	# write final package
-	cp package_template.sh $(OUTFILE)
+	cp support/package_template.sh $(OUTFILE)
 	cat /tmp/evon_hub.tar.gz | base64 >> $(OUTFILE)
 	# cleanup
 	rm -f /tmp/evon_hub.tar.gz
