@@ -29,7 +29,7 @@ class click_stderr():
                 color = "bright_red"
             case "CRITICAL":
                 color = "red"
-            case other:
+            case other:  # noqa
                 color = "reset"
         click.echo(click.style(data.strip(), fg=color), err=True)
         click_stderr.flush()
