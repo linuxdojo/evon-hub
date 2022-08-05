@@ -15,4 +15,4 @@ test: # test local playbooks for validity
 	find ./ -maxdepth 1 -name '*.yml' | grep -v requirements | xargs -n1 ansible-playbook -i $(INVENTORY_FILE) --syntax-check --list-tasks
 
 deploy: # deploy
-	ansible-playbook evon-hub.yml
+	ansible-playbook -e @/opt/evon-hub/evon_vars.yaml evon-hub.yml

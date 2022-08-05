@@ -53,5 +53,7 @@ deploy: # make package, publish and run installer on remote host
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
 	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'; rm -f evon-hub_latest.sh"
 
-quick-deploy: # upload evon/ to /opt/evon-hub/ (assumes root ssh with pka is setup)
+quick-deploy: # DEV ONLY - upload evon/ to /opt/evon-hub/ (assumes root ssh with pka is setup)
 	scp -r evon/ root@$(EC2_HOST):/opt/evon-hub/
+	scp -r ansible/ root@$(EC2_HOST):/opt/evon-hub/
+
