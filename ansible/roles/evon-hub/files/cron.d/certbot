@@ -1,0 +1,6 @@
+# Rewnew SSL certs
+SHELL=/bin/bash
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=root
+0 0 */3 * * root certbot renew
+
