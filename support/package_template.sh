@@ -77,7 +77,9 @@ extract_payload
 echo '### Installing Deps...'
 package_list='
     gcc zlib-devel bzip2 bzip2-devel patch readline-devel sqlite sqlite-devel
-    openssl11 openssl11-devel tk-devel libffi-devel xz-devel git'
+    openssl11 openssl11-devel tk-devel libffi-devel xz-devel git certbot easy-rsa
+    htop jq iptables-services nginx openvpn python2-certbot-nginx squid sslh tmux vim'
+
 yum -y install $package_list
 
 echo '### Installing pyenv...'
@@ -108,6 +110,23 @@ echo '### Linking evon cli...'
 rm -f /usr/local/bin/evon || :
 ln -s /opt/evon-hub/.env/bin/evon /usr/local/bin/evon
 
-# To generate payload below, run: make package
+echo '### Obtaining and persisting account info...'
+response=$(evon --get-account-info)  # initial call acts as registration event, subnet_key will be default 111
+account_domain=$(echo $response | jq .account_domain)
+subnet_key=$(echo $response | jq .subnet_key)
+public_ipv4=$(echo $response | jq .public_ipv4)
+cat <<EOF > /opt/evon-hub/evon_vars.yaml
+---
+account_domain: ${account_domain}
+subnet_key: ${subnet_key}
+public_ipv4: ${public_ipv4}
+EOF
+
+echo '### Deploying state'
+evon --save-state
+
+echo '### Done!'
+cat /etc/motd
 exit 0
+# To generate payload below, run: make package
 PAYLOAD:
