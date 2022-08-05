@@ -82,7 +82,7 @@ def inject_pub_ipv4(json_data):
 @click.option("--version", is_flag=True, help="show version and exit")
 def main(**kwargs):
     """
-    Evon Hub CLI. All logs are written to syslog and will be printed to stderr unless --silent is specified.
+    Evon Hub CLI. All logs are written to syslog and will also be echoed to stderr unless --silent is specified.
     """
     if kwargs["debug"]:
         logger.setLevel(logging.DEBUG)
@@ -118,7 +118,7 @@ def main(**kwargs):
     if kwargs["save_state"]:
         logger.info("deploying state...")
         try:
-            subprocess.check_call("cd /opt/evon-hub/ansible && make deploy", shell=True, stdout=sys.stderr)
+            subprocess.check_call(". /opt/evon-hub/.env/bin/activate && cd /opt/evon-hub/ansible && make deploy", shell=True, stdout=sys.stderr)
             click.echo('{"status": "success"}')
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
