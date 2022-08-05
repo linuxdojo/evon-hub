@@ -10,6 +10,7 @@ import logging
 import logging.handlers
 import os
 import pkg_resources
+import subprocess
 import sys
 
 import click
@@ -26,6 +27,12 @@ evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
 EVON_API_KEY = evon_env["EVON_API_KEY"]
 EVON_API_URL = evon_env["EVON_API_URL"]
 
+MUTEX_OPTIONS = [
+    "get_inventory",
+    "get_account_info",
+    "get_inventory",
+    "save_state",
+]
 
 def inject_pub_ipv4(json_data):
     try:
@@ -41,13 +48,14 @@ def inject_pub_ipv4(json_data):
 @click.option(
     "--get-inventory",
     cls=log.MutuallyExclusiveOption,
-    mutually_exclusive=["set_inventory", "get_account_info"],
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_inventory"],
     is_flag=True, help="Show inventory."
 )
 @click.option(
     "--set-inventory",
+    hidden=True,
     cls=log.MutuallyExclusiveOption,
-    mutually_exclusive=["get_inventory", "get_account_info"],
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "set_inventory"],
     metavar="JSON",
     help=("Upsert/delete zone records specified as JSON in the following format: "
           """'{"new": {"fqdn": "ipv4", ...},  "removed": {"fqdn": "ipv4", ...}, """
@@ -57,9 +65,17 @@ def inject_pub_ipv4(json_data):
 @click.option(
     "--get-account-info",
     cls=log.MutuallyExclusiveOption,
-    mutually_exclusive=["get_inventory", "set_inventory"],
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_account_info"],
     is_flag=True,
     help="Get account info."
+)
+@click.option(
+    "--save-state",
+    cls=log.MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "save_state"],
+    is_flag=True,
+    hidden=True,
+    help="deploy and persist state"
 )
 @click.option("--silent", is_flag=True, help="suppress all logs on stderr (logs will still be written to syslog)")
 @click.option("--debug", is_flag=True, help="enable debug logging")
@@ -98,3 +114,11 @@ def main(**kwargs):
         json_payload = inject_pub_ipv4(json_payload)
         result = api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
         click.echo(result)
+
+    if kwargs["save_state"]:
+        logger.info("deploying state...")
+        try:
+            subprocess.check_call("cd /opt/evon-hub/ansible && make deploy", shell=True, stdout=sys.stderr)
+            click.echo('{"status": "success"}')
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')

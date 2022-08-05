@@ -15,28 +15,6 @@
   register: shell_output
   changed_when: "'Installing:' in shell_output.stdout"
 
-- name: install latest required base packages
-  ansible.builtin.yum:
-    name:
-      - certbot
-      - easy-rsa
-      - htop
-      - jq
-      - iptables-services
-      - nginx
-      - openvpn
-      - python2-certbot-nginx
-      - squid
-      - sslh
-      - tmux
-      - vim
-    state: latest
-
-- name: upgrade all packages
-  yum: 
-    name: '*'
-    state: latest
-
 - name: enable ipv4 forwarding
   sysctl:
     name: net.ipv4.ip_forward
@@ -82,14 +60,14 @@
     dest: /etc/sysconfig/iptables
   register: iptables_copy
 
-- name: start and persist iptables
+- name: ensure iptables service is started and persisted
   ansible.builtin.service:
     name: iptables
     enabled: true
     state: started
   when: not iptables_copy.changed
 
-- name: restart and persist iptables service
+- name: conditionally restart and persist iptables service
   ansible.builtin.service:
     name: iptables
     state: restarted
@@ -131,4 +109,5 @@
 # setup OpenVPN
 # setup Mapper
 # setup Bootstrapper
+# setup MOTD
 
