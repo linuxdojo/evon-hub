@@ -1,6 +1,6 @@
 ---
 
-# Setup base OS
+### Setup base OS
 
 - name: validate Amazon Linux
   shell: grep "Amazon Linux" /etc/system-release
@@ -22,7 +22,7 @@
     reload: yes
 
 
-# Setup sslh
+### Setup sslh
 
 - name: check if sslh config file is modified
   shell: rpm -Vf /etc/sslh.cfg
@@ -44,7 +44,7 @@
   when: sslh_cfg_copy.changed
 
 
-# setup bins
+### Setup bins
 
 - name: copy bin files
   ansible.builtin.copy:
@@ -52,7 +52,7 @@
     dest: /usr/local/bin/
     mode: 755
 
-# setup iptables
+### Setup iptables
 
 - name: configure iptables
   ansible.builtin.template:
@@ -75,7 +75,7 @@
   when: iptables_copy.changed
 
 
-# setup squid
+### Setup Squid
 
 - name: configure squid
   ansible.builtin.service:
@@ -84,7 +84,7 @@
     state: started
 
 
-# setup rsyslog and logrotate
+### Setup rsyslog and logrotate
 
 - name: configure rsyslog
   ansible.builtin.copy:
@@ -104,7 +104,7 @@
     dest: /etc/logrotate.d/evon
 
 
-# setup Nginx
+### Setup Nginx
 
 - name: check if nginx config is present
   ansible.builtin.stat:
@@ -131,7 +131,7 @@
     state: started
 
 
-# setup CertBot
+### Setup CertBot
 
 - name: check if certbot already configured
   ansible.builtin.lineinfile:
@@ -167,10 +167,17 @@
   when: certbot_deploy.changed
 
 
+ ### Setup motd
+
+- name: configure motd
+  ansible.builtin.copy:
+    src: motd/motd
+    dest: /etc/motd
+
 
 # TODO:
-# setup OpenVPN
-# setup Mapper
-# setup Bootstrapper
-# setup MOTD
+### setup EasyRSA
+### setup OpenVPN
+### setup Mapper
+### setup Bootstrapper
 
