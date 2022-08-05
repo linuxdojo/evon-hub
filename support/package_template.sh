@@ -107,9 +107,13 @@ echo '### Installing Python deps...'
 . .env/bin/activate && pip install -r requirements.txt
 . .env/bin/activate && pip install -e .
 
-echo '### Linking evon cli...'
+echo '### Deploying Evon CLI entrypoint...'
 rm -f /usr/local/bin/evon || :
-ln -s /opt/evon-hub/.env/bin/evon /usr/local/bin/evon
+cat <<EOF > /usr/local/bin/evon
+#!/bin/bash
+exec sudo /opt/evon-hub/.env/bin/evon \$@
+EOF
+chmod 4755 /usr/local/bin/evon
 
 echo '### Obtaining and persisting account info...'
 response=$(evon --get-account-info)  # initial call acts as registration event, subnet_key will be default 111
