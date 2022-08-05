@@ -103,9 +103,72 @@
     src: logrotate/evon
     dest: /etc/logrotate.d/evon
 
-# TODO:
+
 # setup Nginx
+
+- name: check if nginx config is present
+  ansible.builtin.stat:
+    path: /etc/nginx/conf.d/evon.conf
+  register: nginx_config_file
+
+- name: configure nginx
+  ansible.builtin.template:
+    src: nginx/evon.conf
+    dest: /etc/nginx/conf.d/evon.conf
+  when: not nginx_config_file.stat.exists
+  register: configure_nginx
+
+- name: restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  when: configure_nginx.changed
+
+- name: persist nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+
 # setup CertBot
+
+- name: check if certbot already configured
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/conf.d/evon.conf
+    regexp: 'managed by Certbot'
+    state: absent
+  check_mode: yes
+  changed_when: false
+  register: certbot_config
+
+- name: deploy certbot
+  shell: certbot run -d {{ account_domain }} --nginx -n --agree-tos --email root@{{ account_domain }}
+  when: not certbot_config.found
+  register: certbot_deploy
+
+- name: setup certbot auto renewal
+  ansible.builtin.copy:
+    src: cron.d/certbot
+    dest: /etc/cron.d/certbot
+  when: certbot_deploy.changed
+  
+- name: configure nginx bind port
+  ansible.builtin.replace:
+    path: /etc/nginx/conf.d/evon.conf
+    regexp: '443'
+    replace: '1443'
+  when: certbot_deploy.changed
+
+- name: restart nginx after certbot deploy
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  when: certbot_deploy.changed
+
+
+
+# TODO:
 # setup OpenVPN
 # setup Mapper
 # setup Bootstrapper
