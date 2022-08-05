@@ -66,11 +66,12 @@ function extract_payload() {
 }
 
 # main installer
-echo ""
-echo "       ...................."
-echo "+++===] Evon Hub Installer [===+++"
-echo '       ````````````````````'
-
+echo ''
+echo '  __| |  |    \ \  |               '
+echo '  _|  \  | () |  \ | Hub Installer '
+echo ' ___|  _/  ___/_| _|               ' 
+echo '[ Elastic Virtual Overlay Network ]'
+econ ''
 echo "### Installing version: ${VERSION}"
 extract_payload
 
