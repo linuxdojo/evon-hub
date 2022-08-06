@@ -42,6 +42,7 @@ fi
 
 # define payload extractor
 function extract_payload() {
+    # extract payload
     pwd=$(pwd)
     tmpdir=$(mktemp -d)
     cp $0 $tmpdir
@@ -52,14 +53,17 @@ function extract_payload() {
     echo -n Extracting...
     tail -n +$payload_start $src | base64 -d | gunzip | cpio -id -H tar
     rm -f $src
+    # backup virtual env if version matches
     if [ -d /opt/evon-hub/.env ]; then 
         virtualenv_ver=$(. /opt/evon-hub/.env/bin/activate && python --version | awk '{print $NF}')
     fi
     rm -rf /opt/.evon_venv_backup || :
     [ "${virtualenv_ver}" == "${PY_VERSION}" ] && mv /opt/evon-hub/.env /opt/.evon_venv_backup
+    # replace target dir
     rm -rf /opt/evon-hub || :
     mkdir -p /opt/evon-hub
     mv $tmpdir/* /opt/evon-hub/
+    # create version file
     echo $VERSION > /opt/evon-hub/version.txt
     chown -R root:root /opt/evon-hub
     cd $pwd
@@ -77,10 +81,34 @@ extract_payload
 
 echo '### Installing Deps...'
 package_list='
-    gcc zlib-devel bzip2 bzip2-devel patch readline-devel sqlite sqlite-devel
-    openssl11 openssl11-devel tk-devel libffi-devel xz-devel git certbot easy-rsa
-    htop jq iptables-services nginx openvpn python2-certbot-nginx squid sslh tmux vim'
-
+    bzip2
+    bzip2-devel
+    certbot
+    easy-rsa
+    gcc
+    git
+    htop
+    iptables-services
+    jq
+    libffi-devel
+    mlocate
+    nginx
+    openssl11
+    openssl11-devel
+    openvpn
+    patch
+    python2-certbot-nginx
+    readline-devel
+    sqlite
+    sqlite-devel
+    squid
+    sslh
+    tk-devel
+    tmux
+    vim
+    xz-devel
+    zlib-devel
+'
 yum -y install $package_list
 
 echo '### Installing pyenv...'
@@ -99,7 +127,7 @@ echo '### Building env...'
 cd /opt/evon-hub
 if [ ! -d .env  ]; then
     echo Creating new virtualenv with version: ${PY_VERSION}
-    virtualenv -p ~/.pyenv/versions/${PY_VERSION}/bin/python .env
+    ~/.pyenv/versions/3.10.5/bin/virtualenv -p ~/.pyenv/versions/${PY_VERSION}/bin/python .env
 fi
 
 echo '### Installing Python deps...'
