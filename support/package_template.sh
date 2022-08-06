@@ -71,7 +71,7 @@ echo '  __| |  |    \ \  |               '
 echo '  _|  \  | () |  \ | Hub Installer '
 echo ' ___|  _/  ___/_| _|               ' 
 echo '[ Elastic Virtual Overlay Network ]'
-econ ''
+echo ''
 echo "### Installing version: ${VERSION}"
 extract_payload
 

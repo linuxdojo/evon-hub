@@ -75,14 +75,16 @@ def inject_pub_ipv4(json_data):
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "save_state"],
     is_flag=True,
     hidden=True,
-    help="deploy and persist state"
+    help="Deploy and persist state."
 )
-@click.option("--silent", is_flag=True, help="suppress all logs on stderr (logs will still be written to syslog)")
-@click.option("--debug", is_flag=True, help="enable debug logging")
-@click.option("--version", is_flag=True, help="show version and exit")
+@click.option("--silent", is_flag=True, help="Suppress all logs on stderr (logs will still be written to syslog at /var/log/evon.log).")
+@click.option("--debug", is_flag=True, help="Enable debug logging.")
+@click.option("--version", is_flag=True, help="Show version and exit.")
 def main(**kwargs):
     """
-    Evon Hub CLI. All logs are written to syslog and will also be echoed to stderr unless --silent is specified.
+    Evon Hub CLI. 
+    Output is written to stdout as JSON, logs are written to syslog and
+    will also be echoed to stderr unless --silent is specified.
     """
     if kwargs["debug"]:
         logger.setLevel(logging.DEBUG)
