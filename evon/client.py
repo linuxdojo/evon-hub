@@ -77,18 +77,18 @@ def inject_pub_ipv4(json_data):
     hidden=True,
     help="Deploy and persist state."
 )
-@click.option("--silent", is_flag=True, help="Suppress all logs on stderr (logs will still be written to syslog at /var/log/evon.log).")
+@click.option("--quiet", is_flag=True, help="Suppress all logs on stderr (logs will still be written to syslog at /var/log/evon.log).")
 @click.option("--debug", is_flag=True, help="Enable debug logging.")
 @click.option("--version", is_flag=True, help="Show version and exit.")
 def main(**kwargs):
     """
     Evon Hub CLI. 
     Output is written to stdout as JSON, logs are written to syslog and
-    will also be echoed to stderr unless --silent is specified.
+    will also be echoed to stderr unless --quiet is specified.
     """
     if kwargs["debug"]:
         logger.setLevel(logging.DEBUG)
-    if kwargs["silent"]:
+    if kwargs["quiet"]:
         logger.handlers = [h for h in logger.handlers if "StreamHandler" not in h.__repr__()]
 
     logger.info(f"Evon client v{EVON_VERSION} starting - {sys.version}")
@@ -119,8 +119,15 @@ def main(**kwargs):
 
     if kwargs["save_state"]:
         logger.info("deploying state...")
-        try:
-            subprocess.check_call(". /opt/evon-hub/.env/bin/activate && cd /opt/evon-hub/ansible && make deploy", shell=True, stdout=sys.stderr)
+        p = subprocess.Popen(". /opt/evon-hub/.env/bin/activate && cd /opt/evon-hub/ansible && make deploy", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        while True:
+            data = p.stdout.readline()
+            if not data:
+                break
+            output = data.decode("utf-8").strip()
+            output and logger.info(output)
+        rc = p.wait()
+        if not rc:
             click.echo('{"status": "success"}')
-        except Exception as e:
-            click.echo(f'{{"status": "failed", "message": "{e}"}}')
+        else:
+            click.echo(f'{{"status": "failed", "message": "Got non-zero return code: {rc}"}}')
