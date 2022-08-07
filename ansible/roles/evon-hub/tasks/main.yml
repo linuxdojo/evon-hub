@@ -2,12 +2,12 @@
 
 ### Setup base OS
 
-- name: validate Amazon Linux
-  shell: grep "Amazon Linux" /etc/system-release
+- name: ensure we are running on Amazon Linux
+  ansible.builtin.shell: grep "Amazon Linux" /etc/system-release
   changed_when: false
 
 - name: install epel release
-  shell: |
+  ansible.builtin.shell: |
     rpm -qi epel-release >/dev/null 2>&1
     if [ $? -ne 0 ]; then
       yes | amazon-linux-extras install epel
@@ -25,7 +25,7 @@
 ### Setup sslh
 
 - name: check if sslh config file is modified
-  shell: rpm -Vf /etc/sslh.cfg
+  ansible.builtin.shell: rpm -Vf /etc/sslh.cfg
   register: ssllh_cfg
   changed_when: false
   failed_when: false
@@ -122,6 +122,7 @@
   ansible.builtin.service:
     name: nginx
     state: restarted
+    enabled: true
   when: configure_nginx.changed
 
 - name: persist nginx service
@@ -129,6 +130,7 @@
     name: nginx
     enabled: true
     state: started
+  when: not configure_nginx.changed
 
 
 ### Setup CertBot
@@ -143,7 +145,7 @@
   register: certbot_config
 
 - name: deploy certbot
-  shell: certbot run -d {{ account_domain }} --nginx -n --agree-tos --email root@{{ account_domain }}
+  ansible.builtin.shell: certbot run -d {{ account_domain }} --nginx -n --agree-tos --email root@{{ account_domain }}
   when: not certbot_config.found
   register: certbot_deploy
 
@@ -175,8 +177,57 @@
     dest: /etc/motd
 
 
+### setup and configure easy-rsa
+
+- name: deploy certificate authority
+
+  block:
+
+    - name: check if ca already deployed
+      ansible.builtin.stat:
+        path: /opt/easy-rsa
+      register: easyrsa_dir
+
+    - name: deploy ca scripts
+      ansible.builtin.shell: "cp -r $(find /usr/share/easy-rsa -maxdepth 1 -mindepth 1 -type d) /opt/easy-rsa"
+      when: not easyrsa_dir.stat.exists
+
+    - name: deploy ca vars
+      ansible.builtin.template:
+        src: pki/vars
+        dest: /opt/easy-rsa/vars
+
+    - name: check if ca is initialised
+      ansible.builtin.stat:
+        path: /opt/easy-rsa/pki
+      register: easyrsa_init
+
+    - name: initialise ca
+      ansible.builtin.shell: |
+        cd /opt/easy-rsa
+        ./easyrsa init-pki
+        ./easyrsa gen-dh
+        ./easyrsa build-ca nopass <<< {{ ec2_id  }}.ca.evon-hub
+        ./easyrsa build-server-full {{ ec2_id }}.server.evon-hub nopass
+        ./easyrsa build-client-full {{ ec2_id }}.endpoint.evon-hub nopass
+        ./easyrsa build-client-full {{ ec2_id }}.user.evon-hub nopass
+        openvpn --genkey --secret pki/ta.key
+      when: not easyrsa_init.stat.exists
+
+  rescue:
+
+    - name: post-failure cleanup
+      ansible.builtin.file:
+        state: absent
+        path: /opt/easy-rsa
+
+    - name: post-failure exit
+      ansible.builtin.fail:
+        msg: "exiting due to failure in task: {{ ansible_failed_task.name }}"
+
+
+
 # TODO:
-### setup EasyRSA
 ### setup OpenVPN
 ### setup Mapper
 ### setup Bootstrapper
