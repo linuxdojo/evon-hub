@@ -119,15 +119,22 @@ def main(**kwargs):
 
     if kwargs["save_state"]:
         logger.info("deploying state...")
-        p = subprocess.Popen(". /opt/evon-hub/.env/bin/activate && cd /opt/evon-hub/ansible && make deploy", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(
+            ". /opt/evon-hub/.env/bin/activate && cd /opt/evon-hub/ansible && make deploy",
+            shell=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
         while True:
             data = p.stdout.readline()
             if not data:
                 break
-            output = data.decode("utf-8").strip()
+            output = data.strip()
             output and logger.info(output)
         rc = p.wait()
         if not rc:
             click.echo('{"status": "success"}')
         else:
             click.echo(f'{{"status": "failed", "message": "Got non-zero return code: {rc}"}}')
+            sys.exit(rc)
