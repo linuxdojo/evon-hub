@@ -207,7 +207,7 @@
         cd /opt/easy-rsa
         ./easyrsa init-pki
         ./easyrsa gen-dh
-        ./easyrsa build-ca nopass <<< {{ ec2_id  }}.ca.evon-hub
+        ./easyrsa build-ca nopass <<< {{ ec2_id }}.ca.evon-hub
         ./easyrsa build-server-full {{ ec2_id }}.server.evon-hub nopass
         ./easyrsa build-client-full {{ ec2_id }}.endpoint.evon-hub nopass
         ./easyrsa build-client-full {{ ec2_id }}.user.evon-hub nopass
@@ -226,9 +226,59 @@
         msg: "exiting due to failure in task: {{ ansible_failed_task.name }}"
 
 
+### setup OpenVPN
+
+- name: create ccd dir
+  ansible.builtin.file:
+    path: /etc/openvpn/ccd
+    state: directory
+
+- name: deploy openvpn scope config
+  ansible.builtin.template:
+    src: openvpn/server/server_tcp-scope.conf
+    dest: /etc/openvpn/server/server_tcp-scope.conf
+  register: openvpn_scope_cfg
+
+- name: deploy openvpn tcp server config
+  ansible.builtin.template:
+    src: openvpn/server/server_tcp.conf
+    dest: /etc/openvpn/server/server_tcp.conf
+  register: openvpn_tcp_cfg
+
+- name: deploy openvpn udp server config
+  ansible.builtin.template:
+    src: openvpn/server/server_udp.conf
+    dest: /etc/openvpn/server/server_udp.conf
+  register: openvpn_udp_cfg
+
+- name: restart openvpn tcp server
+  ansible.builtin.service:
+    name: openvpn-server@server_tcp.service
+    state: restarted
+    enabled: true
+  when: openvpn_scope_cfg.changed or openvpn_tcp_cfg.changed
+
+- name: persist openvpn tcp service
+  ansible.builtin.service:
+    name: openvpn-server@server_tcp.service
+    enabled: true
+    state: started
+
+- name: restart openvpn udp server
+  ansible.builtin.service:
+    name: openvpn-server@server_udp.service
+    state: restarted
+    enabled: true
+  when: openvpn_udp_cfg.changed
+
+- name: persist openvpn udp service
+  ansible.builtin.service:
+    name: openvpn-server@server_udp.service
+    enabled: true
+    state: started
+
 
 # TODO:
-### setup OpenVPN
-### setup Mapper
 ### setup Bootstrapper
+### setup Mapper
 
