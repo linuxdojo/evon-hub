@@ -175,7 +175,7 @@ echo '### Deploying state'
 evon --save-state
 rc=$?
 if [ $rc -ne 0 ]; then
-    bail $rc "ERROR: Installation failed, please contact support at email address support@evon.link and provide the log file at path $logfile"
+    bail $rc "ERROR: Installation failed, please contact support at support@evon.link and provide the log file at path $logfile"
 fi
 
 echo '### Done!'
