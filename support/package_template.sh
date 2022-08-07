@@ -17,10 +17,14 @@ bail() {
     rc=$1
     message=$2
     echo $message
+    exit $rc
+}
+
+end() {
+    rc=$1
     echo Installation log file is available at $logfile
     exit $rc
 }
-trap bail EXIT
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -39,6 +43,9 @@ else
     echo 'Unable to validate that this OS is Amazon Linux 2 (can not read /etc/system-release). Aborting.'
     exit 1
 fi
+
+# register exit handler
+trap end EXIT
 
 # define payload extractor
 function extract_payload() {
@@ -144,22 +151,35 @@ EOF
 chmod 4755 /usr/local/bin/evon
 
 echo '### Obtaining and persisting account info...'
-response=$(evon --get-account-info)  # initial call acts as registration event, subnet_key will be default 111
-account_domain=$(echo $response | jq .account_domain)
-subnet_key=$(echo $response | jq .subnet_key)
-public_ipv4=$(echo $response | jq .public_ipv4)
+# initial call to --get-account-info acts as registration event, subnet_key will be default "111".
+# TODO: use --set-inventory with subnet_key as input param
+account_info=$(evon --get-account-info)
+iid=$(curl -s 'http://169.254.169.254/latest/dynamic/instance-identity/document')
+account_domain=$(echo $account_info | jq .account_domain)
+subnet_key=$(echo $account_info | jq .subnet_key)
+public_ipv4=$(echo $account_info | jq .public_ipv4)
+aws_region=$(echo $iid | jq .region)
+aws_az=$(echo $iid | jq .availabilityZone)
+ec2_id=$(echo $iid | jq .instanceId)
 cat <<EOF > /opt/evon-hub/evon_vars.yaml
 ---
 account_domain: ${account_domain}
 subnet_key: ${subnet_key}
 public_ipv4: ${public_ipv4}
+aws_region: ${aws_region}
+aws_az: ${aws_az}
+ec2_id: ${ec2_id}
 EOF
 
 echo '### Deploying state'
 evon --save-state
+rc=$?
+if [ $rc -ne 0 ]; then
+    bail $rc "ERROR: Installation failed, please contact support at email address support@evon.link and provide the log file at path $logfile"
+fi
 
 echo '### Done!'
 cat /etc/motd
-exit 0
+bail 0
 # To generate payload below, run: make package
 PAYLOAD:
