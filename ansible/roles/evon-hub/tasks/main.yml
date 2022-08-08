@@ -278,7 +278,82 @@
     state: started
 
 
-# TODO:
 ### setup Bootstrapper
+
+- name: setup evon bootstrap
+
+  block:
+
+    - name: create bootstrap dir
+      ansible.builtin.file:
+        path: /opt/evon-hub/build_bootstrap
+        state: directory
+
+    - name: create webroot dir
+      ansible.builtin.file:
+        path: /var/www/html
+        state: directory
+        owner: nginx
+
+    - name: compute bootstrap key
+      ansible.builtin.shell: 'curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -jr ".accountId, .instanceId" | md5sum | awk ''{print $1}'''
+      register: bootstrap_key_cmd
+
+    - name: set bootstrap facts
+      ansible.builtin.set_fact:
+        ca_cert: "{{ lookup('file', '/opt/easy-rsa/pki/ca.crt') }}"
+        client_cert: "{{ lookup('file', '/opt/easy-rsa/pki/issued/{{ ec2_id }}.endpoint.evon-hub.crt') }}"
+        client_key: "{{ lookup('file', '/opt/easy-rsa/pki/private/{{ ec2_id }}.endpoint.evon-hub.key') }}"
+        tls_auth_key: "{{ lookup('file', '/opt/easy-rsa/pki/ta.key') }}"
+        version: "{{ lookup('file', '/opt/evon-hub/version.txt') }}"
+        bootstrap_key: "{{ bootstrap_key_cmd.stdout }}"
+
+    - name: render bootstrap client config
+      ansible.builtin.template:
+        src: bootstrap/openvpn_client.conf
+        dest: /opt/evon-hub/build_bootstrap/openvpn_client.conf
+
+    - name: render bootstrap proxy config
+      ansible.builtin.template:
+        src: bootstrap/openvpn_proxy.conf
+        dest: /opt/evon-hub/build_bootstrap/openvpn_proxy.conf
+
+    - name: render bootstrap secrets config
+      ansible.builtin.template:
+        src: bootstrap/openvpn_secrets.conf
+        dest: /opt/evon-hub/build_bootstrap/openvpn_secrets.conf
+
+    - name: render bootstrap installer script template
+      ansible.builtin.template:
+        src: bootstrap/bootstrap_template.sh
+        dest: /opt/evon-hub/build_bootstrap/bootstrap.sh
+
+    - name: encrypt bootstrap secrets
+      ansible.builtin.shell: "openssl enc -aes-256-cbc -pass pass:{{ bootstrap_key }} -in /opt/evon-hub/build_bootstrap/openvpn_secrets.conf -out /opt/evon-hub/build_bootstrap/openvpn_secrets.conf.aes"
+
+    - name: build bootstrap script
+      ansible.builtin.shell: |
+        cd /opt/evon-hub/build_bootstrap
+        tar -c openvpn_client.conf openvpn_proxy.conf openvpn_secrets.conf.aes | gzip | base64 >> bootstrap.sh
+        chmod +x /opt/evon-hub/build_bootstrap/bootstrap.sh
+        mv /opt/evon-hub/build_bootstrap/bootstrap.sh /var/www/html
+
+    - name: cleanup
+      ansible.builtin.file:
+        state: absent
+        path: /opt/evon-hub/build_bootstrap
+
+  rescue:
+
+    - name: post-failure cleanup
+      ansible.builtin.file:
+        state: absent
+        path: /opt/evon-hub/build_bootstrap
+
+    - name: post-failure exit
+      ansible.builtin.fail:
+        msg: "exiting due to failure in task: {{ ansible_failed_task.name }}"
+
+# TODO:
 ### setup Mapper
 
