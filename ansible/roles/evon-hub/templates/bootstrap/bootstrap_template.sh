@@ -4,8 +4,10 @@
 # Evon Endpoint Server Bootstrap Script
 ########################################
 
+VERSION={{ version }}
+
 # Set the IPv4 address of the server-side VPN peer (reachable only if tunnel is up)
-EVON_PEER=10.111.0.1
+EVON_PEER=100.{{ subnet_key }}.252.1
 
 # setup logging
 logfile="/root/evon.link_bootstrap-$(date +%s)"
@@ -56,10 +58,12 @@ echo $redhat_release | grep -q " 7" && distro=centos7
 echo $redhat_release | grep -q " 8" && distro=centos8
 
 # main installer
-echo ""
-echo "       ............................"
-echo '+++===] Evon Endpoint bootstrapper [===+++'
-echo '       ````````````````````````````'
+echo ''
+echo '  __| |  |    \ \  |               '
+echo '  _|  \  | () |  \ | Bootstrap     '
+echo " ___|  _/  ___/_| _| v${VERSION}   " 
+echo '[ Elastic Virtual Overlay Network ]'
+echo ''
 
 if [ "$1" == "--uninstall" ]; then
     echo "Uninstalling..."
@@ -313,6 +317,5 @@ echo ""
 echo "Obtained VPN ip address: $ipaddr"
 echo "The evon connection setup has successfully completed!"
 
-# To generate payload below, run: make bootstrap
 exit 0
 PAYLOAD:
