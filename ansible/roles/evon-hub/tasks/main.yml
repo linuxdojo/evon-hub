@@ -280,10 +280,13 @@
 
 ### setup Bootstrapper
 
+- name: check if bootstrap exists
+  ansible.builtin.stat:
+    path: /var/www/html/bootstrap.sh
+  register: bootstrap_script
+
 - name: setup evon bootstrap
-
   block:
-
     - name: create bootstrap dir
       ansible.builtin.file:
         path: /opt/evon-hub/build_bootstrap
@@ -342,9 +345,9 @@
       ansible.builtin.file:
         state: absent
         path: /opt/evon-hub/build_bootstrap
+  when: not bootstrap_script.stat.exists
 
   rescue:
-
     - name: post-failure cleanup
       ansible.builtin.file:
         state: absent
