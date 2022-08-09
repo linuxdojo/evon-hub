@@ -1,6 +1,0 @@
----
-
-- name: update_db
-  become: true
-  shell: updatedb
-    
