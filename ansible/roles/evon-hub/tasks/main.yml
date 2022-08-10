@@ -179,32 +179,36 @@
 
 ### setup and configure easy-rsa
 
+- name: configure easy-rsa dir
+  ansible.builtin.set_fact:
+    easy_rsa_dir: "/etc/openvpn/server/easy-rsa"
+
 - name: deploy certificate authority
 
   block:
 
     - name: check if ca already deployed
       ansible.builtin.stat:
-        path: /opt/easy-rsa
+        path: "{{ easy_rsa_dir }}"
       register: easyrsa_dir
 
     - name: deploy ca scripts
-      ansible.builtin.shell: "cp -r $(find /usr/share/easy-rsa -maxdepth 1 -mindepth 1 -type d) /opt/easy-rsa"
+      ansible.builtin.shell: "cp -r $(find /usr/share/easy-rsa -maxdepth 1 -mindepth 1 -type d) {{ easy_rsa_dir }}"
       when: not easyrsa_dir.stat.exists
 
     - name: deploy ca vars
       ansible.builtin.template:
         src: pki/vars
-        dest: /opt/easy-rsa/vars
+        dest: "{{ easy_rsa_dir }}/vars"
 
     - name: check if ca is initialised
       ansible.builtin.stat:
-        path: /opt/easy-rsa/pki
+        path: "{{ easy_rsa_dir }}/pki"
       register: easyrsa_init
 
-    - name: initialise ca
+    - name: "initialise ca - this may take a while..."
       ansible.builtin.shell: |
-        cd /opt/easy-rsa
+        cd "{{ easy_rsa_dir }}"
         ./easyrsa init-pki
         ./easyrsa gen-dh
         ./easyrsa build-ca nopass <<< {{ ec2_id }}.ca.evon-hub
@@ -219,7 +223,7 @@
     - name: post-failure cleanup
       ansible.builtin.file:
         state: absent
-        path: /opt/easy-rsa
+        path: "{{ easy_rsa_dir }}"
 
     - name: post-failure exit
       ansible.builtin.fail:
@@ -287,7 +291,7 @@
 
 - name: setup evon bootstrap
   block:
-    - name: create bootstrap dir
+    - name: create bootstrap build dir
       ansible.builtin.file:
         path: /opt/evon-hub/build_bootstrap
         state: directory
@@ -304,10 +308,10 @@
 
     - name: set bootstrap facts
       ansible.builtin.set_fact:
-        ca_cert: "{{ lookup('file', '/opt/easy-rsa/pki/ca.crt') }}"
-        client_cert: "{{ lookup('file', '/opt/easy-rsa/pki/issued/{{ ec2_id }}.endpoint.evon-hub.crt') }}"
-        client_key: "{{ lookup('file', '/opt/easy-rsa/pki/private/{{ ec2_id }}.endpoint.evon-hub.key') }}"
-        tls_auth_key: "{{ lookup('file', '/opt/easy-rsa/pki/ta.key') }}"
+        ca_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/ca.crt') }}"
+        client_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/issued/{{ ec2_id }}.endpoint.evon-hub.crt') }}"
+        client_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/private/{{ ec2_id }}.endpoint.evon-hub.key') }}"
+        tls_auth_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/ta.key') }}"
         version: "{{ lookup('file', '/opt/evon-hub/version.txt') }}"
         bootstrap_key: "{{ bootstrap_key_cmd.stdout }}"
 
