@@ -22,6 +22,13 @@
     reload: yes
 
 
+### determine version
+
+- name: set verssion fact
+  ansible.builtin.set_fact:
+    version: "{{ lookup('file', '/opt/evon-hub/version.txt') }}"
+
+
 ### Setup sslh
 
 - name: check if sslh config file is modified
@@ -172,7 +179,7 @@
  ### Setup motd
 
 - name: configure motd
-  ansible.builtin.copy:
+  ansible.builtin.template:
     src: motd/motd
     dest: /etc/motd
 
@@ -312,7 +319,6 @@
         client_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/issued/{{ ec2_id }}.endpoint.evon-hub.crt') }}"
         client_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/private/{{ ec2_id }}.endpoint.evon-hub.key') }}"
         tls_auth_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/ta.key') }}"
-        version: "{{ lookup('file', '/opt/evon-hub/version.txt') }}"
         bootstrap_key: "{{ bootstrap_key_cmd.stdout }}"
 
     - name: render bootstrap client config
