@@ -244,12 +244,6 @@
     path: /etc/openvpn/ccd
     state: directory
 
-- name: deploy openvpn scope config
-  ansible.builtin.template:
-    src: openvpn/server/server_tcp-scope.conf
-    dest: /etc/openvpn/server/server_tcp-scope.conf
-  register: openvpn_scope_cfg
-
 - name: deploy openvpn tcp server config
   ansible.builtin.template:
     src: openvpn/server/server_tcp.conf
@@ -267,7 +261,7 @@
     name: openvpn-server@server_tcp.service
     state: restarted
     enabled: true
-  when: openvpn_scope_cfg.changed or openvpn_tcp_cfg.changed
+  when: openvpn_tcp_cfg.changed
 
 - name: persist openvpn tcp service
   ansible.builtin.service:
