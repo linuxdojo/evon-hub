@@ -8,11 +8,13 @@ VERSION=__VERSION__
 PY_VERSION="3.10.5"
 
 # setup logging
-logfile="${HOME}/evon.hub_installer-$(date +%s)"
+logdir=/var/log/evon-hub_installer
+mkdir -p $logdir
+logfile="${logdir}/evon.hub_installer-$(date +%s)"
 exec > >(tee -i $logfile)
 exec 2>&1
 
-# define exit function and trap
+# define exit function and handler
 bail() {
     rc=$1
     message=$2
