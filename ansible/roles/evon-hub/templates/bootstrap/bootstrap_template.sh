@@ -4,6 +4,7 @@
 # Evon Endpoint Server Bootstrap Script
 ########################################
 
+
 VERSION={{ version }}
 
 # Set the IPv4 address of the server-side VPN peer (reachable only if tunnel is up)
@@ -14,26 +15,98 @@ logfile="/root/evon.link_bootstrap-$(date +%s)"
 exec > >(tee -i $logfile)
 exec 2>&1
 
-# get the absolute path of this script and set pwd
-SCRIPTDIR="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P  )"
-cd $SCRIPTDIR
-
-# define exit function and trap
+# define exit function and handler
 bail() {
     rc=$1
     message=$2
     echo $message
-    echo Installation log file is available at $logfile
-    cd $SCRIPTDIR
     exit $rc
 }
-trap bail EXIT
 
-# check if root
+end() {
+    rc=$1
+    echo Installation log file is available at $logfile
+    exit $rc
+}
+
+# ensure we're running as root
 if [ $(id -u) != 0 ]; then
-    echo You must be root to run this script.
+    echo You must be root to run this installer.
     exit 1
 fi
+
+# ensure we're not running on the hub
+if [ -e /etc/evon-hub/version.txt ]; then
+    echo Evon bootstrap can not be installed on the Hub!
+    echo This installer must be run on an endpoint system that you wish to join to your overlay network.
+    exit 1
+fi
+
+# detect old 2.x kernel
+if [[ $(uname -r | cut -d "." -f 1) -lt 3  ]]; then
+    echo "This installer requires Linux kernel version 3.x or higher"
+    exit 1
+fi
+
+# detect distribution
+if grep -qs "ubuntu" /etc/os-release; then
+    os="ubuntu"
+    os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
+    group_name="nogroup"
+elif [[ -e /etc/debian_version ]]; then
+    os="debian"
+    os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
+    group_name="nogroup"
+elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release ]]; then
+    os="centos"
+    os_version=$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+    group_name="nobody"
+elif [[ -e /etc/fedora-release ]]; then
+    os="fedora"
+    os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
+    group_name="nobody"
+elif grep -qs "Amazon Linux" /etc/os-release; then
+    os="al"
+    os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
+    group_name="nobody"
+elif grep -qs "openSUSE" /etc/os-release; then
+    os="opensuse"
+    os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
+    group_name="nobody"
+else
+    echo "This installer seems to be running on an unsupported distribution.
+Supported distros are Amazon Linux, Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
+    exit 1
+fi
+
+if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
+    echo "Ubuntu 18.04 or higher is required to run this installer."
+    exit 1
+fi
+
+if [[ "$os" == "debian" && "$os_version" -lt 9 ]]; then
+    echo "Debian 9 or higher is required to run this installer."
+    exit 1
+fi
+
+if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
+    echo "CentOS 7 or higher is required to run this installer."
+    exit 1
+fi
+
+if [[ "$os" == "opensuse" && $(echo $os_version | cut -d. -f1) -lt 15  ]]; then
+    echo "openSUSE major version 15 higher is required to run this installer."
+    exit 1
+fi
+
+if [[ ! -e /dev/net/tun ]] || ! ( exec 7<>/dev/net/tun ) 2>/dev/null; then
+    echo "The system does not have the TUN device available.
+TUN needs to be enabled before running this installer."
+    exit 1
+fi
+
+# register exit handler
+trap end EXIT
 
 # prep tempdir
 tmpdir="/tmp/evon_bootstrap"
@@ -51,11 +124,6 @@ function extract_payload() {
     cd -
 }
 
-# identify CentOS 6, 7 or 8
-redhat_release=$(cat /etc/redhat-release)
-echo $redhat_release | grep -q " 6" && distro=centos6
-echo $redhat_release | grep -q " 7" && distro=centos7
-echo $redhat_release | grep -q " 8" && distro=centos8
 
 # main installer
 echo ''
@@ -66,6 +134,7 @@ echo '[ Elastic Virtual Overlay Network ]'
 echo ''
 
 if [ "$1" == "--uninstall" ]; then
+    #TODO Fix the below...
     echo "Uninstalling..."
     if [ "$distro" == "centos8" ]; then
         systemctl stop openvpn-client@evon
@@ -85,13 +154,13 @@ elif [ "$1" == "--help" ]; then
     echo "Usage:"
     echo "  $0 [--help] [--uninstall] "
     echo "Options:"
-    echo "  <no args>      Install bootstrap (deploy, configure and start OpenVPN, deploy Squid proxy env vars)"
-    echo "  --uninstall    Uninstall bootstrap config (remove OpenVPN and Squid proxy env vars)"
+    echo "  <no args>      Install bootstrap (start and persist the OpenVPN connection to your Evon Hub)"
+    echo "  --uninstall    Uninstall bootstrap config (stop and unpersist the OpenVPN connection to your Evon Hub)"
     echo "  --help         This help text"
     echo "Environment Variables:"
-    echo "  EVON_SECRET    If set, its value will be used as the evon Secret key for decrypting the OpenVPN secret"
-    echo "                 config, and will cause this script to run non-interactively. If not set, you will be"
-    echo "                 prompted for the secret key."
+    echo "  EVON_USERNAME, EVON_PASSWORD"  
+    echo "                   If set, these values will be used as the Evon admin username and password required for this installation."
+    echo "                 If either is not set, you will be prompted for the username and password."
     exit 0
 elif [ "$1" != "" ]; then
     echo "Unknown argument: $1"
@@ -99,7 +168,8 @@ elif [ "$1" != "" ]; then
     exit 1
 fi
 
-##### Install the evon SSH public key to root's authorized keys if required
+##### Create Evon service account
+#TODO create service user, add to sudoers, add ssh pub key
 echo "Installing the evon SSH public key to root's authorized keys file..."
 evon_pubkey='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC/hKS2hDz8kupeoFSn8CMqeBGt+YqBT9U4FHA4ZV2dnO7jMlCr7nSF6tLPNptf8Ohh9e2w1sRHb8w2VCGvZ/Us/H7e93VAs86hU/7tS7gy97YnUIFmWru7K2aXWlAyhW5FouUD5Zs/7A9ys1bhvhUIbzGYiCDITWrErdaeJAHjZpIvdEHZi9zU560qUZ/2zelrWFGnSEMn9Y53gzKMjVCdxkF3g5lnB92+IkkeyRpWDn7Nb7uf/CRvaE59/2UWx0FF+HtKJ7yFJYjgqht0qP2HLcjA/COUShMlEIc3vpUgi5TK53si14IH/+lKBrl+lPJ4JkWBm5UpuWs9Hj7G9hICwHUMUOW5ONJbSsTF43sKYM1/lgHaujBCED7wvvI3LkKUX4Eb/0Egu3usDXMNZpgLtlh5c+uG+oLe/k/VfYH2XhkzvvsY+m1/9GHtFizfdgJr92uq75SH/mHrvjr3jGY2m98tjNli9rPV9OPWqRc0Zb89Wp0k/qzlkRF9LCy6Vgk= admin@evon.link'
 mkdir -p /root/.ssh
@@ -185,14 +255,13 @@ echo Done.
 
 ##### Configure OpenVPN if required (skip if we can ping the server peer)
 attempts=5
-echo -n "Checking for an existing connection to evon"
+echo -n "Checking for an existing connection to evon hub"
 while [ $attempts -gt 0 ]; do
     attempts=$((attempts-1))
     echo -n "."
     ping -c1 -W1 $EVON_PEER >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-        echo "Success, link appears up, skipping OpenVPN configuration."
-        echo "NOTE: If you want to reinstall anyway, stop the OpenVPN service and re-run this script."
+        echo "Success, link appears healthy, skipping OpenVPN configuration."
         installed=1
         break
     fi
