@@ -7,27 +7,6 @@
 VERSION=__VERSION__
 PY_VERSION="3.10.5"
 
-# setup logging
-logdir=/var/log/evon-hub_installer
-mkdir -p $logdir
-logfile="${logdir}/evon.hub_installer-$(date +%s)"
-exec > >(tee -i $logfile)
-exec 2>&1
-
-# define exit function and handler
-bail() {
-    rc=$1
-    message=$2
-    echo $message
-    exit $rc
-}
-
-end() {
-    rc=$1
-    echo Installation log file is available at $logfile
-    exit $rc
-}
-
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
     echo You must be root to run this script.
@@ -45,6 +24,28 @@ else
     echo 'Unable to validate that this OS is Amazon Linux 2 (can not read /etc/system-release). Aborting.'
     exit 1
 fi
+
+# setup logging
+logdir=/var/log/evon
+mkdir -p $logdir
+logfile="${logdir}/evon-hub_installer-$(date +%s)"
+exec > >(tee -i $logfile)
+exec 2>&1
+
+# define exit function and handler
+bail() {
+    rc=$1
+    message=$2
+    echo $message
+    exit $rc
+}
+
+end() {
+    rc=$1
+    echo ""
+    echo Installation log file is available at $logfile
+    exit $rc
+}
 
 # register exit handler
 trap end EXIT
@@ -100,6 +101,7 @@ package_list='
     iptables-services
     jq
     libffi-devel
+    httpd-tools
     mlocate
     nginx
     openssl11
@@ -163,6 +165,9 @@ public_ipv4=$(echo $account_info | jq .public_ipv4)
 aws_region=$(echo $iid | jq .region)
 aws_az=$(echo $iid | jq .availabilityZone)
 ec2_id=$(echo $iid | jq .instanceId)
+if [ -z "ec2_id" ]; then
+    bail 1 "Failed to retrieve AWS EC2 Instance Identity Document information. Please retry by re-running this installer."
+fi
 cat <<EOF > /opt/evon-hub/evon_vars.yaml
 ---
 account_domain: ${account_domain}
@@ -174,6 +179,7 @@ ec2_id: ${ec2_id}
 EOF
 
 echo '### Deploying state'
+rm -f /var/www/html/bootstrap.sh || :
 evon --save-state
 rc=$?
 if [ $rc -ne 0 ]; then
