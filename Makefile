@@ -27,7 +27,7 @@ package: # produce package artefact ready for publishing
 		--exclude .gitignore \
 		--exclude .git \
 		--exclude .env \
-		ansible evon bootstrap requirements.txt version.txt setup.py
+		ansible evon requirements.txt version.txt setup.py
 	# Generate output package filename
 	$(eval NAME=$(PACKAGE_NAME)-$(BRANCH))
 	$(eval GITCOUNT=$(shell git rev-list HEAD --count))
