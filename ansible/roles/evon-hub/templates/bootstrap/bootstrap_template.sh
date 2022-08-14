@@ -16,12 +16,14 @@ if [ $(id -u) != 0 ]; then
     exit 1
 fi
 
+
 # ensure we're not running on the hub
 if [ -e /opt/evon-hub/version.txt ]; then
     echo Evon bootstrap can not be installed on the Hub!
     echo This installer must be run on an endpoint system that you wish to join to your overlay network.
     exit 1
 fi
+
 
 # detect distribution
 if grep -qs "ubuntu" /etc/os-release; then
@@ -58,56 +60,24 @@ Supported distros are Alpine, Amazon Linux, Ubuntu, Debian, AlmaLinux, Rocky Lin
     exit 1
 fi
 
+
+# detect incompatibilities
 if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
     echo "Ubuntu 18.04 or higher is required to run this installer."
     exit 1
-fi
-
-if [[ "$os" == "debian" && "$os_version" -lt 9 ]]; then
+elif [[ "$os" == "debian" && "$os_version" -lt 9 ]]; then
     echo "Debian 9 or higher is required to run this installer."
     exit 1
-fi
-
-if [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
+elif [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
     echo "CentOS 7 or higher is required to run this installer."
     exit 1
-fi
-
-if [[ "$os" == "opensuse" && $(echo $os_version | cut -d. -f1) -lt 15  ]]; then
+elif [[ "$os" == "opensuse" && $(echo $os_version | cut -d. -f1) -lt 15  ]]; then
     echo "openSUSE major version 15 higher is required to run this installer."
     exit 1
-fi
-
-if [[ ! -e /dev/net/tun ]] || ! ( exec 7<>/dev/net/tun ) 2>/dev/null; then
-    echo "The system does not have the TUN device available.
-TUN needs to be enabled before running this installer."
+elif [[ ! -e /dev/net/tun ]] || ! ( exec 7<>/dev/net/tun ) 2>/dev/null; then
+    echo "The system does not have the TUN device available which is required by this installer."
     exit 1
 fi
-
-# setup logging
-logdir=/var/log/evon
-mkdir -p $logdir
-logfile="${logdir}/evon_bootstrap-$(date +%s)"
-exec > >(tee -i $logfile)
-exec 2>&1
-
-# define exit function and handler
-bail() {
-    rc=$1
-    message=$2
-    echo $message
-    exit $rc
-}
-
-end() {
-    rc=$1
-    echo ""
-    echo Installation log file is available at $logfile
-    exit $rc
-}
-
-# register exit handler
-trap end EXIT
 
 
 # curl function wrapper
@@ -121,7 +91,7 @@ curlf() {
         if [ ${HTTP_CODE} -eq 401 ]; then
             echo "ERROR: Bad password" > $OUTPUT_FILE
         else
-            echo "ERROR: Got HTTP response code ${HTTP_CODE}" > $OUTPUT_FILE
+            echo "ERROR: Got HTTP response code ${HTTP_CODE} from Evon Hub" > $OUTPUT_FILE
         fi
     fi
     cat $OUTPUT_FILE
@@ -129,7 +99,7 @@ curlf() {
 }
 
 
-# decrypt key function
+# decrypt key getter function
 get_decrypt_key() {
     deploy_key=$1
     data=$(curlf -u "deployer:${deploy_key}" "https://{{ account_domain }}/deploy_key")
@@ -141,20 +111,35 @@ get_decrypt_key() {
 }
 
 
-# prep tempdir
-tmpdir="/tmp/evon_bootstrap"
-rm -rf $tmpdir
-mkdir $tmpdir
+# decrypt key function
+decrypt_key() {
+    decrypt_key=$1
+    in_file=$2
+    out_file=$3
+    openssl enc \
+        -md sha256 \
+        -d \
+        -pass "pass:${decrypt_key}" \
+        -aes-256-cbc \
+        -in ${in_file} \
+        -out ${out_file} \
+        2>/dev/null
+    return $?
+}
 
-# define payload extractor
+
+# payload extractor function
 function extract_payload() {
-    cp $0 $tmpdir
+    extract_dir=$1
+    cp $0 $extract_dir
     src=$(basename $0)
-    cd $tmpdir
+    cd $extract_dir
     match=$(grep --text --line-number '^PAYLOAD:$' $src | cut -d ':' -f 1)
     payload_start=$((match + 1))
-    tail -n +$payload_start $src | base64 -d | gunzip | cpio -idv -H tar
-    cd -
+    echo -n Extracting...
+    tail -n +$payload_start $src | base64 -d | gunzip | cpio -id -H tar
+    rm -f $src
+    cd - >/dev/null
 }
 
 
@@ -192,7 +177,6 @@ elif [ "$1" == "--help" ]; then
     echo "Environment Variables:"
     echo "  EVON_DEPLOY_KEY If set, the value will be used as the key for decrypting the OpenVPN config."
     echo "                  If not set, you will be prompted for this key."
-
     exit 0
 elif [ "$1" != "" ]; then
     echo "Unknown argument: $1"
@@ -200,8 +184,37 @@ elif [ "$1" != "" ]; then
     exit 1
 fi
 
+# begin bootstrap process
+echo "Evon Bootstrap starting."
 
-##### Install OpenVPN if required
+# setup logging
+logdir=/var/log/evon
+mkdir -p $logdir
+logfile="${logdir}/evon_bootstrap-$(date +%s)"
+exec > >(tee -i $logfile)
+exec 2>&1
+echo logging to file $logfile
+
+# exit function
+bail() {
+    rc=$1
+    message=$2
+    echo $message
+    exit $rc
+}
+
+# exit handler
+end() {
+    rc=$1
+    echo ""
+    echo Installation log file is available at $logfile
+    exit $rc
+}
+
+# register exit handler
+trap end EXIT
+
+# Install OpenVPN and other deps
 echo "Installing OpenVPN..."
 which openvpn >/dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -231,9 +244,7 @@ fi
 echo Done.
 
 
-#TODO persist openvpn
-
-##### Configure OpenVPN if required (skip if we can ping the server peer)
+# Configure OpenVPN
 attempts=5
 echo -n "Checking for an existing connection to evon-hub"
 while [ $attempts -gt 0 ]; do
@@ -249,12 +260,13 @@ done
 
 if [ "$installed" != "1" ]; then
     echo -e "none found\nConfiguring OpenVPN..."
-    extract_payload
+    tmpdir=$(mktemp -d)
+    extract_payload $tmpdir
     cd $tmpdir
     # decrypt the secrets conf file.
     if [ -n "$EVON_DEPLOY_KEY" ]; then
         DECRYPT_KEY=$(get_decrypt_key "$EVON_DEPLOY_KEY")
-        openssl enc -md sha256 -d -pass "pass:${DECRYPT_KEY}" -aes-256-cbc -in openvpn_secrets.conf.aes -out openvpn_secrets.conf 2>/dev/null
+        decrypt_key ${DECRYPT_KEY} openvpn_secrets.conf.aes openvpn_secrets.conf
         if [ $? -ne 0 ]; then
             bail 1 "Error: Could not decrypt the OpenVPN config in this installer. Please check env var EVON_DEPLOY_KEY and re-run this script."
         fi
@@ -266,14 +278,19 @@ if [ "$installed" != "1" ]; then
                 echo $DECRYPT_KEY
                 continue
             fi
-            openssl enc -md sha256 -d -pass "pass:${DECRYPT_KEY}" -aes-256-cbc -in ${tmpdir}/openvpn_secrets.conf.aes -out ${tmpdir}/openvpn_secrets.conf 2>/dev/null
+            decrypt_key ${DECRYPT_KEY} openvpn_secrets.conf.aes openvpn_secrets.conf
             success=$?
             [ "$success" != "0"  ] && echo Error decrypting, please check the Deploy Key and retry.
         done
+        echo ""
     fi
+    echo "Successfully extracted installation payload, continuing..."
+    rm -f openvpn_secrets.conf.aes
 
     #### deploy openvpn config files
     exit 1  # XXX Continue here...
+    #TODO persist openvpn
+
     if [ "$distro" == "centos8" ] || [ "$distro" == "centos7" ]; then
         ovpn_conf_dir=/etc/openvpn/client
     else
