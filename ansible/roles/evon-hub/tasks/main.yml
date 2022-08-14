@@ -139,6 +139,26 @@
     state: started
   when: not configure_nginx.changed
 
+- name: check if htpasswd file is present
+  ansible.builtin.stat:
+    path: /etc/nginx/evon.htpasswd
+  register: htpasswd_file
+
+- name: setup htpasswd file
+  shell: |
+    htpasswd -i -c /etc/nginx/evon.htpasswd deployer <<< {{ ec2_id }}
+  when: not htpasswd_file.stat.exists
+
+- name: check if deploy_key file is present
+  ansible.builtin.stat:
+    path: /var/www/html/deploy_key
+  register: dk_file
+
+- name: setup deploy_key file
+  shell: |
+    curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -jr ".accountId, .instanceId" > /var/www/html/deploy_key
+  when: not dk_file.stat.exists
+
 
 ### Setup CertBot
 
@@ -336,7 +356,7 @@
         dest: /opt/evon-hub/build_bootstrap/bootstrap.sh
 
     - name: encrypt bootstrap secrets
-      ansible.builtin.shell: "openssl enc -aes-256-cbc -pass pass:{{ bootstrap_key }} -in /opt/evon-hub/build_bootstrap/openvpn_secrets.conf -out /opt/evon-hub/build_bootstrap/openvpn_secrets.conf.aes"
+      ansible.builtin.shell: "openssl enc -md sha256 -aes-256-cbc -pass pass:{{ bootstrap_key }} -in /opt/evon-hub/build_bootstrap/openvpn_secrets.conf -out /opt/evon-hub/build_bootstrap/openvpn_secrets.conf.aes"
 
     - name: build bootstrap script
       ansible.builtin.shell: |
