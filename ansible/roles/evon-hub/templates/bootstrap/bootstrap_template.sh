@@ -1,10 +1,30 @@
-#!/bin/bash
+#!/bin/sh
 
 ########################################
 # Evon Endpoint Server Bootstrap Script
 ########################################
 
+# shim for script compatibility to ensure we're being interpreted by bash
+if ! which bash; then
+    if grep -qs "Alpine" /etc/os-release; then
+        apk add bash
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Couldn't install bash. Please install bash manually and re-run this installer."
+            exit 1
+        fi
+        bash $0 $@
+        exit $?
+    else
+        echo "ERROR: bash is required for this installer."
+        exit 1
+    fi
+elif [ "$(basename $(realpath /proc/$$/exe))" != "bash" ] || cat /proc/$$/cmdline | grep -qE '^/bin/sh'; then
+    bash $0 $@
+    exit $?
+fi
 
+
+# set version
 VERSION={{ version }}
 
 # Set the IPv4 address of the server-side VPN peer (reachable only if tunnel is up)
@@ -54,9 +74,13 @@ elif grep -qs "Alpine" /etc/os-release; then
     os="alpine"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
     group_name="nobody"
+elif grep -qs "Arch" /etc/os-release; then
+    os="arch"
+    os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
+    group_name="nobody"
 else
     echo "This installer seems to be running on an unsupported distribution.
-Supported distros are Alpine, Amazon Linux, Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
+Supported distros are Alpine, Arch, Amazon Linux, Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
     exit 1
 fi
 
@@ -215,31 +239,33 @@ end() {
 trap end EXIT
 
 # Install OpenVPN and other deps
-echo "Installing OpenVPN..."
-which openvpn >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo "OpenVPN already installed, skipping."
-else
-    if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
-        apt-get update
-        apt-get install -y openvpn curl
-    elif [[ "$os" == "al" ]]; then
-        yum install -y epel-release
-        yum install -y openvpn curl
-    elif [[ "$os" == "centos" ]]; then
-        dnf install -y epel-release
-        dnf install -y openvpn curl
-    elif [[ "$os" == "fedora" ]]; then
-        dnf install -y openvpn curl
-    elif [[ "$os" == "alpine" ]]; then
-        apk add openvpn
-        apk add curl
-    elif [[ "$os" == "opensuse" ]]; then
-        zypper -n install openvpn curl
+echo "Installing OpenVPN and dependencies..."
+
+if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
+    apt-get update
+    apt-get install -y openvpn curl
+elif [[ "$os" == "al" || ( "$os" == "centos" && $os_version -eq 7 ) ]]; then
+    yum install -y epel-release
+    yum install -y openvpn curl
+elif [[ "$os" == "centos" && $os -gt 7 ]]; then
+    dnf install -y epel-release
+    dnf install -y openvpn curl
+elif [[ "$os" == "fedora" ]]; then
+    dnf install -y openvpn curl
+elif [[ "$os" == "alpine" ]]; then
+    if cpio --version | grep -q BusyBox; then
+        echo "https://dl-cdn.alpinelinux.org/alpine/v$(cut -d'.' -f1,2 /etc/alpine-release)/community/" >> /etc/apk/repositories
+        apk update
     fi
-    if [ ! $? -eq 0 ]; then
-        bail 1 "Error: Can't install OpenVPN, refer to error(s) above for reason. You may install OpenVPN yourself and re-run this script."
-    fi
+    apk add bash curl grep openvpn cpio
+    modprobe tun
+elif [[ "$os" == "opensuse" ]]; then
+    zypper -n install openvpn curl
+elif [[ "$os" == "arch" ]]; then
+    pacman --noconfirm -S openvpn curl cpio
+fi
+if [ ! $? -eq 0 ]; then
+    bail 1 "Error: Can't install OpenVPN, refer to error(s) above for reason. You may install OpenVPN yourself and re-run this script."
 fi
 echo Done.
 
@@ -271,6 +297,7 @@ if [ "$installed" != "1" ]; then
             bail 1 "Error: Could not decrypt the OpenVPN config in this installer. Please check env var EVON_DEPLOY_KEY and re-run this script."
         fi
     else
+        echo "Env var EVON_DEPLOY_KEY is not set. See --help for info about invoking this script non-interactively."
         while [ "$success" != "0" ]; do
             read -sp "Enter your Evon Deploy Key (text will not be echoed, ctrl-c to exit): " EVON_DEPLOY_KEY
             DECRYPT_KEY=$(get_decrypt_key "$EVON_DEPLOY_KEY")
