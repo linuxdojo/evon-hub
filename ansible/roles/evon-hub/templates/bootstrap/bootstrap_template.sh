@@ -248,7 +248,6 @@ function uninstall() {
     echo Done.
 }
 
-# main installer
 # Transform long options to short ones
 for arg in "$@"; do
   shift
@@ -325,20 +324,14 @@ if [ ! -z $evon_extra ] && [ ! -r $evon_extra ]; then
 fi
 
 
-# start
+# start main installer
 show_banner
-
-#echo evon_install: $evon_install
-#echo evon_uninstall: $evon_uninstall
-#echo evon_uuid: $evon_uuid
-#echo evon_extra: $evon_extra
 
 if [ $evon_uninstall == "true" ]; then
     uninstall
     exit $?
 fi
 
-# begin bootstrap process
 echo "Evon Bootstrap starting."
 
 # setup logging
