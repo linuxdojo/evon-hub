@@ -340,11 +340,6 @@
         src: bootstrap/openvpn_client.conf
         dest: /opt/evon-hub/build_bootstrap/openvpn_client.conf
 
-    - name: render bootstrap proxy config
-      ansible.builtin.template:
-        src: bootstrap/openvpn_proxy.conf
-        dest: /opt/evon-hub/build_bootstrap/openvpn_proxy.conf
-
     - name: render bootstrap secrets config
       ansible.builtin.template:
         src: bootstrap/openvpn_secrets.conf
@@ -361,7 +356,7 @@
     - name: build bootstrap script
       ansible.builtin.shell: |
         cd /opt/evon-hub/build_bootstrap
-        tar -c openvpn_client.conf openvpn_proxy.conf openvpn_secrets.conf.aes | gzip | base64 >> bootstrap.sh
+        tar -c openvpn_client.conf openvpn_secrets.conf.aes | gzip | base64 >> bootstrap.sh
         chmod +x /opt/evon-hub/build_bootstrap/bootstrap.sh
         mv /opt/evon-hub/build_bootstrap/bootstrap.sh /var/www/html
 
