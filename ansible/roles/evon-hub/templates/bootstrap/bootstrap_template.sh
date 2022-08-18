@@ -29,6 +29,7 @@ VERSION="{{ version }}"
 EVON_HUB_PEER="100.{{ subnet_key }}.208.1"
 ACCOUNT_DOMAIN="{{ account_domain }}"
 UUID_REGEX='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+SUBNET_KEY="{{ subnet_key }}"
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -196,13 +197,13 @@ Options:
   -e, --extra-config <FILE>
     Append extra OpenVPN config in <FILE> to the default Evon Hub OpenVPN
     config. Use this option if you need to tunnel through a proxy server by
-	creating <FILE> with the following contents:
+    creating <FILE> with the following contents:
 
-		http-proxy [proxy_address] [proxy_port] [none|basic|ntlm]
-		<http-proxy-user-pass>
-		[proxy_username]
-		[proxy_password]
-		</http-proxy-user-pass>
+        http-proxy [proxy_address] [proxy_port] [none|basic|ntlm]
+        <http-proxy-user-pass>
+        [proxy_username]
+        [proxy_password]
+        </http-proxy-user-pass>
 
     Refer to the OpenVPN Reference Manual at https://openvpn.net for more info.
 
@@ -232,8 +233,19 @@ function show_banner() {
 
 
 function uninstall() {
-    echo Not yet implemented.
-    #TODO stop and unpersist openvpn (only the evon link if possible, incase there are other 3rd party tunnels running)
+    echo Stoppping and unpersisting OpenVPN connection to Evon Hub
+    if [ "$os" == "alpine" ]; then
+        rc-update del openvpn default
+        rc-service openvpn stop
+    else
+        service_name="openvpn-client@evon"
+        if [ "$os" == "opensuse" ]; then
+            service_name="openvpn@evon"
+        fi
+        systemctl disable $service_name
+        systemctl stop $service_name
+    fi
+    echo Done.
 }
 
 # main installer
@@ -441,8 +453,11 @@ if [ "$installed" != "1" ]; then
 
     # copy config files to their proper locations
     echo Deploying Openvpn config...
-    cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/openvpn_secrets.conf.inc
     cp --remove-destination $tmpdir/openvpn_client.conf ${ovpn_conf_dir}/evon.conf
+    if [ "$os" == "alpine" ]; then
+        ln -s /etc/openvpn/evon.conf /etc/openvpn/openvpn.conf || :
+    fi
+    cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/openvpn_secrets.conf.inc
     if [ ! -z $evon_extra ]; then
         cp --remove-destination $evon_extra ${ovpn_conf_dir}/openvpn_extra.conf.inc
     elif [ ! -e ${ovpn_conf_dir}/openvpn_extra.conf.inc ]; then
@@ -476,22 +491,24 @@ EOF
         echo existing /etc/openvpn/evon.uuid file found, skipping.
     fi
 
-    #XXX contiue here
-    exit 3
-
     ##### Start and persist OpenVPN Client service
     echo "Starting OpenVPN Client service..."
-    if [ "$distro" == "centos8" ] || [ "$distro" == "centos7" ]; then
-        systemctl enable openvpn-client@evon
-        systemctl stop openvpn-client@evon || :
-        systemctl start openvpn-client@evon
+
+    if [ "$os" == "alpine" ]; then
+        rc-update add openvpn default
+        rc-service openvpn start
     else
-        chkconfig openvpn on
-        service openvpn stop || :
-        service openvpn start
+        service_name="openvpn-client@evon"
+        if [ "$os" == "opensuse" ]; then
+            service_name="openvpn@evon"
+        fi
+        systemctl enable $service_name
+        systemctl stop $service_name || :
+        systemctl start $service_name
     fi
 
     ##### Test OpenVPN connection
+    #TODO we need to wait until we're booted off the scope range and onto the permanent range
     attempts=15
     echo -n "Attempting to contact evon VPN server peer"
     while [ $attempts -gt 0 ]; do
@@ -516,12 +533,11 @@ fi
 
 ##### clenaup tempdir
 echo Cleanup tempdir...
-cd -
+cd
 rm -rf $tempdir
 
 #### print status
-#FIXME find ip address below in a distro-independent way...
-ipaddr=$(cat /var/log/messages | grep openvpn | grep "ip addr add" | tail -n1 | awk '{print $(NF-2)}')
+ipaddr=$(ip a | grep -E "inet 100.${SUBNET_KEY}" | awk '{print $2}')
 echo "Obtained VPN ip address: $ipaddr"
 echo "The Evon-Hub connection setup has successfully completed!"
 
