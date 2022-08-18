@@ -5,7 +5,7 @@
 ########################################
 
 # shim for script compatibility to ensure we're being interpreted by bash
-if ! which bash; then
+if ! which bash >/dev/null 2>&1; then
     if grep -qs "Alpine" /etc/os-release; then
         apk add bash
         if [ $? -ne 0 ]; then
@@ -24,11 +24,11 @@ elif [ "$(basename $(realpath /proc/$$/exe))" != "bash" ] || cat /proc/$$/cmdlin
 fi
 
 
-# set version
-VERSION={{ version }}
-
-# Set the IPv4 address of the server-side VPN peer (reachable only if tunnel is up)
-EVON_PEER=100.{{ subnet_key }}.252.1
+# set vars
+VERSION="{{ version }}"
+EVON_HUB_PEER="100.{{ subnet_key }}.208.1"
+ACCOUNT_DOMAIN="{{ account_domain }}"
+UUID_REGEX='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -126,7 +126,7 @@ curlf() {
 # decrypt key getter function
 get_decrypt_key() {
     deploy_key=$1
-    data=$(curlf -u "deployer:${deploy_key}" "https://{{ account_domain }}/deploy_key")
+    data=$(curlf -u "deployer:${deploy_key}" "https://${ACCOUNT_DOMAIN}/deploy_key")
     if echo $data | grep -q ERROR; then
         echo $data
     else
@@ -167,45 +167,163 @@ function extract_payload() {
 }
 
 
-# main installer
-echo ''
-echo '  __| |  |    \ \  |               '
-echo '  _|  \  | () |  \ | Bootstrap     '
-echo " ___|  _/  ___/_| _| v${VERSION}   " 
-echo '[ Elastic Virtual Overlay Network ]'
-echo ''
-
-#TODO use getopts
-if [ "$1" == "--uninstall" ]; then
-    #TODO Fix the below...
-    echo "Uninstalling..."
-    if [ "$distro" == "centos8" ]; then
-        systemctl stop openvpn-client@evon
-        dnf -y remove openvpn
-    elif [ "$distro" == "centos7" ]; then
-        systemctl stop openvpn-client@evon
-        yum -y remove openvpn
-    else
-        service openvpn stop
-        yum -y remove openvpn
-    fi
-    echo "Done."
-    exit 0
-elif [ "$1" == "--help" ]; then
+function show_usage() {
     echo "Usage:"
-    echo "  $0 [--help] [--uninstall] "
-    echo "Options:"
-    echo "  <no args>       Install bootstrap (start and persist the OpenVPN connection to your Evon Hub)"
-    echo "  --uninstall     Uninstall bootstrap config (stop and unpersist the OpenVPN connection to your Evon Hub)"
-    echo "  --help          This help text"
-    echo "Environment Variables:"
-    echo "  EVON_DEPLOY_KEY If set, the value will be used as the key for decrypting the OpenVPN config."
-    echo "                  If not set, you will be prompted for this key."
-    exit 0
-elif [ "$1" != "" ]; then
-    echo "Unknown argument: $1"
-    echo "Use --help for help."
+    echo "  $0 [options]"
+    echo '
+Options:
+
+  -i, --install
+    Install Evon Bootstrap (start and persist the OpenVPN connection to your
+    Evon Hub)
+
+  -u, --uninstall
+    Uninstall Evon Bootstrap (stop and unpersist the OpenVPN connection to your
+    Evon Hub)
+
+  -d, --uuid <UUID>
+    If not set, a unique UUID value will be auto-generated using the output of
+    the command `uuidgen`, else <UUID> will be used. This value is stored
+    locally and sent to your Evon Hub upon connection to identify this server.
+    Evon Hub will map this value to a static auto-assigned IPv4 address on the
+    overlay network. Connecting to Evon Hub using the same UUID will cause the
+    server to always be assigned the same static IPv4 address. The value will be
+    stored in the file: /etc/openvpn/evon.uuid
+    Note: if /etc/openvpn/evon.uuid exists, the UUID located in that file will
+    always be used and this option can not be specified. Remove the file if you
+    want to change the UUID (and the IPv4 overlay net address) for this server.
+
+  -e, --extra-config <FILE>
+    Append extra OpenVPN config in <FILE> to the default Evon Hub OpenVPN
+    config. Use this option if you need to tunnel through a proxy server by
+	creating <FILE> with the following contents:
+
+		http-proxy [proxy_address] [proxy_port] [none|basic|ntlm]
+		<http-proxy-user-pass>
+		[proxy_username]
+		[proxy_password]
+		</http-proxy-user-pass>
+
+    Refer to the OpenVPN Reference Manual at https://openvpn.net for more info.
+
+  -v, --version
+    Show version and exit
+
+  -h, --help
+    This help text
+
+Environment Variables:
+
+  EVON_DEPLOY_KEY
+    If set, the value will be used as the key for decrypting the OpenVPN config
+    during installation. If not set, you will be prompted for this key. Set this
+    if non-interactive (unattended) installation is required.'
+}
+
+
+function show_banner() {
+    echo ''
+    echo '  __| |  |    \ \  |               '
+    echo '  _|  \  | () |  \ | Bootstrap     '
+    echo " ___|  _/  ___/_| _| v${VERSION}   "
+    echo '[ Elastic Virtual Overlay Network ]'
+    echo ''
+}
+
+
+function uninstall() {
+    echo Not yet implemented.
+    #TODO stop and unpersist openvpn (only the evon link if possible, incase there are other 3rd party tunnels running)
+}
+
+# main installer
+# Transform long options to short ones
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    '--help')         set -- "$@" '-h'   ;;
+    '--version')      set -- "$@" '-v'   ;;
+    '--install')      set -- "$@" '-i'   ;;
+    '--uninstall')    set -- "$@" '-u'   ;;
+    '--uuid')         set -- "$@" '-d'   ;;
+    '--extra-config') set -- "$@" '-e'   ;;
+    *)                set -- "$@" "$arg" ;;
+  esac
+done
+
+# Parse short options
+OPTIND=1
+while getopts ":hiud:ve:" opt; do
+  case "$opt" in
+    'h') show_banner; show_usage; exit 0 ;;
+    'i') evon_install=true ;;
+    'u') evon_uninstall=true ;;
+    'd') evon_uuid=$OPTARG ;;
+    'e') evon_extra=$OPTARG ;;
+    'v') echo $VERSION; exit 0 ;;
+    '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
+  esac
+done
+shift $(expr $OPTIND - 1) # remove options from positional parameters
+
+
+# optargs validation
+{% raw %}
+if [ ${#@} -ne 0 ]; then
+{% endraw %}
+    echo "Invalid arguments: $@"
+    echo "For usage info, use --help"
     exit 1
+fi
+
+if [ -z $evon_install ] && [ -z $evon_uninstall ]; then
+    show_banner;
+    echo "ERROR: Option --install or --uninstall must be specified."
+    echo "For usage info, use --help"
+    exit 1
+fi
+
+if [ "$evon_install" == "true" ] && [ "$evon_uninstall" == "true" ]; then
+    echo "ERROR: Options are mutually exclusive: --install and --uninstall"
+    exit 1
+fi
+
+if [ "$evon_uninstall" == "true" ] && [ ! -z $evon_uuid ]; then
+    echo "ERROR: UUID can obly be provided with the --install option"
+    exit 1
+fi
+
+if [ ! -z $evon_uuid ]; then
+    echo $evon_uuid | grep -qE "$UUID_REGEX"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The provided UUID was not formatted correctly (it must conform to RFC 4122): ${evon_uuid}"
+        echo "For usage info, use --help"
+        exit 1
+    fi
+fi
+
+if [ ! -z $evon_uuid ] && [ -e /etc/openvpn/evon.uuid ]; then
+    echo "ERROR: You must remove /etc/openvpn/evon.uuid if you want to specify the UUID option."
+    exit 1
+fi
+
+if [ ! -z $evon_extra ] && [ ! -r $evon_extra ]; then
+    echo "ERROR: Can not read specified file: $evon_extra"
+    exit 1
+fi
+
+
+# start
+show_banner
+
+#echo evon_install: $evon_install
+#echo evon_uninstall: $evon_uninstall
+#echo evon_uuid: $evon_uuid
+#echo evon_extra: $evon_extra
+
+if [ $evon_uninstall == "true" ]; then
+    uninstall
+    exit $?
 fi
 
 # begin bootstrap process
@@ -238,14 +356,14 @@ end() {
 # register exit handler
 trap end EXIT
 
-# Install OpenVPN and other deps
-echo "Installing OpenVPN and dependencies..."
+# Install deps
+echo "Installing dependencies..."
 
 if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
     apt-get update
-    apt-get install -y openvpn curl
+    apt-get install -y openvpn curl uuid-runtime
 elif [[ "$os" == "al" || ( "$os" == "centos" && $os_version -eq 7 ) ]]; then
-    yum install -y epel-release
+    amazon-linux-extras install epel -y
     yum install -y openvpn curl
 elif [[ "$os" == "centos" && $os -gt 7 ]]; then
     dnf install -y epel-release
@@ -257,7 +375,7 @@ elif [[ "$os" == "alpine" ]]; then
         echo "https://dl-cdn.alpinelinux.org/alpine/v$(cut -d'.' -f1,2 /etc/alpine-release)/community/" >> /etc/apk/repositories
         apk update
     fi
-    apk add bash curl grep openvpn cpio
+    apk add bash curl grep openvpn cpio uuidgen
     modprobe tun
 elif [[ "$os" == "opensuse" ]]; then
     zypper -n install openvpn curl
@@ -276,7 +394,7 @@ echo -n "Checking for an existing connection to evon-hub"
 while [ $attempts -gt 0 ]; do
     attempts=$((attempts-1))
     echo -n "."
-    ping -c1 -W1 $EVON_PEER >/dev/null 2>&1
+    ping -c1 -W1 $EVON_HUB_PEER >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "Success, link appears healthy, skipping OpenVPN configuration."
         installed=1
@@ -315,36 +433,51 @@ if [ "$installed" != "1" ]; then
     rm -f openvpn_secrets.conf.aes
 
     #### deploy openvpn config files
-    exit 1  # XXX Continue here...
-    #TODO persist openvpn
-
-    if [ "$distro" == "centos8" ] || [ "$distro" == "centos7" ]; then
-        ovpn_conf_dir=/etc/openvpn/client
-    else
+    if [ "$os" == "opensuse" ] || [ "$os" == "alpine" ]; then
         ovpn_conf_dir=/etc/openvpn
+    else
+        ovpn_conf_dir=/etc/openvpn/client
     fi
-    cp --remove-destination $tmpdir/openvpn_secrets.conf $ovpn_conf_dir/openvpn_secrets.conf.inc
-    cp --remove-destination $tmpdir/openvpn_client.conf $ovpn_conf_dir/openvpn_client.conf.inc
-    [ -e $ovpn_conf_dir/openvpn_proxy.conf.inc ] \
-        && echo "$ovpn_conf_dir/openvpn_proxy.conf.inc already exists, not overwriting as it may contain existing proxy settings." \
-        || cp $tmpdir/openvpn_proxy.conf $ovpn_conf_dir/openvpn_proxy.conf.inc
-    [ -e $ovpn_conf_dir/evon.conf ] && rm -f $ovpn_conf_dir/evon.conf
-    ln -s $ovpn_conf_dir/openvpn_client.conf.inc $ovpn_conf_dir/evon.conf
+
+    # copy config files to their proper locations
+    echo Deploying Openvpn config...
+    cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/openvpn_secrets.conf.inc
+    cp --remove-destination $tmpdir/openvpn_client.conf ${ovpn_conf_dir}/evon.conf
+    if [ ! -z $evon_extra ]; then
+        cp --remove-destination $evon_extra ${ovpn_conf_dir}/openvpn_extra.conf.inc
+    elif [ ! -e ${ovpn_conf_dir}/openvpn_extra.conf.inc ]; then
+cat <<EOF > ${ovpn_conf_dir}/openvpn_extra.conf.inc
+# Place extra OpenVPN config in here. To configure OpenVPN to use a proxy server,
+# uncomment and edit the lines starting with ; below, and replace the parameters
+# denoted by square brackets with desired values:
+
+;http-proxy [proxy_address] [proxy_port] [none|basic|ntlm]
+
+# Uncomment and set the below values (in square brackets) if required
+;<http-proxy-user-pass>
+;[username]
+;[password]
+;</http-proxy-user-pass>
+EOF
+    fi
+
     # Create UUID file if it doesn't already exist
-    [ -e /etc/openvpn/evon.uuid ] \
-        || echo -e "endpoint-$(uuidgen)\nnull" > /etc/openvpn/evon.uuid
-    cd -
-    echo -e "Current contents of OpenVPN Proxy Configuration ($ovpn_conf_dir/openvpn_proxy.conf.inc) is:\n"
-    cat $ovpn_conf_dir/openvpn_proxy.conf.inc | sed 's/^/    /'
-    # Prompt for editing proxy settings if $EVON_DEPLOY_KEY is not defined (be non-interactive if it is and don't prompt)
-    if [ -z "$EVON_DEPLOY_KEY" ]; then
-        echo -n "Would you like to edit the above file before we attempt to start OpenVPN? (y/N): "
-        read response
-        if [ "${response,,}" == "y" ]; then
-            echo Launching editor...
-            vi $ovpn_conf_dir/openvpn_proxy.conf.inc
+    echo Deploying UUID config...
+    if [ ! -e /etc/openvpn/evon.uuid ]; then
+        if [ -z $evon_uuid ]; then
+            echo -n "Genrating new UUID..."
+            evon_uuid=$(uuidgen)
+            echo $evon_uuid
+        else
+            echo Using provided UUID: $evon_uuid
         fi
+        echo -e "${evon_uuid}\nnull" > /etc/openvpn/evon.uuid
+    else
+        echo existing /etc/openvpn/evon.uuid file found, skipping.
     fi
+
+    #XXX contiue here
+    exit 3
 
     ##### Start and persist OpenVPN Client service
     echo "Starting OpenVPN Client service..."
@@ -364,7 +497,7 @@ if [ "$installed" != "1" ]; then
     while [ $attempts -gt 0 ]; do
         attempts=$((attempts-1))
         echo -n "."
-        ping -c1 -W3 $EVON_PEER >/dev/null 2>&1
+        ping -c1 -W3 $EVON_HUB_PEER >/dev/null 2>&1
         if [ $? -eq 0 ]; then
             echo "success!"
             success=1
@@ -373,16 +506,17 @@ if [ "$installed" != "1" ]; then
     done
     if [ "$success" != "1" ]; then
         echo -e "\n"
-        echo "Error: Unable to contact the EVON Server VPN peer address at ${EVON_PEER}."
-        echo "Please check syslog and the OpenVPN config in $ovpn_conf_dir and re-run this script"
+        echo "Error: Unable to contact the EVON Server VPN peer address at ${EVON_HUB_PEER}."
+        echo "Please check syslog and the OpenVPN config in ${ovpn_conf_dir} and re-run this script"
         exit 1
     fi
 else
-    echo "Server VPN Peer address at ${EVON_PEER} is reachable, OpenVPN seems to be already configured, skipping."
+    echo "Server VPN Peer address at ${EVON_HUB_PEER} is reachable, OpenVPN seems to be already configured, skipping."
 fi
 
 ##### clenaup tempdir
 echo Cleanup tempdir...
+cd -
 rm -rf $tempdir
 
 #### print status
