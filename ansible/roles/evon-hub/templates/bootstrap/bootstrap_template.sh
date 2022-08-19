@@ -40,8 +40,8 @@ fi
 
 # ensure we're not running on the hub
 if [ -e /opt/evon-hub/version.txt ]; then
-    echo Evon bootstrap can not be installed on the Hub!
-    echo This installer must be run on an endpoint system that you wish to join to your overlay network.
+    echo Evon Bootstrap can not be installed on your Evon Hub!
+    echo This installer must be run on an endpoint system that you wish to join to your EVON overlay network.
     exit 1
 fi
 
@@ -75,6 +75,7 @@ elif grep -qs "Alpine" /etc/os-release; then
     os="alpine"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
     group_name="nobody"
+    modprobe tun || :
 elif grep -qs "Arch" /etc/os-release; then
     os="arch"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
@@ -191,7 +192,7 @@ Options:
     server to always be assigned the same static IPv4 address. The value will be
     stored in the file: /etc/openvpn/evon.uuid
     Note: if /etc/openvpn/evon.uuid exists, the UUID located in that file will
-    always be used and this option can not be specified. Remove the file if you
+    always be used and this option can not be specified. Remove this file if you
     want to change the UUID (and the IPv4 overlay net address) for this server.
 
   -e, --extra-config <FILE>
@@ -233,7 +234,7 @@ function show_banner() {
 
 
 function uninstall() {
-    echo Stoppping and unpersisting OpenVPN connection to Evon Hub
+    echo Stoppping and unpersisting OpenVPN connection to Evon Hub...
     if [ "$os" == "alpine" ]; then
         rc-update del openvpn default
         rc-service openvpn stop
@@ -245,7 +246,9 @@ function uninstall() {
         systemctl disable $service_name
         systemctl stop $service_name
     fi
-    echo Done.
+    echo Deleting Evon OpenVPN config files...
+    #TODO delete evon openvpn config files
+    echo Uninastall done.
 }
 
 # Transform long options to short ones
@@ -327,7 +330,7 @@ fi
 # start main installer
 show_banner
 
-if [ $evon_uninstall == "true" ]; then
+if [ "$evon_uninstall" == "true" ]; then
     uninstall
     exit $?
 fi
@@ -367,16 +370,19 @@ echo "Installing dependencies..."
 if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
     apt-get update
     apt-get install -y openvpn curl uuid-runtime
-elif [[ "$os" == "al" || ( "$os" == "centos" && $os_version -eq 7 ) ]]; then
-    amazon-linux-extras install epel -y
+elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
+    yum install -y epel-release
     yum install -y openvpn curl
-elif [[ "$os" == "centos" && $os -gt 7 ]]; then
+elif [[ "$os" == "centos" && $os_version -gt 7 ]]; then
     dnf install -y epel-release
     dnf install -y openvpn curl
+elif [[ "$os" == "al" ]]; then
+    rpm -qa epel-release | grep -q epel-release || amazon-linux-extras install epel -y
+    yum install -y openvpn curl
 elif [[ "$os" == "fedora" ]]; then
     dnf install -y openvpn curl
 elif [[ "$os" == "alpine" ]]; then
-    if cpio --version | grep -q BusyBox; then
+    if cpio 2>&1 | grep -q BusyBox; then
         echo "https://dl-cdn.alpinelinux.org/alpine/v$(cut -d'.' -f1,2 /etc/alpine-release)/community/" >> /etc/apk/repositories
         apk update
     fi
@@ -395,17 +401,22 @@ echo Done.
 
 # Configure OpenVPN
 attempts=5
-echo -n "Checking for an existing connection to evon-hub"
+echo -n "Checking for an existing connection to Evon Hub"
 while [ $attempts -gt 0 ]; do
     attempts=$((attempts-1))
     echo -n "."
     ping -c1 -W1 $EVON_HUB_PEER >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-        echo "Success, link appears healthy, skipping OpenVPN configuration."
+        echo -e "\nSuccess, link appears healthy, skipping OpenVPN configuration."
         installed=1
         break
     fi
 done
+
+# obtain realpath for evon_extra env var if specified
+if [ ! -z $evon_extra ]; then
+    evon_extra=$(realpath $evon_extra)
+fi
 
 if [ "$installed" != "1" ]; then
     echo -e "none found\nConfiguring OpenVPN..."
@@ -420,7 +431,7 @@ if [ "$installed" != "1" ]; then
             bail 1 "Error: Could not decrypt the OpenVPN config in this installer. Please check env var EVON_DEPLOY_KEY and re-run this script."
         fi
     else
-        echo "Env var EVON_DEPLOY_KEY is not set. See --help for info about invoking this script non-interactively."
+        echo "Environment variable EVON_DEPLOY_KEY is not set. See --help for info about invoking this script non-interactively."
         while [ "$success" != "0" ]; do
             read -sp "Enter your Evon Deploy Key (text will not be echoed, ctrl-c to exit): " EVON_DEPLOY_KEY
             DECRYPT_KEY=$(get_decrypt_key "$EVON_DEPLOY_KEY")
@@ -444,16 +455,20 @@ if [ "$installed" != "1" ]; then
         ovpn_conf_dir=/etc/openvpn/client
     fi
 
-    # copy config files to their proper locations
+    # copy core config files to their proper locations
     echo Deploying Openvpn config...
     cp --remove-destination $tmpdir/openvpn_client.conf ${ovpn_conf_dir}/evon.conf
     if [ "$os" == "alpine" ]; then
         ln -s /etc/openvpn/evon.conf /etc/openvpn/openvpn.conf || :
     fi
     cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/openvpn_secrets.conf.inc
+
+    # setup extra config file
     if [ ! -z $evon_extra ]; then
+        echo "Copying provided extra config file $evon_extra to: ${ovpn_conf_dir}/openvpn_secrets.conf.inc"
         cp --remove-destination $evon_extra ${ovpn_conf_dir}/openvpn_extra.conf.inc
     elif [ ! -e ${ovpn_conf_dir}/openvpn_extra.conf.inc ]; then
+        echo "Creating default extra config file: ${ovpn_conf_dir}/openvpn_extra.conf.inc"
 cat <<EOF > ${ovpn_conf_dir}/openvpn_extra.conf.inc
 # Place extra OpenVPN config in here. To configure OpenVPN to use a proxy server,
 # uncomment and edit the lines starting with ; below, and replace the parameters
@@ -467,6 +482,8 @@ cat <<EOF > ${ovpn_conf_dir}/openvpn_extra.conf.inc
 ;[password]
 ;</http-proxy-user-pass>
 EOF
+    else
+        echo "Not updating existing extra config file: ${ovpn_conf_dir}/openvpn_extra.conf.inc"
     fi
 
     # Create UUID file if it doesn't already exist
@@ -481,7 +498,7 @@ EOF
         fi
         echo -e "${evon_uuid}\nnull" > /etc/openvpn/evon.uuid
     else
-        echo existing /etc/openvpn/evon.uuid file found, skipping.
+        echo Existing /etc/openvpn/evon.uuid file found, skipping.
     fi
 
     ##### Start and persist OpenVPN Client service
@@ -503,7 +520,7 @@ EOF
     ##### Test OpenVPN connection
     #TODO we need to wait until we're booted off the scope range and onto the permanent range
     attempts=15
-    echo -n "Attempting to contact evon VPN server peer"
+    echo -n "Attempting to contact Evon Hub"
     while [ $attempts -gt 0 ]; do
         attempts=$((attempts-1))
         echo -n "."
@@ -516,12 +533,12 @@ EOF
     done
     if [ "$success" != "1" ]; then
         echo -e "\n"
-        echo "Error: Unable to contact the EVON Server VPN peer address at ${EVON_HUB_PEER}."
+        echo "Error: Unable to contact the Evon Hub VPN peer address at ${EVON_HUB_PEER}."
         echo "Please check syslog and the OpenVPN config in ${ovpn_conf_dir} and re-run this script"
         exit 1
     fi
 else
-    echo "Server VPN Peer address at ${EVON_HUB_PEER} is reachable, OpenVPN seems to be already configured, skipping."
+    echo "Evon Hub Peer address at ${EVON_HUB_PEER} is reachable, OpenVPN seems to be already configured, skipping."
 fi
 
 ##### clenaup tempdir
@@ -532,7 +549,7 @@ rm -rf $tempdir
 #### print status
 ipaddr=$(ip a | grep -E "inet 100.${SUBNET_KEY}" | awk '{print $2}')
 echo "Obtained VPN ip address: $ipaddr"
-echo "The Evon-Hub connection setup has successfully completed!"
+echo "The Evon Hub connection setup has successfully completed!"
 
 exit 0
 PAYLOAD:
