@@ -246,8 +246,21 @@ function uninstall() {
         systemctl disable $service_name
         systemctl stop $service_name
     fi
-    echo Deleting Evon OpenVPN config files...
-    #TODO delete evon openvpn config files
+    echo Removing Evon OpenVPN config files...
+    find /etc/openvpn | grep 'evon' | grep -v 'evon.uuid' | while read f; do
+        echo Removing file: $f
+        rm -f "$f"
+    done
+    if [ "$os" == "alpine" ] && [ -h /etc/openvpn/openvpn.conf ]; then
+        symlink_target=$(readlink /etc/openvpn/openvpn.conf)
+        if [ "$symlink_target" == "/etc/openvpn/evon.conf" ]; then
+            echo Removing file: /etc/openvpn/openvpn.conf
+            rm -f /etc/openvpn/evon.conf
+        fi
+    fi
+    if [ -e /etc/openvpn/evon.uuid ]; then
+        echo "NOTE: Not removing file /etc/openvpn/evon.uuid - please delete it manually if you're sure it is not needed."
+    fi
     echo Uninastall done.
 }
 
@@ -330,11 +343,6 @@ fi
 # start main installer
 show_banner
 
-if [ "$evon_uninstall" == "true" ]; then
-    uninstall
-    exit $?
-fi
-
 echo "Evon Bootstrap starting."
 
 # setup logging
@@ -363,6 +371,12 @@ end() {
 
 # register exit handler
 trap end EXIT
+
+# uninstall if requested
+if [ "$evon_uninstall" == "true" ]; then
+    uninstall
+    exit $?
+fi
 
 # Install deps
 echo "Installing dependencies..."
@@ -459,17 +473,26 @@ if [ "$installed" != "1" ]; then
     echo Deploying Openvpn config...
     cp --remove-destination $tmpdir/openvpn_client.conf ${ovpn_conf_dir}/evon.conf
     if [ "$os" == "alpine" ]; then
-        ln -s /etc/openvpn/evon.conf /etc/openvpn/openvpn.conf || :
+        if [ -e /etc/openvpn/openvpn.conf ]; then
+            symlink_target=$(readlink /etc/openvpn/openvpn.conf)
+            if [ "$symlink_target" != "/etc/openvpn/evon.conf" ]; then
+                echo "ERROR: /etc/openvpn/openvpn.conf already exists."
+                echo "There seems to be existing OpenVPN configuration on this server. Rename or remove /etc/openvpn/openvpn.conf and re-run this installer."
+                exit 1
+            fi
+        else
+            ln -s /etc/openvpn/evon.conf /etc/openvpn/openvpn.conf
+        fi
     fi
-    cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/openvpn_secrets.conf.inc
+    cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/evon_secrets.conf.inc
 
     # setup extra config file
     if [ ! -z $evon_extra ]; then
-        echo "Copying provided extra config file $evon_extra to: ${ovpn_conf_dir}/openvpn_secrets.conf.inc"
-        cp --remove-destination $evon_extra ${ovpn_conf_dir}/openvpn_extra.conf.inc
-    elif [ ! -e ${ovpn_conf_dir}/openvpn_extra.conf.inc ]; then
-        echo "Creating default extra config file: ${ovpn_conf_dir}/openvpn_extra.conf.inc"
-cat <<EOF > ${ovpn_conf_dir}/openvpn_extra.conf.inc
+        echo "Copying provided extra config file $evon_extra to: ${ovpn_conf_dir}/evon_secrets.conf.inc"
+        cp --remove-destination $evon_extra ${ovpn_conf_dir}/evon_extra.conf.inc
+    elif [ ! -e ${ovpn_conf_dir}/evon_extra.conf.inc ]; then
+        echo "Creating default extra config file: ${ovpn_conf_dir}/evon_extra.conf.inc"
+cat <<EOF > ${ovpn_conf_dir}/evon_extra.conf.inc
 # Place extra OpenVPN config in here. To configure OpenVPN to use a proxy server,
 # uncomment and edit the lines starting with ; below, and replace the parameters
 # denoted by square brackets with desired values:
@@ -483,7 +506,7 @@ cat <<EOF > ${ovpn_conf_dir}/openvpn_extra.conf.inc
 ;</http-proxy-user-pass>
 EOF
     else
-        echo "Not updating existing extra config file: ${ovpn_conf_dir}/openvpn_extra.conf.inc"
+        echo "Not updating existing extra config file: ${ovpn_conf_dir}/evon_extra.conf.inc"
     fi
 
     # Create UUID file if it doesn't already exist
