@@ -400,7 +400,7 @@ elif [[ "$os" == "alpine" ]]; then
         echo "https://dl-cdn.alpinelinux.org/alpine/v$(cut -d'.' -f1,2 /etc/alpine-release)/community/" >> /etc/apk/repositories
         apk update
     fi
-    apk add bash curl grep openvpn cpio uuidgen
+    apk add bash curl grep openssl openvpn cpio uuidgen
     modprobe tun
 elif [[ "$os" == "opensuse" ]]; then
     zypper -n install openvpn curl
