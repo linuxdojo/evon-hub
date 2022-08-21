@@ -26,7 +26,7 @@ fi
 
 # set vars
 VERSION="{{ version }}"
-EVON_HUB_PEER="100.{{ subnet_key }}.208.1"
+EVON_HUB_PEER="100.{{ subnet_key }}.224.1"
 ACCOUNT_DOMAIN="{{ account_domain }}"
 UUID_REGEX='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 SUBNET_KEY="{{ subnet_key }}"
@@ -82,7 +82,7 @@ elif grep -qs "Arch" /etc/os-release; then
     group_name="nobody"
 else
     echo "This installer seems to be running on an unsupported distribution.
-Supported distros are Alpine, Arch, Amazon Linux, Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS, Fedora and openSUSE."
+Supported distros are AlmaLinux, Alpine, Amazon Linux, Arch, CentOS, Debian, Fedora, Rocky Linux, Ubuntu and openSUSE."
     exit 1
 fi
 
@@ -272,6 +272,7 @@ for arg in "$@"; do
     '--version')      set -- "$@" '-v'   ;;
     '--install')      set -- "$@" '-i'   ;;
     '--uninstall')    set -- "$@" '-u'   ;;
+    '--no-start')     set -- "$@" '-n'   ;;
     '--uuid')         set -- "$@" '-d'   ;;
     '--extra-config') set -- "$@" '-e'   ;;
     *)                set -- "$@" "$arg" ;;
@@ -280,11 +281,12 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts ":hiud:ve:" opt; do
+while getopts ":hiud:ve:n" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
     'i') evon_install=true ;;
     'u') evon_uninstall=true ;;
+    'n') evon_nostart=true ;;
     'd') evon_uuid=$OPTARG ;;
     'e') evon_extra=$OPTARG ;;
     'v') echo $VERSION; exit 0 ;;
@@ -400,15 +402,16 @@ elif [[ "$os" == "alpine" ]]; then
         echo "https://dl-cdn.alpinelinux.org/alpine/v$(cut -d'.' -f1,2 /etc/alpine-release)/community/" >> /etc/apk/repositories
         apk update
     fi
-    apk add bash curl grep openssl openvpn cpio uuidgen
+    apk add bash curl grep openssl openvpn cpio uuidgen openrc
     modprobe tun
 elif [[ "$os" == "opensuse" ]]; then
     zypper -n install openvpn curl
 elif [[ "$os" == "arch" ]]; then
     pacman --noconfirm -S openvpn curl cpio
+    extra_msg='You may need to run `pacman -Syu`'
 fi
-if [ ! $? -eq 0 ]; then
-    bail 1 "Error: Can't install OpenVPN, refer to error(s) above for reason. You may install OpenVPN yourself and re-run this script."
+if [ $? -ne 0 ]; then
+    bail 1 "ERROR: Can't install dependencies, refer to error(s) above for reason. ${extra_msg}"
 fi
 echo Done.
 
@@ -520,45 +523,53 @@ EOF
             echo Using provided UUID: $evon_uuid
         fi
         echo -e "${evon_uuid}\nnull" > /etc/openvpn/evon.uuid
+        chmod 600 /etc/openvpn/evon.uuid
     else
         echo Existing /etc/openvpn/evon.uuid file found, skipping.
     fi
 
-    ##### Start and persist OpenVPN Client service
-    echo "Starting OpenVPN Client service..."
+    if [ "$evon_nostart" != "true" ]; then
+            ##### Start and persist OpenVPN Client service
+        echo "Starting OpenVPN Client service..."
 
-    if [ "$os" == "alpine" ]; then
-        rc-update add openvpn default
-        rc-service openvpn start
+        if [ "$os" == "alpine" ]; then
+            rc-update add openvpn default
+            rc-service openvpn start
+        else
+            service_name="openvpn-client@evon"
+            if [ "$os" == "opensuse" ]; then
+                service_name="openvpn@evon"
+            fi
+            systemctl enable $service_name
+            systemctl stop $service_name || :
+            systemctl start $service_name
+        fi
+
+        ##### Test OpenVPN connection
+        #TODO we need to wait until we're booted off the scope range and onto the permanent range
+        attempts=5
+        echo -n "Attempting to contact Evon Hub"
+        while [ $attempts -gt 0 ]; do
+            attempts=$((attempts-1))
+            echo -n "."
+            ping -c1 -W2 $EVON_HUB_PEER >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                echo "success!"
+                success=1
+                break
+            fi
+        done
+        if [ "$success" != "1" ]; then
+            echo -e "\n"
+            echo "Error: Unable to contact the Evon Hub VPN peer address at ${EVON_HUB_PEER}."
+            echo "Please check syslog and the OpenVPN config in ${ovpn_conf_dir} and re-run this script"
+            exit 1
+        fi
+        #### print status
+        ipaddr=$(ip a | grep -E "inet 100.${SUBNET_KEY}" | awk '{print $2}')
+        echo "Obtained VPN ip address: $ipaddr"
     else
-        service_name="openvpn-client@evon"
-        if [ "$os" == "opensuse" ]; then
-            service_name="openvpn@evon"
-        fi
-        systemctl enable $service_name
-        systemctl stop $service_name || :
-        systemctl start $service_name
-    fi
-
-    ##### Test OpenVPN connection
-    #TODO we need to wait until we're booted off the scope range and onto the permanent range
-    attempts=15
-    echo -n "Attempting to contact Evon Hub"
-    while [ $attempts -gt 0 ]; do
-        attempts=$((attempts-1))
-        echo -n "."
-        ping -c1 -W3 $EVON_HUB_PEER >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo "success!"
-            success=1
-            break
-        fi
-    done
-    if [ "$success" != "1" ]; then
-        echo -e "\n"
-        echo "Error: Unable to contact the Evon Hub VPN peer address at ${EVON_HUB_PEER}."
-        echo "Please check syslog and the OpenVPN config in ${ovpn_conf_dir} and re-run this script"
-        exit 1
+        echo "--no-start specified, skipping start/persist of OpenVPN (only config has been deployed)"
     fi
 else
     echo "Evon Hub Peer address at ${EVON_HUB_PEER} is reachable, OpenVPN seems to be already configured, skipping."
@@ -569,10 +580,7 @@ echo Cleanup tempdir...
 cd
 rm -rf $tempdir
 
-#### print status
-ipaddr=$(ip a | grep -E "inet 100.${SUBNET_KEY}" | awk '{print $2}')
-echo "Obtained VPN ip address: $ipaddr"
+# finish
 echo "The Evon Hub connection setup has successfully completed!"
-
 exit 0
 PAYLOAD:
