@@ -15,5 +15,3 @@ password = os.environ["password"]
 #   if ip in pool, bounce connection
 # elif mode == operational:
 #    assert username present in CD
-
-
