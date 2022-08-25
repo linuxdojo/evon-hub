@@ -56,10 +56,3 @@ deploy: # make package, publish and run installer on remote host
 quick-deploy: # DEV ONLY - upload evon/ to /opt/evon-hub/ (assumes root ssh with pka is setup)
 	scp -r evon/ root@$(EC2_HOST):/opt/evon-hub/
 	scp -r ansible/ root@$(EC2_HOST):/opt/evon-hub/
-
-docker-image: # Create Evon-Bootstrap Docker image
-	docker build -f support/Dockerfile . -t linuxdojo/evon-bootstrap
-
-docker-publish: # publish docker image
-	docker login
-	docker push linuxdojo/evon-bootstrap

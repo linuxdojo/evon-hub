@@ -403,7 +403,7 @@ elif [[ "$os" == "alpine" ]]; then
         apk update
     fi
     apk add bash curl grep openssl openvpn cpio uuidgen openrc
-    modprobe tun
+    modprobe tun || :
 elif [[ "$os" == "opensuse" ]]; then
     zypper -n install openvpn curl
 elif [[ "$os" == "arch" ]]; then
@@ -524,6 +524,7 @@ EOF
         fi
         echo -e "${evon_uuid}\nnull" > /etc/openvpn/evon.uuid
         chmod 600 /etc/openvpn/evon.uuid
+        [ "$os" == "arch" ] && chown openvpn /etc/openvpn/evon.uuid
     else
         echo Existing /etc/openvpn/evon.uuid file found, skipping.
     fi
@@ -533,6 +534,7 @@ EOF
         echo "Starting OpenVPN Client service..."
 
         if [ "$os" == "alpine" ]; then
+            uname -r | grep -q windows && touch /run/openrc/softlevel
             rc-update add openvpn default
             rc-service openvpn start
         else
