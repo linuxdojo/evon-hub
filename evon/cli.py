@@ -40,7 +40,7 @@ def inject_pub_ipv4(json_data):
     except json.JSONDecodeError as e:
         logger.error(f"Error parsing JSON input: {e}")
         sys.exit(1)
-    data["public-ipv4"] = api.get_pub_ipv4()
+    data["public-ipv4"] = evon_api.get_pub_ipv4()
     return json.dumps(data)
 
 
@@ -99,7 +99,7 @@ def main(**kwargs):
 
     if kwargs["get_inventory"]:
         logger.info("fetching inventory...")
-        inventory = api.get_records(EVON_API_URL, EVON_API_KEY)
+        inventory = evon_api.get_records(EVON_API_URL, EVON_API_KEY)
         click.echo(inventory)
 
     if kwargs["set_inventory"]:
@@ -107,14 +107,14 @@ def main(**kwargs):
         json_payload = kwargs["set_inventory"]
         json_payload = inject_pub_ipv4(json_payload)
         logger.debug(f"updating inventory with payload: {json_payload}")
-        result = api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
+        result = evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
         click.echo(result)
 
     if kwargs["get_account_info"]:
         logger.info("getting account info...")
         json_payload = '{"changes": {"new": {}, "removed": {}, "updated": {}, "unchanged": {}}}'
         json_payload = inject_pub_ipv4(json_payload)
-        result = api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
+        result = evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
         click.echo(result)
 
     if kwargs["save_state"]:
