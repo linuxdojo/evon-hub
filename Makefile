@@ -47,7 +47,7 @@ publish: # publish package
 	# TODO publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
 
 deploy: # make package, publish and run installer on remote host
-	#make test #TODO uncomment
+	make test || : # FIXME change to fail on non-zero rc
 	make package
 	make publish
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
