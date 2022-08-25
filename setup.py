@@ -12,7 +12,7 @@ setup(
     zip_safe             = False,
     entry_points         = {
         'console_scripts': [
-            'evon = evon.client:main',
+            'evon = evon.cli:main',
         ],
     },
 )
