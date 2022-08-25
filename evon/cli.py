@@ -44,9 +44,21 @@ def inject_pub_ipv4(json_data):
     return json.dumps(data)
 
 
-@click.command(no_args_is_help=True)
+@click.command(
+    context_settings={
+        "help_option_names": [
+            '-h', '--help'
+        ]
+    },
+    no_args_is_help=True,
+    help=f"""
+        Evon Hub CLI v{EVON_VERSION}.
+        Output is written to stdout as JSON, logs are written to syslog and
+        will also be echoed to stderr unless --quiet is specified."""
+)
 @click.option(
     "--get-inventory",
+    "-i",
     cls=log.MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_inventory"],
     is_flag=True, help="Show inventory."
@@ -64,6 +76,7 @@ def inject_pub_ipv4(json_data):
 )
 @click.option(
     "--get-account-info",
+    "-a",
     cls=log.MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_account_info"],
     is_flag=True,
@@ -77,14 +90,12 @@ def inject_pub_ipv4(json_data):
     hidden=True,
     help="Deploy and persist state."
 )
-@click.option("--quiet", is_flag=True, help="Suppress all logs on stderr (logs will still be written to syslog at /var/log/evon.log).")
-@click.option("--debug", is_flag=True, help="Enable debug logging.")
-@click.option("--version", is_flag=True, help="Show version and exit.")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress all logs on stderr (logs will still be written to syslog at /var/log/evon.log).")
+@click.option("--debug", "-d", is_flag=True, help="Enable debug logging.")
+@click.option("--version", "-v", is_flag=True, help="Show version and exit.")
 def main(**kwargs):
     """
-    Evon Hub CLI. 
-    Output is written to stdout as JSON, logs are written to syslog and
-    will also be echoed to stderr unless --quiet is specified.
+    Evon CLI entrypoint
     """
     if kwargs["debug"]:
         logger.setLevel(logging.DEBUG)
