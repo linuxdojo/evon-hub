@@ -16,7 +16,7 @@ import sys
 import click
 from dotenv import dotenv_values
 
-from evon import log, api
+from evon import log, evon_api
 
 logger = log.get_evon_logger()
 EVON_DEBUG = os.environ.get('EVON_DEBUG', '').upper() == "TRUE"
