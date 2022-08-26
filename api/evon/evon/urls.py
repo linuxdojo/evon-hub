@@ -30,6 +30,7 @@ router.register(r'api/group', hub.views.GroupViewSet)
 router.register(r'api/server', hub.views.ServerViewSet)
 router.register(r'api/servergroup', hub.views.ServergroupViewSet)
 router.register(r'api/policy', hub.views.PolicyViewSet)
+router.register(r'api/hello', hub.views.HelloViewSet, basename="hello")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
