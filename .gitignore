@@ -1,3 +1,9 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
 # Boostrap artefacts
 bootstrap.sh
 openvpn*.conf.inc

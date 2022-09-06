@@ -90,6 +90,13 @@ echo "### Installing version: ${VERSION}"
 extract_payload
 
 echo '### Installing Deps...'
+[ ! -e /etc/yum.repos.d/MariaDB.repo ] && cat <<EOF > /etc/yum.repos.d/MariaDB.repo
+[mariadb]
+name = MariaDB
+baseurl = https://mirror.mariadb.org/yum/10.5.17/centos7-amd64/
+gpgkey = http://mirror.aarnet.edu.au/pub/MariaDB/yum/RPM-GPG-KEY-MariaDB
+gpgcheck = 1
+EOF
 package_list='
     bzip2
     bzip2-devel
@@ -98,20 +105,20 @@ package_list='
     gcc
     git
     htop
+    httpd-tools
     iptables-services
     jq
     libffi-devel
-    httpd-tools
+    MariaDB-client
+    MariaDB-devel
+    MariaDB-server
     mlocate
     nginx
-    openssl11
-    openssl11-devel
+    openssl-devel
     openvpn
     patch
     python2-certbot-nginx
     readline-devel
-    sqlite
-    sqlite-devel
     squid
     sslh
     tk-devel
@@ -142,17 +149,34 @@ if [ ! -d .env  ]; then
 fi
 
 echo '### Installing Python deps...'
-. .env/bin/activate && pip install pip -U
-. .env/bin/activate && pip install -r requirements.txt
-. .env/bin/activate && pip install -e .
+. .env/bin/activate && \
+    pip install pip -U && \
+    pip install -r requirements.txt && \
+    pip install -e . && \
 
-echo '### Deploying Evon CLI entrypoint...'
+echo '### Deploying Evon CLI entrypoints...'
 rm -f /usr/local/bin/evon || :
 cat <<EOF > /usr/local/bin/evon
 #!/bin/bash
 exec sudo /opt/evon-hub/.env/bin/evon \$@
 EOF
+rm -f /usr/local/bin/eapi || :
+cat <<EOF > /usr/local/bin/eapi
+#!/bin/bash
+exec sudo /opt/evon-hub/.env/bin/eapi \$@
+EOF
 chmod 4755 /usr/local/bin/evon
+chmod 4755 /usr/local/bin/eapi
+
+echo '### Initialising DB...'
+systemctl enable mariadb
+systemctl start mariadb
+mysql -uroot -e "
+    CREATE DATABASE IF NOT EXISTS evon;
+    GRANT ALL PRIVILEGES  ON evon.* TO 'evon'@'localhost' IDENTIFIED BY 'evon' WITH GRANT OPTION;
+    FLUSH PRIVILEGES;
+"
+eapi migrate --noinput
 
 echo '### Obtaining and persisting account info...'
 # initial call to --get-account-info acts as registration event, subnet_key will be default "111".
