@@ -111,6 +111,37 @@
     dest: /etc/logrotate.d/evon
 
 
+### Setup API app
+
+- name: create evonapi service account user
+  ansible.builtin.user:
+    name: evonapi
+    comment: User that runs the Evon API service
+    shell: "/bin/false"
+
+- name: set ownership of evon app
+  ansible.builtin.file:
+    path: /opt/evon-hub
+    owner: evonapi
+    recurse: yes
+
+- name: deploy evonapi systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonapi.service
+    dest: /usr/lib/systemd/system
+  register: systemd_unit
+
+- name: reload systemd
+  ansible.builtin.shell: systemctl daemon-reload
+  when: systemd_unit.changed
+
+- name: start and persist evonapi service
+  ansible.builtin.service:
+    name: evonapi
+    state: restarted
+    enabled: true
+
+
 ### Setup Nginx
 
 - name: check if nginx config is present
@@ -204,7 +235,7 @@
     dest: /etc/motd
 
 
-### setup and configure easy-rsa
+### Setup easy-rsa
 
 - name: configure easy-rsa dir
   ansible.builtin.set_fact:
