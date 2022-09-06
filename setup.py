@@ -13,6 +13,7 @@ setup(
     entry_points         = {
         'console_scripts': [
             'evon = evon.cli:main',
+            'eapi = manage:main',
         ],
     },
 )

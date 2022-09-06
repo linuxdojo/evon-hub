@@ -27,7 +27,14 @@ package: # produce package artefact ready for publishing
 		--exclude .gitignore \
 		--exclude .git \
 		--exclude .env \
-		ansible evon requirements.txt version.txt setup.py
+		ansible \
+		eapi \
+		evon \
+		hub \
+		manage.py \
+		requirements.txt \
+		setup.py \
+		version.txt
 	# Generate output package filename
 	$(eval NAME=$(PACKAGE_NAME)-$(BRANCH))
 	$(eval GITCOUNT=$(shell git rev-list HEAD --count))
@@ -53,6 +60,10 @@ deploy: # make package, publish and run installer on remote host
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
 	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'"
 
-quick-deploy: # DEV ONLY - upload evon/ to /opt/evon-hub/ (assumes root ssh with pka is setup)
-	scp -r evon/ root@$(EC2_HOST):/opt/evon-hub/
-	scp -r ansible/ root@$(EC2_HOST):/opt/evon-hub/
+quick-deploy: # DEV ONLY - upload local project to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
+	scp -r \
+		evon/ \
+		ansible/ \
+		eapi/ \
+		hub/ \
+		root@$(EC2_HOST):/opt/evon-hub/
