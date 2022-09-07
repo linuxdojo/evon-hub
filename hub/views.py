@@ -1,5 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.contrib.auth.models import User as DjangoUser
+from django.contrib.auth.models import Group as DjangoGroup
 from hub import models
 from hub.api import serializers
 from rest_framework import viewsets
@@ -16,23 +18,23 @@ def index(request):
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    Evon users
+    Users
     """
-    queryset = models.User.objects.all()
+    queryset = DjangoUser.objects.all()
     serializer_class = serializers.UserSerializer
 
 
 class GroupViewSet(viewsets.ModelViewSet):
     """
-    Evon user groups
+    Groups
     """
-    queryset = models.Group.objects.all()
+    queryset = DjangoGroup.objects.all()
     serializer_class = serializers.GroupSerializer
 
 
 class ServerViewSet(viewsets.ModelViewSet):
     """
-    Evon connected servers
+    Servers
     """
     queryset = models.Server.objects.all()
     serializer_class = serializers.ServerSerializer
@@ -40,7 +42,7 @@ class ServerViewSet(viewsets.ModelViewSet):
 
 class ServergroupViewSet(viewsets.ModelViewSet):
     """
-    Evon server groups
+    Server Groups
     """
     queryset = models.Servergroup.objects.all()
     serializer_class = serializers.ServergroupSerializer
@@ -48,7 +50,7 @@ class ServergroupViewSet(viewsets.ModelViewSet):
 
 class PolicyViewSet(viewsets.ModelViewSet):
     """
-    Evon permissions policies
+    Permissions policies
     """
     queryset = models.Policy.objects.all()
     serializer_class = serializers.PolicySerializer
