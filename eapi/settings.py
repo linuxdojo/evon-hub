@@ -31,16 +31,16 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "hub.apps.HubConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "hub.apps.HubConfig",
     "rest_framework",
     "rest_framework.authtoken",
-    "rest_framework_swagger",
+    #"rest_framework_swagger",
 ]
 
 MIDDLEWARE = [

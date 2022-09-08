@@ -11,6 +11,7 @@ from rest_framework.response import Response
 ##### App Views ####
 
 def index(request):
+    # TODO redirect this to an external index in /var/www/html
     return HttpResponse("Evon Hub index")
 
 
@@ -40,11 +41,11 @@ class ServerViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ServerSerializer
 
 
-class ServergroupViewSet(viewsets.ModelViewSet):
+class ServerGroupViewSet(viewsets.ModelViewSet):
     """
     Server Groups
     """
-    queryset = models.Servergroup.objects.all()
+    queryset = models.ServerGroup.objects.all()
     serializer_class = serializers.ServergroupSerializer
 
 

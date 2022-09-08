@@ -13,7 +13,7 @@ help: # Show this help
 	  column -s: -t
 
 test: # Run unit tests
-	pytest evon/
+	pytest evon/ eapi/ hub/
 	flake8 --ignore=E501 evon/
 
 package: # produce package artefact ready for publishing
