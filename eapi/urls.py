@@ -13,30 +13,32 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import re_path
+from django.urls import re_path, include, path
 from django.contrib import admin
-from django.urls import include, path
 from rest_framework import routers
-from rest_framework_swagger.views import get_swagger_view
+#from rest_framework_swagger.views import get_swagger_view
 
 import hub.views
 
 
-schema_view = get_swagger_view(title='Evon Hub API')
+#schema_view = get_swagger_view(title='Evon Hub API')
 
-router = routers.DefaultRouter()
+router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'api/user', hub.views.UserViewSet)
 router.register(r'api/group', hub.views.GroupViewSet)
 router.register(r'api/server', hub.views.ServerViewSet)
-router.register(r'api/servergroup', hub.views.ServergroupViewSet)
+router.register(r'api/servergroup', hub.views.ServerGroupViewSet)
 router.register(r'api/policy', hub.views.PolicyViewSet)
 router.register(r'api/hello', hub.views.HelloViewSet, basename="hello")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('hub/', include('hub.urls')),
     re_path(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
     re_path(r'^api/$', router.get_api_root_view()),
-    re_path(r'^', include(router.urls)),
-    re_path(r'^api/docs/', schema_view),
+    ##path('api/', include((router.urls, 'app_name'), namespace='instance_name')),
+    #re_path(r'^api/$', include((router.urls, "app_name"))),
+    re_path(r'^', include('hub.urls')),
+    path('', include(router.urls)),
+    #re_path(r'^api/docs/', schema_view),
+    #path('hub/', include('hub.urls')),
 ]
