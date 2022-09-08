@@ -5,30 +5,35 @@ from django.contrib.auth.models import Group as DjangoGroup
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = DjangoUser
-        fields = ('username',)
+        fields = ('id', 'username')
 
 
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = DjangoGroup
-        fields = ('name',)
+        fields = ('id', 'name')
 
 
 class ServerSerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = models.Server
-        fields = ('fqdn', 'ipv4_address')
+        fields = ('id', 'fqdn', 'ipv4_address')
 
 
 class ServergroupSerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
-        model = models.Servergroup
-        fields = ('servergroup_name',)
+        model = models.ServerGroup
+        fields = ('id', 'name')
 
 
 class PolicySerializer(serializers.HyperlinkedModelSerializer):
+
     class Meta:
         model = models.Policy
-        fields = ('policy_name',)
+        fields = ('id', 'name')
