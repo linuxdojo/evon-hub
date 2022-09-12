@@ -24,6 +24,8 @@ MarkupSafe==2.1.1
 matplotlib-inline==0.1.6
 mysqlclient==2.1.1
 openapi-codec==1.3.2
+openvpn-api @ git+https://github.com/linuxdojo/openvpn-api.git@d2669bb171119e93dd98aaa7700e32807a796029
+openvpn-status==0.2.1
 parso==0.8.3
 pexpect==4.8.0
 pickleshare==0.7.5
