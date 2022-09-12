@@ -1,13 +1,14 @@
+from django.contrib.auth.models import Group as DjangoGroup
+from django.contrib.auth.models import User as DjangoUser
 from django.http import HttpResponse
 from django.shortcuts import render
-from django.contrib.auth.models import User as DjangoUser
-from django.contrib.auth.models import Group as DjangoGroup
+from rest_access_policy import AccessViewSetMixin
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet, ViewSet
+
 from hub import models
 from hub.api import serializers
-from rest_framework import viewsets, permissions
-from rest_framework.response import Response
-
-from hub.permissions import PermissionPolicyMixin
+from hub.permissions import ServerAccessPolicy
 
 ##### App Views ####
 
@@ -18,7 +19,7 @@ def index(request):
 
 ##### API Views ####
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(ModelViewSet):
     """
     Users
     """
@@ -26,7 +27,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.UserSerializer
 
 
-class GroupViewSet(viewsets.ModelViewSet):
+class GroupViewSet(ModelViewSet):
     """
     Groups
     """
@@ -34,21 +35,16 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.GroupSerializer
 
 
-class ServerViewSet(PermissionPolicyMixin, viewsets.ModelViewSet):
+class ServerViewSet(AccessViewSetMixin, ModelViewSet):
     """
     Servers
     """
     queryset = models.Server.objects.all()
     serializer_class = serializers.ServerSerializer
-    permission_classes = [permissions.IsAdminUser]
-    permission_classes_per_method = {
-        "list": [permissions.IsAdminUser | permissions.IsAuthenticated],
-        "retrieve": [permissions.IsAdminUser | permissions.IsAuthenticated]
-    }
+    access_policy = ServerAccessPolicy
 
 
-
-class ServerGroupViewSet(viewsets.ModelViewSet):
+class ServerGroupViewSet(ModelViewSet):
     """
     Server Groups
     """
@@ -56,7 +52,7 @@ class ServerGroupViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ServergroupSerializer
 
 
-class PolicyViewSet(viewsets.ModelViewSet):
+class PolicyViewSet(ModelViewSet):
     """
     Permissions policies
     """
@@ -64,7 +60,7 @@ class PolicyViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PolicySerializer
 
 
-class HelloViewSet(viewsets.ViewSet):
+class HelloViewSet(ViewSet):
     """
     Custom hello endpoint
     """
