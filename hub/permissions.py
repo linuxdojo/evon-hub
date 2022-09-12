@@ -1,33 +1,45 @@
-from rest_framework import permissions
+from rest_access_policy import AccessPolicy
 
 
-class PermissionPolicyMixin:
-    """
-    See https://b0uh.github.io/drf-viewset-permission-policy-per-method.html
-    """
-    def check_permissions(self, request):
-        try:
-            # This line is heavily inspired from `APIView.dispatch`.
-            # It returns the method associated with an endpoint.
-            handler = getattr(self, request.method.lower())
-        except AttributeError:
-            handler = None
+class ServerAccessPolicy(AccessPolicy):
+    statements = [
+        {
+            "action": ["list", "retrieve"],
+            "principal": "*",
+            "effect": "allow",
+            #"condition": "is_authenticated"
+        },
+        {
+            "action": ["*"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "is_superuser"
+        },
+        {
+            "action": ["*"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "is_same_source"
+        }
+    ]
 
-        if (
-            handler
-            and self.permission_classes_per_method
-            and self.permission_classes_per_method.get(handler.__name__)
-        ):
-            self.permission_classes = self.permission_classes_per_method.get(handler.__name__)
-
-        super().check_permissions(request)
-
-
-class SameSourcePermission(permissions.BasePermission):
-    """
-    Ensures endpoints can only modify their own records
-    """
-
-    def has_permission(self, request, view):
+    def is_same_source(self, request, view, action) -> bool:
+        """
+        True if requestor_ip_address matches the Server.ipv4_address object in the request
+        """
         requestor_ip_addr = request.META['REMOTE_ADDR']
+        server_ip_addr = request
         #TODO if requestor_ip_addr == ipv4_addr being updated, return True, else False
+        return True
+
+    def is_authenticated(self, request, view, action) -> bool:
+        return request.user.is_authenticated
+
+    def is_superuser(self, request, view, action) -> bool:
+        return request.user.is_superuser
+
+    @classmethod
+    def scope_fields(cls, request, fields: dict, instance=None) -> dict:
+        if not request.user.is_superuser:
+            fields.pop('uuid', None)
+        return fields
