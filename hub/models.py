@@ -2,8 +2,9 @@ from django.db import models
 
 
 class Server(models.Model):
-    fqdn = models.CharField(max_length=1004, unique=True)
-    ipv4_address = models.CharField(max_length=15)
+    fqdn = models.CharField(max_length=255, unique=True)  # Max fqdn len is 1004 according to RFC, but max mariadb unique varchar is 255
+    ipv4_address = models.CharField(max_length=15, unique=True)
+    uuid = models.CharField(max_length=36, unique=True)
 
     def __str__(self):
         return self.fqdn
