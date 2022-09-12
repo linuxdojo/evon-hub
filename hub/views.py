@@ -4,9 +4,10 @@ from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
 from hub import models
 from hub.api import serializers
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 
+from hub.permissions import PermissionPolicyMixin
 
 ##### App Views ####
 
@@ -33,12 +34,18 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.GroupSerializer
 
 
-class ServerViewSet(viewsets.ModelViewSet):
+class ServerViewSet(PermissionPolicyMixin, viewsets.ModelViewSet):
     """
     Servers
     """
     queryset = models.Server.objects.all()
     serializer_class = serializers.ServerSerializer
+    permission_classes = [permissions.IsAdminUser]
+    permission_classes_per_method = {
+        "list": [permissions.IsAdminUser | permissions.IsAuthenticated],
+        "retrieve": [permissions.IsAdminUser | permissions.IsAuthenticated]
+    }
+
 
 
 class ServerGroupViewSet(viewsets.ModelViewSet):
@@ -55,6 +62,7 @@ class PolicyViewSet(viewsets.ModelViewSet):
     """
     queryset = models.Policy.objects.all()
     serializer_class = serializers.PolicySerializer
+
 
 class HelloViewSet(viewsets.ViewSet):
     """
