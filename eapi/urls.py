@@ -16,33 +16,30 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import re_path, include, path
 from django.views.generic.base import RedirectView
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView
 from rest_framework import routers
-from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 import hub.views
 
 
-#schema_view = get_swagger_view(title='Evon Hub API')
-
 router = routers.DefaultRouter(trailing_slash=False)
+
 router.register(r'api/user', hub.views.UserViewSet)
 router.register(r'api/group', hub.views.GroupViewSet)
 router.register(r'api/server', hub.views.ServerViewSet)
 router.register(r'api/servergroup', hub.views.ServerGroupViewSet)
 router.register(r'api/policy', hub.views.PolicyViewSet)
-router.register(r'api/hello', hub.views.HelloViewSet, basename="hello")
+router.register(r'api/ping', hub.views.PingViewSet, basename="ping")
+router.register(r'api/bootstrap', hub.views.BootstrapViewSet, basename="bootstrap")
 
 urlpatterns = [
     re_path(r'^favicon\.ico$', RedirectView.as_view(permanent=False, url='/static/favicon.ico')),
     path("admin/", admin.site.urls),
     re_path(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
-    re_path(r'^api/$', router.get_api_root_view()),
-    ##path('api/', include((router.urls, 'app_name'), namespace='instance_name')),
-    #re_path(r'^api/$', include((router.urls, "app_name"))),
+    #re_path(r'^api/$', router.get_api_root_view()),
+    re_path(r'^api/$', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     re_path(r'^', include('hub.urls')),
     path('', include(router.urls)),
-    #re_path(r'^api/docs/', schema_view),
-    #path('hub/', include('hub.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    #path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
