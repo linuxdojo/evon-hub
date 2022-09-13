@@ -10,10 +10,17 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
+with open(os.path.join(f"{PROJECT_PATH}", "../version.txt")) as verfile:
+	VERSION = verfile.read().strip()
+
+def join_paths(*args):
+    return os.path.join(*args) + os.path.sep
 
 
 # Quick-start development settings - unsuitable for production
@@ -40,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "drf_spectacular",
     #"rest_framework_swagger",
 ]
 
@@ -124,9 +132,31 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
+
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
+# Absolute path to the directory static files should be collected to.
+# Don't put anything in this directory yourself; store your static files
+# in apps' "static/" subdirectories and in STATICFILES_DIRS.
+# Example: "/var/www/example.com/static/"
+STATIC_ROOT = join_paths(PROJECT_PATH, 'static')
 
 STATIC_URL = "static/"
+
+# Additional locations of static files
+STATICFILES_DIRS = (
+    # Put strings here, like "/home/html/static" or "C:/www/django/static".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
+
+# List of finder classes that know how to find static files in
+# various locations.
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+)
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -145,7 +175,16 @@ REST_FRAMEWORK = {
         #'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
         #'rest_framework.permissions.AllowAny',
     ],
-    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    #'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Evon API',
+    'DESCRIPTION': 'Elastic Virtual Overlay Network',
+    'VERSION': VERSION,
+    'SERVE_INCLUDE_SCHEMA': True,
+    # OTHER SETTINGS
 }
