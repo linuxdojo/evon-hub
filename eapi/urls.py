@@ -13,10 +13,11 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import re_path, include, path
 from django.contrib import admin
+from django.urls import re_path, include, path
+from django.views.generic.base import RedirectView
 from rest_framework import routers
-#from rest_framework_swagger.views import get_swagger_view
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 import hub.views
 
@@ -32,6 +33,7 @@ router.register(r'api/policy', hub.views.PolicyViewSet)
 router.register(r'api/hello', hub.views.HelloViewSet, basename="hello")
 
 urlpatterns = [
+    re_path(r'^favicon\.ico$', RedirectView.as_view(permanent=False, url='/static/favicon.ico')),
     path("admin/", admin.site.urls),
     re_path(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
     re_path(r'^api/$', router.get_api_root_view()),
@@ -41,4 +43,6 @@ urlpatterns = [
     path('', include(router.urls)),
     #re_path(r'^api/docs/', schema_view),
     #path('hub/', include('hub.urls')),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
