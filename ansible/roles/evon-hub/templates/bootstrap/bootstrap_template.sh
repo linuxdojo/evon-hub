@@ -496,9 +496,11 @@ if [ "$installed" != "1" ]; then
     elif [ ! -e ${ovpn_conf_dir}/evon_extra.conf.inc ]; then
         echo "Creating default extra config file: ${ovpn_conf_dir}/evon_extra.conf.inc"
 cat <<EOF > ${ovpn_conf_dir}/evon_extra.conf.inc
-# Place extra OpenVPN config in here. To configure OpenVPN to use a proxy server,
-# uncomment and edit the lines starting with ; below, and replace the parameters
-# denoted by square brackets with desired values:
+# Place any extra OpenVPN config in this file if required. For exmample, to configure
+# OpenVPN to use a proxy server, uncomment and edit the lines starting with ; below,
+# and replace the parameters denoted by square brackets with your desired values.
+# For reference, please refer to the OpenVPN documentation at:
+# https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/
 
 ;http-proxy [proxy_address] [proxy_port] [none|basic|ntlm]
 

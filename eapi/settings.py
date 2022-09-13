@@ -32,7 +32,10 @@ SECRET_KEY = "django-insecure-p2yq#!5zo1ok+sg5bt)_21llif+#-kjrhmrn)z2byap%8*8-ui
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    ".evon.link",
+    "localhost",
+]
 
 
 # Application definition

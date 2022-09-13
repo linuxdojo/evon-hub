@@ -7,7 +7,7 @@ class ServerAccessPolicy(AccessPolicy):
             "action": ["list", "retrieve"],
             "principal": "*",
             "effect": "allow",
-            #"condition": "is_authenticated"
+            "condition": "is_authenticated"
         },
         {
             "action": ["*"],
