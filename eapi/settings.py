@@ -17,7 +17,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
 with open(os.path.join(f"{PROJECT_PATH}", "../version.txt")) as verfile:
-	VERSION = verfile.read().strip()
+    VERSION = verfile.read().strip()
 
 def join_paths(*args):
     return os.path.join(*args) + os.path.sep
@@ -185,8 +185,11 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Evon API',
-    'DESCRIPTION': 'Elastic Virtual Overlay Network',
+    'TITLE': 'Evon Hub API',
+    'DESCRIPTION': """`[ Elastic Virtual Overlay Network ]`\n
+Welcome to the Evon Hub API Documentation.\n
+Return to [Evon Hub Administration](/)
+    """,
     'VERSION': VERSION,
     'SERVE_INCLUDE_SCHEMA': True,
     # OTHER SETTINGS

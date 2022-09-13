@@ -18,7 +18,7 @@ from hub.renderers import BinaryFileRenderer
 ##### App Views ####
 
 def index(request):
-    # TODO redirect this to an external index in /var/www/html
+    # This view is orphaned in urls in favor of Django Admin
     return HttpResponse("Evon Hub index")
 
 
