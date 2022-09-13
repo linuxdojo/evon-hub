@@ -7,21 +7,21 @@ from rest_access_policy import FieldAccessMixin
 from hub.permissions import ServerAccessPolicy
 
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DjangoUser
         fields = ('id', 'username')
 
 
-class GroupSerializer(serializers.HyperlinkedModelSerializer):
+class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DjangoGroup
         fields = ('id', 'name')
 
 
-class ServerSerializer(FieldAccessMixin, serializers.HyperlinkedModelSerializer):
+class ServerSerializer(FieldAccessMixin, serializers.ModelSerializer):
 
     class Meta:
         model = models.Server
@@ -29,14 +29,14 @@ class ServerSerializer(FieldAccessMixin, serializers.HyperlinkedModelSerializer)
         access_policy = ServerAccessPolicy
 
 
-class ServergroupSerializer(serializers.HyperlinkedModelSerializer):
+class ServergroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.ServerGroup
         fields = ('id', 'name')
 
 
-class PolicySerializer(serializers.HyperlinkedModelSerializer):
+class PolicySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Policy
