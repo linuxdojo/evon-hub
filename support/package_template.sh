@@ -178,6 +178,22 @@ mysql -uroot -e "
 "
 eapi migrate --noinput
 
+echo '### Configuring Hub and Users'
+# disable debug mode
+sed -i 's/DEBUG = True/DEBUG = False/g' /opt/evon-hub/eapi/settings.py
+# create admin and apiuser
+cat <<EOF | eapi shell
+from django.contrib.auth import get_user_model
+import json
+import requests
+resp = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/document')
+User = get_user_model()  
+User.objects.filter(username='admin').exists() or \
+    User.objects.create_superuser('admin', '', json.loads(resp.text)['instanceId'])
+User.objects.filter(username='apiuser').exists() or \
+    User.objects.create_user('apiuser', '', '')
+EOF
+
 echo '### Obtaining and persisting account info...'
 # initial call to --get-account-info acts as registration event, subnet_key will be default "111".
 # TODO: use --set-inventory with subnet_key as input param
