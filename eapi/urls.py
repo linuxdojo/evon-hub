@@ -34,12 +34,11 @@ router.register(r'api/bootstrap', hub.views.BootstrapViewSet, basename="bootstra
 
 urlpatterns = [
     re_path(r'^favicon\.ico$', RedirectView.as_view(permanent=False, url='/static/favicon.ico')),
-    path("admin/", admin.site.urls),
+    #path("admin/", admin.site.urls),
     re_path(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
-    #re_path(r'^api/$', router.get_api_root_view()),
     re_path(r'^api/$', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    re_path(r'^', include('hub.urls')),
-    path('', include(router.urls)),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    #path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    #re_path(r'^', include('hub.urls')),
+    re_path("^", admin.site.urls),
+    path('', include(router.urls)),
 ]
