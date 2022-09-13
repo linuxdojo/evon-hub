@@ -10,3 +10,4 @@ openvpn*.conf.inc
 
 # Package artefacts
 evon-hub_*.sh
+eapi/static/

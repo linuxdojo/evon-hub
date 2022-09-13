@@ -27,9 +27,8 @@ class ServerAccessPolicy(AccessPolicy):
         """
         True if requestor_ip_address matches the Server.ipv4_address object in the request
         """
-        requestor_ip_addr = request.META['REMOTE_ADDR']
-        server_ip_addr = request
-        #TODO if requestor_ip_addr == ipv4_addr being updated, return True, else False
+        #requestor_ip_addr = request.META['REMOTE_ADDR']
+        #TODO ensure uuid field is present in request and that it matches what is stored
         return True
 
     def is_authenticated(self, request, view, action) -> bool:
