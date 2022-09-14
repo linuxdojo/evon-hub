@@ -8,3 +8,11 @@
 # API
 
 * fix errors and warnings re Hello and Server endpoints on runserver start
+
+# Logging
+
+* ensure all django events are logged
+
+# CLI
+
+* add change-deploy-api-key feature to evon cli
