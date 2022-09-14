@@ -170,26 +170,6 @@
     state: started
   when: not configure_nginx.changed
 
-- name: check if htpasswd file is present
-  ansible.builtin.stat:
-    path: /etc/nginx/evon.htpasswd
-  register: htpasswd_file
-
-- name: setup htpasswd file
-  shell: |
-    htpasswd -i -c /etc/nginx/evon.htpasswd deployer <<< {{ ec2_id }}
-  when: not htpasswd_file.stat.exists
-
-- name: check if deploy_key file is present
-  ansible.builtin.stat:
-    path: /var/www/html/deploy_key
-  register: dk_file
-
-- name: setup deploy_key file
-  shell: |
-    curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -jr ".accountId, .instanceId" > /var/www/html/deploy_key
-  when: not dk_file.stat.exists
-
 
 ### Setup CertBot
 
@@ -338,21 +318,17 @@
 
 - name: check if bootstrap exists
   ansible.builtin.stat:
-    path: /var/www/html/bootstrap.sh
+    path: /opt/evon-hub/bootstrap.sh
   register: bootstrap_script
 
 - name: setup evon bootstrap
+
   block:
+
     - name: create bootstrap build dir
       ansible.builtin.file:
         path: /opt/evon-hub/build_bootstrap
         state: directory
-
-    - name: create webroot dir
-      ansible.builtin.file:
-        path: /var/www/html
-        state: directory
-        owner: nginx
 
     - name: compute bootstrap key
       ansible.builtin.shell: 'curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -jr ".accountId, .instanceId" | md5sum | awk ''{print $1}'''
@@ -389,15 +365,17 @@
         cd /opt/evon-hub/build_bootstrap
         tar -c openvpn_client.conf openvpn_secrets.conf.aes | gzip | base64 >> bootstrap.sh
         chmod +x /opt/evon-hub/build_bootstrap/bootstrap.sh
-        mv /opt/evon-hub/build_bootstrap/bootstrap.sh /var/www/html
+        mv /opt/evon-hub/build_bootstrap/bootstrap.sh /opt/evon-hub
 
     - name: cleanup
       ansible.builtin.file:
         state: absent
         path: /opt/evon-hub/build_bootstrap
+
   when: not bootstrap_script.stat.exists
 
   rescue:
+
     - name: post-failure cleanup
       ansible.builtin.file:
         state: absent
@@ -406,6 +384,7 @@
     - name: post-failure exit
       ansible.builtin.fail:
         msg: "exiting due to failure in task: {{ ansible_failed_task.name }}"
+
 
 # TODO:
 ### setup Mapper
