@@ -41,3 +41,15 @@ class PolicySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Policy
         fields = ('id', 'name')
+
+
+class PingSerializer(serializers.Serializer):
+    pass
+
+
+class BootstrapSerializer(serializers.Serializer):
+    pass
+
+
+class IIDSerializer(serializers.Serializer):
+    pass
