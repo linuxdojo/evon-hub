@@ -24,21 +24,22 @@ import hub.views
 
 router = routers.DefaultRouter(trailing_slash=False)
 
-router.register(r'api/user', hub.views.UserViewSet)
-router.register(r'api/group', hub.views.GroupViewSet)
-router.register(r'api/server', hub.views.ServerViewSet)
-router.register(r'api/servergroup', hub.views.ServerGroupViewSet)
-router.register(r'api/policy', hub.views.PolicyViewSet)
-router.register(r'api/ping', hub.views.PingViewSet, basename="ping")
-router.register(r'api/bootstrap', hub.views.BootstrapViewSet, basename="bootstrap")
+router.register(r'user', hub.views.UserViewSet)
+router.register(r'group', hub.views.GroupViewSet)
+router.register(r'server', hub.views.ServerViewSet)
+router.register(r'servergroup', hub.views.ServerGroupViewSet)
+router.register(r'policy', hub.views.PolicyViewSet)
+router.register(r'ping', hub.views.PingViewSet, basename="ping")
+router.register(r'bootstrap', hub.views.BootstrapViewSet, basename="bootstrap")
+router.register(r'iid', hub.views.IIDViewSet, basename="iid")
 
 urlpatterns = [
     re_path(r'^favicon\.ico$', RedirectView.as_view(permanent=False, url='/static/favicon.ico')),
-    #path("admin/", admin.site.urls),
-    re_path(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
+    #re_path(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
+    re_path(r'^api/schema', SpectacularAPIView.as_view(), name='schema'),
     re_path(r'^api/$', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/', include(router.urls)),
+    #path("admin/", admin.site.urls),
     #re_path(r'^', include('hub.urls')),
-    re_path("^", admin.site.urls),
-    path('', include(router.urls)),
+    re_path("", admin.site.urls),
 ]

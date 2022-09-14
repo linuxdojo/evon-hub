@@ -17,6 +17,7 @@ test: # Run unit tests
 	flake8 --ignore=E501 evon/
 
 package: # produce package artefact ready for publishing
+	rm -f evon-hub_*.sh
 	# generate env
 	ENV=$(ENV) support/gen_env.py
 	# create archive
@@ -50,7 +51,6 @@ package: # produce package artefact ready for publishing
 
 publish: # publish package
 	scp evon-hub_*.sh  $(EC2_USER)@$(EC2_HOST):evon-hub_latest.sh
-	#rm -f evon-hub_*.sh
 	# TODO publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
 
 deploy: # make package, publish and run installer on remote host
