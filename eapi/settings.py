@@ -58,7 +58,7 @@ INSTALLED_APPS = [
 JAZZMIN_SETTINGS = {
     "site_title": "Evon Hub",
     "site_header": "Evon Hub Admin",
-    "site_brand": "Evon Hub",
+    "site_brand": f"Evon Hub {VERSION}",
     "welcome_sign": "Evon Hub",
     "site_logo": "evon_logo_e.png",
     "site_icon": "favicon.ico",

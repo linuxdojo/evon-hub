@@ -34,6 +34,42 @@ MUTEX_OPTIONS = [
     "save_state",
 ]
 
+
+class MutuallyExclusiveOption(click.Option):
+    """
+    Mutex group for Click. Example usage:
+        @click.option("--silent", cls=MutuallyExclusiveOption, mutually_exclusive=["verbose"], is_flag=True, help="be silent")
+        @click.option("--verbose", cls=MutuallyExclusiveOption, mutually_exclusive=["silent"], is_flag=True, help="be noisy")
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.mutually_exclusive = set(kwargs.pop('mutually_exclusive', []))
+#        help = kwargs.get('help', '')
+#        if self.mutually_exclusive:
+#            ex_str = ', '.join(self.mutually_exclusive)
+#            kwargs['help'] = help + (
+#                ' NOTE: This argument is mutually exclusive with '
+#                ' arguments: [' + ex_str + '].'
+#            )
+        super(MutuallyExclusiveOption, self).__init__(*args, **kwargs)
+
+    def handle_parse_result(self, ctx, opts, args):
+        if self.mutually_exclusive.intersection(opts) and self.name in opts:
+            raise click.UsageError(
+                "Illegal usage: `{}` is mutually exclusive with "
+                "arguments `{}`.".format(
+                    self.name,
+                    ', '.join(self.mutually_exclusive)
+                )
+            )
+
+        return super(MutuallyExclusiveOption, self).handle_parse_result(
+            ctx,
+            opts,
+            args
+        )
+
+
 def inject_pub_ipv4(json_data):
     try:
         data = json.loads(json_data)
@@ -59,14 +95,14 @@ def inject_pub_ipv4(json_data):
 @click.option(
     "--get-inventory",
     "-i",
-    cls=log.MutuallyExclusiveOption,
+    cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_inventory"],
     is_flag=True, help="Show inventory."
 )
 @click.option(
     "--set-inventory",
     hidden=True,
-    cls=log.MutuallyExclusiveOption,
+    cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "set_inventory"],
     metavar="JSON",
     help=("Upsert/delete zone records specified as JSON in the following format: "
@@ -77,14 +113,22 @@ def inject_pub_ipv4(json_data):
 @click.option(
     "--get-account-info",
     "-a",
-    cls=log.MutuallyExclusiveOption,
+    cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_account_info"],
     is_flag=True,
     help="Get account info."
 )
 @click.option(
+    "--get-deploy-key",
+    "-k",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_deploy_key"],
+    is_flag=True,
+    help="Get bootstrap deploy key."
+)
+@click.option(
     "--save-state",
-    cls=log.MutuallyExclusiveOption,
+    cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "save_state"],
     is_flag=True,
     hidden=True,
@@ -127,6 +171,15 @@ def main(**kwargs):
         json_payload = inject_pub_ipv4(json_payload)
         result = evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
         click.echo(result)
+
+    if kwargs["get_deploy_key"]:
+        logger.info("getting bootstrap deploy key...")
+        import django
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'
+        django.setup()
+        from django.contrib.auth.models import User
+        deploy_key = User.objects.get(username="deployer").auth_token.key
+        click.echo({"deploy_key": deploy_key})
 
     if kwargs["save_state"]:
         logger.info("deploying state...")
