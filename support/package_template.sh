@@ -177,6 +177,7 @@ mysql -uroot -e "
     FLUSH PRIVILEGES;
 "
 eapi migrate --noinput
+eapi collectstatic --noinput
 
 echo '### Configuring Hub and Users'
 # disable debug mode
