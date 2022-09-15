@@ -16,3 +16,7 @@
 # CLI
 
 * add change-deploy-api-key feature to evon cli
+
+# Users
+
+* make superuser and apiuser (deployer?) immutable
