@@ -42,6 +42,7 @@ ALLOWED_HOSTS = [
 
 INSTALLED_APPS = [
     "hub.apps.HubConfig",
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -53,6 +54,20 @@ INSTALLED_APPS = [
     "drf_spectacular",
     #"rest_framework_swagger",
 ]
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Evon Hub",
+    "site_header": "Evon Hub Admin",
+    "site_brand": "Evon Hub",
+    "welcome_sign": "Evon Hub",
+    "site_logo": "evon_logo_e.png",
+    "site_icon": "favicon.ico",
+    "copyright": "Evon.Link",
+    "related_modal_active": True,
+    "topmenu_links": [
+        {"name": "Click here for API Documentation", "url": "/api", "new_window": True},
+    ],
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -187,8 +202,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Evon Hub API',
     'DESCRIPTION': """`[ Elastic Virtual Overlay Network ]`\n
-Welcome to the Evon Hub API Documentation.\n
-Return to [Evon Hub Administration](/)
+Evon Hub API Documentation.\n
     """,
     'VERSION': VERSION,
     'SERVE_INCLUDE_SCHEMA': True,

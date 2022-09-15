@@ -5,6 +5,7 @@ from django.contrib.auth.models import User as DjangoUser
 from django.http import FileResponse
 from django.http import HttpResponse
 from django.shortcuts import render
+from drf_spectacular.utils import extend_schema
 from rest_access_policy import AccessViewSetMixin
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -68,10 +69,13 @@ class PolicyViewSet(ModelViewSet):
 
 class PingViewSet(ViewSet):
     """
-    Ping endpoint
+    Ping endpoint for connectivity testing
     """
     serializer_class = serializers.PingSerializer
 
+    @extend_schema(
+        operation_id="ping_request"
+    )
     def list(self, request):
         return Response({"message": "pong"})
 
@@ -82,6 +86,9 @@ class BootstrapViewSet(ViewSet):
     """
     serializer_class = serializers.BootstrapSerializer
 
+    @extend_schema(
+        operation_id="bootstrap_retrieve"
+    )
     @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
     def download(self, *args, **kwargs):
         bootstrap_filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bootstrap.sh")
@@ -99,6 +106,9 @@ class IIDViewSet(ViewSet):
     """
     serializer_class = serializers.IIDSerializer
 
+    @extend_schema(
+        operation_id="iid_retrieve"
+    )
     @action(methods=['get'], detail=False)
     def get(self, *args, **kwargs):
         try:
