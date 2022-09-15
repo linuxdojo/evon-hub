@@ -41,7 +41,7 @@ fi
 # ensure we're not running on the hub
 if [ -e /opt/evon-hub/version.txt ]; then
     echo Evon Bootstrap can not be installed on your Evon Hub!
-    echo This installer must be run on an endpoint system that you wish to join to your EVON overlay network.
+    echo This installer must be run on an endpoint system that you wish to join to your overlay network.
     exit 1
 fi
 
@@ -81,7 +81,7 @@ elif grep -qs "Arch" /etc/os-release; then
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
     group_name="nobody"
 else
-    echo "This installer seems to be running on an unsupported distribution.
+    echo "This installer seems to be running on an unsupported Linux distribution.
 Supported distros are AlmaLinux, Alpine, Amazon Linux, Arch, CentOS, Debian, Fedora, Rocky Linux, Ubuntu and openSUSE."
     exit 1
 fi
@@ -115,7 +115,7 @@ curlf() {
         echo "ERROR: curl returned non-zero return code: $rc" > $OUTPUT_FILE
     elif [[ ${HTTP_CODE} -lt 200 || ${HTTP_CODE} -gt 299 ]] ; then
         if [ ${HTTP_CODE} -eq 401 ]; then
-            echo "ERROR: Bad password" > $OUTPUT_FILE
+            echo "ERROR: Bad deploy key" > $OUTPUT_FILE
         else
             echo "ERROR: Got HTTP response code ${HTTP_CODE} from Evon Hub" > $OUTPUT_FILE
         fi
@@ -128,10 +128,11 @@ curlf() {
 # decrypt key getter function
 get_decrypt_key() {
     deploy_key=$1
-    data=$(curlf -u "deployer:${deploy_key}" "https://${ACCOUNT_DOMAIN}/deploy_key")
+    data=$(curlf -H "Authorization: Token ${deploy_key}" "https://${ACCOUNT_DOMAIN}/api/iid/get")
     if echo $data | grep -q ERROR; then
         echo $data
     else
+        data=$(echo $data | jq -jr ".accountId, .instanceId")
         echo $(echo -n $data | md5sum | awk '{print $1}')
     fi
 }
@@ -172,7 +173,7 @@ function extract_payload() {
 function show_usage() {
     echo "Usage:"
     echo "  $0 [options]"
-    echo '
+    echo "
 Options:
 
   -i, --install
@@ -185,7 +186,7 @@ Options:
 
   -d, --uuid <UUID>
     If not set, a unique UUID value will be auto-generated using the output of
-    the command `uuidgen`, else <UUID> will be used. This value is stored
+    the command \`uuidgen\`, else <UUID> will be used. This value is stored
     locally and sent to your Evon Hub upon connection to identify this server.
     Evon Hub will map this value to a static auto-assigned IPv4 address on the
     overlay network. Connecting to Evon Hub using the same UUID will cause the
@@ -218,8 +219,11 @@ Environment Variables:
 
   EVON_DEPLOY_KEY
     If set, the value will be used as the key for decrypting the OpenVPN config
-    during installation. If not set, you will be prompted for this key. Set this
-    if non-interactive (unattended) installation is required.'
+    secrets during installation. If not set, you will be prompted for this key.
+    Set this if non-interactive (unattended) installation is required. To
+    retrieve the deploy key, run \`evon --get-deploy-key\` on your Evon Hub, or
+    visit your Evon Hub Admin site and copy the key for user \`deployer\` at:
+    https://${ACCOUNT_DOMAIN}/authtoken/tokenproxy/"
 }
 
 
@@ -385,29 +389,29 @@ echo "Installing dependencies..."
 
 if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
     apt-get update
-    apt-get install -y openvpn curl uuid-runtime
+    apt-get install -y openvpn curl uuid-runtime jq
 elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
     yum install -y epel-release
-    yum install -y openvpn curl
+    yum install -y openvpn curl jq
 elif [[ "$os" == "centos" && $os_version -gt 7 ]]; then
     dnf install -y epel-release
-    dnf install -y openvpn curl
+    dnf install -y openvpn curl jq
 elif [[ "$os" == "al" ]]; then
     rpm -qa epel-release | grep -q epel-release || amazon-linux-extras install epel -y
-    yum install -y openvpn curl
+    yum install -y openvpn curl jq
 elif [[ "$os" == "fedora" ]]; then
-    dnf install -y openvpn curl
+    dnf install -y openvpn curl jq
 elif [[ "$os" == "alpine" ]]; then
     if cpio 2>&1 | grep -q BusyBox; then
         echo "https://dl-cdn.alpinelinux.org/alpine/v$(cut -d'.' -f1,2 /etc/alpine-release)/community/" >> /etc/apk/repositories
         apk update
     fi
-    apk add bash curl grep openssl openvpn cpio uuidgen openrc
+    apk add bash curl grep openssl openvpn cpio uuidgen openrc jq
     modprobe tun || :
 elif [[ "$os" == "opensuse" ]]; then
-    zypper -n install openvpn curl
+    zypper -n install openvpn curl jq
 elif [[ "$os" == "arch" ]]; then
-    pacman --noconfirm -S openvpn curl cpio
+    pacman --noconfirm -S openvpn curl cpio jq
     extra_msg='You may need to run `pacman -Syu`'
 fi
 if [ $? -ne 0 ]; then
@@ -462,7 +466,7 @@ if [ "$installed" != "1" ]; then
         done
         echo ""
     fi
-    echo "Successfully extracted installation payload, continuing..."
+    echo "Successfully extracted and decrypred installation payload, continuing..."
     rm -f openvpn_secrets.conf.aes
 
     #### deploy openvpn config files

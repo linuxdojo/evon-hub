@@ -191,8 +191,8 @@ resp = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/doc
 User = get_user_model()  
 User.objects.filter(username='admin').exists() or \
     User.objects.create_superuser('admin', '', json.loads(resp.text)['instanceId'])
-User.objects.filter(username='apiuser').exists() or \
-    User.objects.create_user('apiuser', '', '')
+User.objects.filter(username='deployer').exists() or \
+    User.objects.create_user('deployer', '', '')
 EOF
 
 echo '### Obtaining and persisting account info...'

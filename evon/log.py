@@ -38,41 +38,6 @@ class click_stderr():
         sys.stderr.flush()
 
 
-class MutuallyExclusiveOption(click.Option):
-    """
-    Mutex group for Click. Example usage:
-        @click.option("--silent", cls=log.MutuallyExclusiveOption, mutually_exclusive=["verbose"], is_flag=True, help="be silent")
-        @click.option("--verbose", cls=log.MutuallyExclusiveOption, mutually_exclusive=["silent"], is_flag=True, help="be noisy")
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.mutually_exclusive = set(kwargs.pop('mutually_exclusive', []))
-#        help = kwargs.get('help', '')
-#        if self.mutually_exclusive:
-#            ex_str = ', '.join(self.mutually_exclusive)
-#            kwargs['help'] = help + (
-#                ' NOTE: This argument is mutually exclusive with '
-#                ' arguments: [' + ex_str + '].'
-#            )
-        super(MutuallyExclusiveOption, self).__init__(*args, **kwargs)
-
-    def handle_parse_result(self, ctx, opts, args):
-        if self.mutually_exclusive.intersection(opts) and self.name in opts:
-            raise click.UsageError(
-                "Illegal usage: `{}` is mutually exclusive with "
-                "arguments `{}`.".format(
-                    self.name,
-                    ', '.join(self.mutually_exclusive)
-                )
-            )
-
-        return super(MutuallyExclusiveOption, self).handle_parse_result(
-            ctx,
-            opts,
-            args
-        )
-
-
 def get_evon_logger():
     # setup logging
     logger = logging.getLogger()
