@@ -62,12 +62,34 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Evon Hub",
     "site_logo": "evon_logo_e.png",
     "site_icon": "favicon.ico",
-    "copyright": "Evon.Link",
+    "copyright": "LinuxDojo.com",
     "related_modal_active": True,
+    "order_with_respect_to": [
+        "auth",
+        "auth.user",
+        "auth.group",
+        "authtoken",
+        "hub",
+        "hub.server",
+        "hub.servergroup",
+        "hub.policy",
+        "auditlog",
+    ],
     "topmenu_links": [
         {"name": "Click here for API Documentation", "url": "/api", "new_window": True},
     ],
+    "icons": {
+        "auditlog.logentry": "fas fa-list-alt",
+        "authtoken.tokenproxy": "fas fa-key",
+        "auth.group": "fas fa-users",
+        "auth.user": "fas fa-user",
+        "hub.policy": "fas fa-shield-alt",
+        "hub.server": "fas fa-server",
+        "hub.servergroup": "fas fa-network-wired",
+    },
 }
+
+AUDITLOG_INCLUDE_ALL_MODELS = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
