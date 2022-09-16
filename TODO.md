@@ -1,6 +1,6 @@
 # API
 
-* fix errors and warnings re Hello and Server endpoints on runserver start
+* fix errors and warnings re Hello and Server endpoints on runserver start -> read api docs
 
 # Logging
 
@@ -25,7 +25,7 @@
  * check for duplicate (currently connected) uuid and reject if so
  * consider discovery|operational modes via custom login scripts for server acquisition vs. changeless op mode
 
-# Admin
+# General
 
 * setup support@evon.link email and add to cli and web admin
 * setup webpage
@@ -36,5 +36,9 @@
 * address TODO's in installer, around s3 publishing and upgrading process
 
 # Mapper
+
+* implement
+
+# Policy
 
 * implement
