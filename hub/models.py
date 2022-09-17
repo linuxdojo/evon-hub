@@ -91,6 +91,16 @@ class Policy(models.Model):
         verbose_name_plural = "Policies"
 
 
+class Config(models.Model):
+    discovery_mode = models.BooleanField()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Config"
+
+
 ##### Signal handlers
 
 @receiver(pre_delete, sender=User)
