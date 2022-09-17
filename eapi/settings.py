@@ -16,7 +16,7 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
-with open(os.path.join(f"{PROJECT_PATH}", "../version.txt")) as verfile:
+with open(os.path.join(f"{BASE_DIR}", "version.txt")) as verfile:
     VERSION = verfile.read().strip()
 
 def join_paths(*args):
