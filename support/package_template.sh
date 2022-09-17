@@ -189,9 +189,10 @@ import json
 import requests
 resp = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/document')
 User = get_user_model()  
-User.objects.filter(username='admin').exists() or \
-    User.objects.create_superuser('admin', '', json.loads(resp.text)['instanceId'])
-User.objects.filter(username='deployer').exists() or \
+if not User.objects.filter(username='admin').exists():
+    u = User.objects.create_superuser('admin', '', json.loads(resp.text)['instanceId'])
+    u.auth_token.delete()
+if not User.objects.filter(username='deployer').exists():
     User.objects.create_user('deployer', '', '')
 EOF
 
