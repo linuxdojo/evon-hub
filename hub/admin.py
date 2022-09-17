@@ -10,7 +10,7 @@ from hub.models import *
 @admin.register(Policy)
 class ModelAdmin(admin.ModelAdmin):
     formfield_overrides = {
-        models.ManyToManyField: {'widget': FilteredSelectMultiple( "items", False)},
+        models.ManyToManyField: {'widget': FilteredSelectMultiple("items", False)},
         #models.ForeignKey: {'widget': Select(attrs={"class": "form-control selectpicker", "data-live-search": "true"})},
         models.ForeignKey: {'widget': Select(attrs={"class": "form-control"})},
         }

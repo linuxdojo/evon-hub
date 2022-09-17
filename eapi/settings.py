@@ -52,7 +52,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
-    "auditlog",
+    #"auditlog",
+    "hub.apps.HubAuditLogConfig",
 ]
 
 JAZZMIN_SETTINGS = {
