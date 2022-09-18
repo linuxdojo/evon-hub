@@ -1,13 +1,16 @@
-from django.contrib.admin.widgets import FilteredSelectMultiple
-from django.forms.widgets import Select
 from django.contrib import admin
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.db import models
-from hub.models import *
+from django.forms.widgets import Select
+from solo.admin import SingletonModelAdmin
+
+import hub.models
 
 
-@admin.register(Server)
-@admin.register(ServerGroup)
-@admin.register(Policy)
+@admin.register(hub.models.Server)
+@admin.register(hub.models.ServerGroup)
+@admin.register(hub.models.Policy)
+@admin.register(hub.models.Config)
 class ModelAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': FilteredSelectMultiple("items", False)},
@@ -20,4 +23,3 @@ class ModelAdmin(admin.ModelAdmin):
         #css = {'all': ('https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.9.4/css/bootstrap-select.min.css',)}
         #js = ('https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.9.4/js/bootstrap-select.min.js',)
         pass
-

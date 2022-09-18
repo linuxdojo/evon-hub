@@ -67,6 +67,14 @@ class PolicyViewSet(ModelViewSet):
     serializer_class = serializers.PolicySerializer
 
 
+class ConfigViewSet(ModelViewSet):
+    """
+    Configuration
+    """
+    queryset = models.Config.objects.all()
+    serializer_class = serializers.ConfigSerializer
+
+
 class PingViewSet(ViewSet):
     """
     Ping endpoint for connectivity testing
