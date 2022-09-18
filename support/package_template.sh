@@ -182,11 +182,12 @@ eapi collectstatic --noinput
 echo '### Configuring Hub and Users'
 # disable debug mode
 sed -i 's/DEBUG = True/DEBUG = False/g' /opt/evon-hub/eapi/settings.py
-# create admin and apiuser
+# create users, init config
 cat <<EOF | eapi shell
 from django.contrib.auth import get_user_model
 import json
 import requests
+from hub import models
 resp = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/document')
 User = get_user_model()  
 if not User.objects.filter(username='admin').exists():
@@ -194,6 +195,7 @@ if not User.objects.filter(username='admin').exists():
     u.auth_token.delete()
 if not User.objects.filter(username='deployer').exists():
     User.objects.create_user('deployer', '', '')
+models.Config.get_solo()
 EOF
 
 echo '### Obtaining and persisting account info...'

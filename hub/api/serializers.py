@@ -43,6 +43,13 @@ class PolicySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class ConfigSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Config
+        fields = ('discovery_mode',)
+
+
 class PingSerializer(serializers.Serializer):
     pass
 

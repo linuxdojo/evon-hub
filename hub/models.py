@@ -10,6 +10,7 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.core.exceptions import ValidationError
+from solo.models import SingletonModel
 
 from eapi.settings import BASE_DIR
 
@@ -91,13 +92,14 @@ class Policy(models.Model):
         verbose_name_plural = "Policies"
 
 
-class Config(models.Model):
-    discovery_mode = models.BooleanField()
+class Config(SingletonModel):
+    discovery_mode = models.BooleanField(default=True, help_text="Disable to prevent any new Servers from joining your overlay network")
 
     def __str__(self):
-        return self.name
+        return "Hub Configuration"
 
     class Meta:
+        verbose_name = "Config"
         verbose_name_plural = "Config"
 
 
