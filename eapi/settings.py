@@ -86,6 +86,7 @@ JAZZMIN_SETTINGS = {
         "auth.user": "fas fa-user",
         "hub.policy": "fas fa-shield-alt",
         "hub.server": "fas fa-server",
+        "hub.config": "fas fa-cog",
         "hub.servergroup": "fas fa-network-wired",
     },
 }
