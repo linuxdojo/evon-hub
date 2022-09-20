@@ -1,4 +1,5 @@
 import os
+import socket
 
 from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib.auth.models import User as DjangoUser
@@ -6,16 +7,23 @@ from django.http import FileResponse
 from django.http import HttpResponse
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
+from openvpn_status import ParsingError
 from rest_access_policy import AccessViewSetMixin
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
 import requests
+from retry import retry
 
+from eapi.settings import EVON_HUB_CONFIG
+from evon import log
 from hub import models
+from hub import permissions
 from hub.api import serializers
-from hub.permissions import ServerAccessPolicy
 from hub.renderers import BinaryFileRenderer
+
+
+logger = log.get_evon_logger()
 
 ##### App Views ####
 
@@ -48,7 +56,7 @@ class ServerViewSet(AccessViewSetMixin, ModelViewSet):
     """
     queryset = models.Server.objects.all()
     serializer_class = serializers.ServerSerializer
-    access_policy = ServerAccessPolicy
+    access_policy = permissions.ServerAccessPolicy
 
 
 class ServerGroupViewSet(ModelViewSet):
@@ -135,3 +143,43 @@ class IIDViewSet(ViewSet):
             }
             status = "404"
         return Response(response, status=status)
+
+
+class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
+    """
+    OpenVPN Management Interface
+    """
+    serializer_class = serializers.OpenVPNMgmtSerializer
+    access_policy = permissions.OpenVPNMgmtAccessPolicy
+
+    def __init__(self, *args, **kwargs):
+        self.vpn_mgmt_servers = EVON_HUB_CONFIG["vpn_mgmt_servers"]
+        self.vpn_mgmt_users = EVON_HUB_CONFIG["vpn_mgmt_users"]
+        super().__init__(*args, **kwargs)
+
+    @retry(ParsingError, tries=5, delay=1)
+    @extend_schema(
+        operation_id="openvpn_list"
+    )
+    @action(methods=['get'], detail=False)
+    def endpoints(self, *args, **kwargs):
+        """
+        Obteain a list of connected Servers
+        """
+        clients = {k: v.common_name for k, v in self.vpn_mgmt_servers.get_status().routing_table.items()}
+        return Response(clients)
+
+    @retry(ParsingError, tries=5, delay=1)
+    @extend_schema(
+        operation_id="openvpn_kill"
+    )
+    @action(methods=['post'], detail=False)
+    def kill(self, request, *args, **kwargs):
+        """
+        Disconnect a Server based on UUID
+        """
+        if not "uuid" in request.data:
+            return Response({"status": "error", "message": "uuid missing in request"}, status="400")
+        uuid = request.data["uuid"]
+        result = self.vpn_mgmt_servers.send_command(f"kill {uuid}")
+        return Response({"status": "ok", "message": result})

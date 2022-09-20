@@ -313,6 +313,20 @@
     enabled: true
     state: started
 
+- name: set permissions on server management unix socket
+  ansible.builtin.file:
+    path: /etc/openvpn/evon_mgmt_servers
+    owner: evonapi
+    group: root
+    mode: '770'
+
+- name: set permissions on server management unix socket
+  ansible.builtin.file:
+    path: /etc/openvpn/evon_mgmt_users
+    owner: evonapi
+    group: root
+    mode: '770'
+
 
 ### setup Bootstrapper
 
