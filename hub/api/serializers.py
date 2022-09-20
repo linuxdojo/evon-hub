@@ -60,3 +60,7 @@ class BootstrapSerializer(serializers.Serializer):
 
 class IIDSerializer(serializers.Serializer):
     pass
+
+
+class OpenVPNMgmtSerializer(serializers.Serializer):
+    pass
