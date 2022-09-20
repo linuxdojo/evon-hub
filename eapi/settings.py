@@ -11,7 +11,11 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 import os
+
+from openvpn_api.vpn import VPN
 from pathlib import Path
+import psutil
+import yaml
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -55,6 +59,20 @@ INSTALLED_APPS = [
     #"auditlog",
     "hub.apps.HubAuditLogConfig",
 ]
+
+EVON_HUB_CONFIG = {
+    "vpn_mgmt_servers": VPN(unix_socket="/etc/openvpn/evon_mgmt_servers"),
+    "vpn_mgmt_users": VPN(unix_socket="/etc/openvpn/evon_mgmt_users"),
+}
+
+
+if psutil.Process(os.getpid()).name() == "uwsgi":
+    # only one connection can be made to the OpenVPN management unix sockets
+    EVON_HUB_CONFIG["vpn_mgmt_servers"].connect()
+    EVON_HUB_CONFIG["vpn_mgmt_users"].connect()
+
+with open(os.path.join(BASE_DIR, "evon_vars.yaml")) as f:
+    EVON_VARS = yaml.safe_load(f)
 
 JAZZMIN_SETTINGS = {
     "site_title": "Evon Hub",

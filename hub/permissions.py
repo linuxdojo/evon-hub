@@ -42,3 +42,17 @@ class ServerAccessPolicy(AccessPolicy):
         if not request.user.is_superuser:
             fields.pop('uuid', None)
         return fields
+
+
+class OpenVPNMgmtAccessPolicy(AccessPolicy):
+    statements = [
+        {
+            "action": ["*"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "is_superuser"
+        },
+    ]
+
+    def is_superuser(self, request, view, action) -> bool:
+        return request.user.is_superuser
