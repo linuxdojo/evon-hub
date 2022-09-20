@@ -106,6 +106,7 @@ package_list='
     git
     htop
     httpd-tools
+    iproute
     iptables-services
     jq
     libffi-devel
@@ -113,8 +114,9 @@ package_list='
     MariaDB-devel
     MariaDB-server
     mlocate
+    net-tools
     nginx
-    openssl-devel
+    openssl11-devel
     openvpn
     patch
     python2-certbot-nginx
@@ -131,9 +133,9 @@ yum -y install $package_list
 
 echo '### Installing pyenv...'
 if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
-    git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+    git clone https://github.com/pyenv/pyenv.git /opt/pyenv
     echo ' ' >> ~/.bash_profile
-    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bash_profile
+    echo 'export PYENV_ROOT="/opt/pyenv"' >> ~/.bash_profile
     echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
     echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
 fi
@@ -145,7 +147,8 @@ echo '### Building env...'
 cd /opt/evon-hub
 if [ ! -d .env  ]; then
     echo Creating new virtualenv with version: ${PY_VERSION}
-    ~/.pyenv/versions/3.10.5/bin/virtualenv -p ~/.pyenv/versions/${PY_VERSION}/bin/python .env
+    /opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install virtuelenv
+    /opt/pyenv/versions/${PY_VERSION}/bin/virtualenv -p /opt/pyenv/versions/${PY_VERSION}/bin/python .env
 fi
 
 echo '### Installing Python deps...'
@@ -167,6 +170,30 @@ exec sudo /opt/evon-hub/.env/bin/eapi \$@
 EOF
 chmod 4755 /usr/local/bin/evon
 chmod 4755 /usr/local/bin/eapi
+
+echo '### Obtaining and persisting account info...'
+# initial call to --get-account-info acts as registration event, subnet_key will be default "111".
+# TODO: use --set-inventory with subnet_key as input param
+account_info=$(evon --get-account-info)
+iid=$(curl -s 'http://169.254.169.254/latest/dynamic/instance-identity/document')
+account_domain=$(echo $account_info | jq .account_domain)
+subnet_key=$(echo $account_info | jq .subnet_key)
+public_ipv4=$(echo $account_info | jq .public_ipv4)
+aws_region=$(echo $iid | jq .region)
+aws_az=$(echo $iid | jq .availabilityZone)
+ec2_id=$(echo $iid | jq .instanceId)
+if [ -z "ec2_id" ]; then
+    bail 1 "Failed to retrieve AWS EC2 Instance Identity Document information. Please retry by re-running this installer."
+fi
+cat <<EOF > /opt/evon-hub/evon_vars.yaml
+---
+account_domain: ${account_domain}
+subnet_key: ${subnet_key}
+public_ipv4: ${public_ipv4}
+aws_region: ${aws_region}
+aws_az: ${aws_az}
+ec2_id: ${ec2_id}
+EOF
 
 echo '### Initialising DB...'
 systemctl enable mariadb
@@ -191,35 +218,10 @@ from hub import models
 resp = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/document')
 User = get_user_model()  
 if not User.objects.filter(username='admin').exists():
-    u = User.objects.create_superuser('admin', '', json.loads(resp.text)['instanceId'])
-    u.auth_token.delete()
+    User.objects.create_superuser('admin', '', json.loads(resp.text)['instanceId'])
 if not User.objects.filter(username='deployer').exists():
     User.objects.create_user('deployer', '', '')
 models.Config.get_solo()
-EOF
-
-echo '### Obtaining and persisting account info...'
-# initial call to --get-account-info acts as registration event, subnet_key will be default "111".
-# TODO: use --set-inventory with subnet_key as input param
-account_info=$(evon --get-account-info)
-iid=$(curl -s 'http://169.254.169.254/latest/dynamic/instance-identity/document')
-account_domain=$(echo $account_info | jq .account_domain)
-subnet_key=$(echo $account_info | jq .subnet_key)
-public_ipv4=$(echo $account_info | jq .public_ipv4)
-aws_region=$(echo $iid | jq .region)
-aws_az=$(echo $iid | jq .availabilityZone)
-ec2_id=$(echo $iid | jq .instanceId)
-if [ -z "ec2_id" ]; then
-    bail 1 "Failed to retrieve AWS EC2 Instance Identity Document information. Please retry by re-running this installer."
-fi
-cat <<EOF > /opt/evon-hub/evon_vars.yaml
----
-account_domain: ${account_domain}
-subnet_key: ${subnet_key}
-public_ipv4: ${public_ipv4}
-aws_region: ${aws_region}
-aws_az: ${aws_az}
-ec2_id: ${ec2_id}
 EOF
 
 echo '### Deploying state'
