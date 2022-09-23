@@ -7,19 +7,17 @@ from solo.admin import SingletonModelAdmin
 import hub.models
 
 
-@admin.register(hub.models.Server)
 @admin.register(hub.models.ServerGroup)
 @admin.register(hub.models.Policy)
 @admin.register(hub.models.Config)
 class ModelAdmin(admin.ModelAdmin):
-    formfield_overrides = {
-        models.ManyToManyField: {'widget': FilteredSelectMultiple("items", False)},
-        #models.ForeignKey: {'widget': Select(attrs={"class": "form-control selectpicker", "data-live-search": "true"})},
-        models.ForeignKey: {'widget': Select(attrs={"class": "form-control"})},
-        }
+    pass
 
-    class Media:
-        #extend = False
-        #css = {'all': ('https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.9.4/css/bootstrap-select.min.css',)}
-        #js = ('https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.9.4/js/bootstrap-select.min.js',)
-        pass
+
+@admin.register(hub.models.Server)
+class ServerAdmin(admin.ModelAdmin):
+    readonly_fields = ('uuid', 'fqdn','ipv4_address', 'connected', 'last_connected')
+    list_display = ['fqdn', 'uuid', 'ipv4_address', 'connected', 'last_connected']
+
+    def has_add_permission(self, request):
+        return False
