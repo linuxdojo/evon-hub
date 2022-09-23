@@ -592,5 +592,7 @@ rm -rf $tempdir
 
 # finish
 echo "The Evon Hub connection setup has successfully completed!"
+echo ""
+echo "Note: If you wish to change the name of this Server in Evon Hub, edit line 2 of /etc/openvpn/evon.uuid and restart the OpenVPN service."
 exit 0
 PAYLOAD:
