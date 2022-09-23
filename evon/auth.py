@@ -29,7 +29,6 @@ if not config.discovery_mode and not Server.objects.filter(uuid=username).first(
 
 logger.info(f"Creating or updating Server object for UUID: {username}")
 
-#FIXME don't change FQDN if it has been manually set in Admin GUI
 server, created = Server.objects.update_or_create(
     uuid=username,
     defaults={
