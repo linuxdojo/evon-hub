@@ -119,7 +119,7 @@ class Server(models.Model):
         # ensure fqdn is unique by adding appending index into to the first label if necessary
         desired_fqdn = self.fqdn
         index = 0
-        while Server.objects.filter(fqdn=self.fqdn).first():
+        while Server.objects.filter(fqdn=self.fqdn).exclude(uuid=self.uuid):
             # bump index
             index += 1
             parts = desired_fqdn.split(".")
