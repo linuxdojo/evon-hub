@@ -1,0 +1,3 @@
+
+class OutOfAddresses(Exception):
+    pass
