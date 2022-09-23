@@ -195,7 +195,7 @@ aws_az: ${aws_az}
 ec2_id: ${ec2_id}
 EOF
 
-echo '### Initialising DB...'
+echo '### Initialising DB and Evon Hub app...'
 systemctl enable mariadb
 systemctl start mariadb
 mysql -uroot -e "
