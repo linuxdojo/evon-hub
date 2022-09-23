@@ -62,23 +62,44 @@ def EvonFQDNValidator(value):
 
 class Server(models.Model):
     uuid = models.CharField(
+        verbose_name="UUID",
+        editable=False,
         max_length=36,
         unique=True,
         validators=[RegexValidator(regex=UUID_PATTERN)],
-    )
-    ipv4_address = models.GenericIPAddressField(
-        protocol="IPv4",
-        validators=[EvonIPV4Validator]
+        help_text=f"This value is set on line 1 of /etc/openvpn/evon.uuid on your endpoint server.",
     )
     # Max fqdn length is 1004 according to RFC, but max mariadb unique varchar is 255
     fqdn = models.CharField(
+        verbose_name="FQDN",
         max_length=255,
         unique=True,
         validators=[EvonFQDNValidator],
+        editable=False,
+        help_text=("This value is set on line 2 of /etc/openvpn/evon.uuid on your endpoint server, "
+                   f"with '.{EVON_VARS['account_domain']}' appended. An index is auto added to the first "
+                   "name-part for uniqueness if needed. To change this value, edit /etc/openvpn/evon.uuid "
+                   "and restart OpenVPN on your endpoint server."
+        )
+    )
+    ipv4_address = models.GenericIPAddressField(
+        verbose_name="IPv4 Address",
+        editable=False,
+        protocol="IPv4",
+        validators=[EvonIPV4Validator],
+        help_text="This value is auto-assigned and static for this Server"
     )
     # connected and last_connected will be auto-updated by mapper.py
-    connected = models.BooleanField(default=False, editable=False)
-    last_connected = models.DateTimeField(blank=True, null=True)
+    connected = models.BooleanField(
+        default=False,
+        editable=False
+    )
+    last_connected = models.DateTimeField(
+        verbose_name="Last Connected",
+        blank=True,
+        null=True,
+        editable=False
+    )
 
     def __str__(self):
         return self.fqdn
@@ -95,6 +116,15 @@ class Server(models.Model):
         if not self.fqdn.endswith(EVON_VARS["account_domain"]):
             # auto-append account domain to supplied fqdn
             self.fqdn = f"{self.fqdn}.{EVON_VARS['account_domain']}"
+        # ensure fqdn is unique by adding appending index into to the first label if necessary
+        desired_fqdn = self.fqdn
+        index = 0
+        while Server.objects.filter(fqdn=self.fqdn).first():
+            # bump index
+            index += 1
+            parts = desired_fqdn.split(".")
+            parts[0] = parts[0] + f"-{index}"
+            self.fqdn = ".".join(parts)
         # validate and save
         self.full_clean()
         super().save(*args, **kwargs)
