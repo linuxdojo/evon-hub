@@ -528,14 +528,9 @@ EOF
         else
             echo Using provided UUID: $evon_uuid
         fi
-        # fetch iid from hub
-        resp=$(curlf -H "Authorization: Token ${EVON_DEPLOY_KEY}" "https://${ACCOUNT_DOMAIN}/api/iid/get")
-        if echo $resp | grep -q ERROR; then
-            bail 10 "Error fetching EC2 instance id from Hub: ${resp}"
-        else
-            ec2_id=$(echo $resp | jq -jr ".instanceId")
-        fi
-        echo -e "${evon_uuid}\n${ec2_id}" > /etc/openvpn/evon.uuid
+        # set hostname
+        hostname=$(uname -n)
+        echo -e "${evon_uuid}\n${hostname}" > /etc/openvpn/evon.uuid
         chmod 600 /etc/openvpn/evon.uuid
         [ "$os" == "arch" ] && chown openvpn /etc/openvpn/evon.uuid
     else

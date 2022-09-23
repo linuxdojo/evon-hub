@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Generates file `evon/.evon_env` containing env respective api key/url as part of packaging.
+Generates file `evon/.evon_env` containing env respective Evon Cloud API URL and Key as part of packaging.
 """
 
 import os
