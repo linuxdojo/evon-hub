@@ -19,5 +19,11 @@ class ServerAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'fqdn','ipv4_address', 'connected', 'last_connected')
     list_display = ['fqdn', 'uuid', 'ipv4_address', 'connected', 'last_connected']
 
-    def has_add_permission(self, request):
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save'] = False
+        extra_context['show_save_and_continue'] = False
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def has_add_permission(self, request, obj=None):
         return False
