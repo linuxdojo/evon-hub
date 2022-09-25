@@ -111,23 +111,23 @@
     dest: /etc/logrotate.d/evon
 
 
-### Setup API app
+### Setup Evon Hub app
 
-- name: create evonapi service account user
+- name: create evonhub service account user
   ansible.builtin.user:
-    name: evonapi
-    comment: User that runs the Evon API service
+    name: evonhub
+    comment: User that runs the Evon Hub service
     shell: "/bin/false"
 
-- name: set ownership of evon app
+- name: set ownership of evonhub app
   ansible.builtin.file:
     path: /opt/evon-hub
-    owner: evonapi
+    owner: evonhub
     recurse: yes
 
-- name: deploy evonapi systemd unit
+- name: deploy evonhub systemd unit
   ansible.builtin.copy:
-    src: systemd/evonapi.service
+    src: systemd/evonhub.service
     dest: /usr/lib/systemd/system
   register: systemd_unit
 
@@ -135,9 +135,9 @@
   ansible.builtin.shell: systemctl daemon-reload
   when: systemd_unit.changed
 
-- name: start and persist evonapi service
+- name: start and persist evonhub service
   ansible.builtin.service:
-    name: evonapi
+    name: evonhub
     state: restarted
     enabled: true
 
