@@ -28,6 +28,7 @@
 * in django admin, show related properties of user models, ie. show tokens in the auth.Users app
 * default admin password is ec2 id. Force change first login.
 * during hub deploy, wtf is this: Extracting...cpio: ././@LongLink not created: newer or same age version exists 
+* rename systemd service to evonhub
 
 
 # Future Roadmap
