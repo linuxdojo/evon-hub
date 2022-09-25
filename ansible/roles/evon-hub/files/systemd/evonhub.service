@@ -1,0 +1,14 @@
+[Unit]
+Description=Manages the Evon Hub server
+After=syslog.target
+
+[Service]
+ExecStart=/opt/evon-hub/.env/bin/uwsgi --pythonpath /opt/evon-hub/.env/lib/python3.10/site-packages/ -w eapi.wsgi:application --uwsgi-socket 127.0.0.1:31338 --enable-threads --threads 20 --uid evonhub
+Restart=always
+Type=notify
+StandardError=syslog
+NotifyAccess=main
+PrivateTmp=false
+
+[Install]
+WantedBy=multi-user.target
