@@ -17,6 +17,7 @@ from pathlib import Path
 import psutil
 import yaml
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
@@ -66,6 +67,7 @@ EVON_HUB_CONFIG = {
 }
 
 
+# One-shot launch condition when Evon Hub is started via systemd/uwsgi
 if psutil.Process(os.getpid()).name() == "uwsgi":
     # only one connection can be made to the OpenVPN management unix sockets
     EVON_HUB_CONFIG["vpn_mgmt_servers"].connect()
