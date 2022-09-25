@@ -48,3 +48,7 @@ with open(ccd_file, "w") as f:
     f.write(ccd_config)
 
 logger.info(f"Wrote CCD file '{ccd_file}' with content: {ccd_config}")
+
+server.connected = True
+server.save()
+logger.info(f"set connected=True for {server.fqdn} with UUID {cn}")
