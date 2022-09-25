@@ -32,6 +32,7 @@ MUTEX_OPTIONS = [
     "get_account_info",
     "get_inventory",
     "save_state",
+    "sync_servers",
 ]
 
 
@@ -134,6 +135,14 @@ def inject_pub_ipv4(json_data):
     hidden=True,
     help="Deploy and persist state."
 )
+@click.option(
+    "--sync-servers",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "sync_servers"],
+    is_flag=True,
+    hidden=True,
+    help="Sync all Servers to reflect current connected state"
+)
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all logs on stderr (logs will still be written to syslog at /var/log/evon.log).")
 @click.option("--debug", "-d", is_flag=True, help="Enable debug logging.")
 @click.option("--version", "-v", is_flag=True, help="Show version and exit.")
@@ -202,3 +211,12 @@ def main(**kwargs):
         else:
             click.echo(f'{{"status": "failed", "message": "Got non-zero return code: {rc}"}}')
             sys.exit(rc)
+
+    if kwargs["sync_servers"]:
+        logger.info("syncing server connected state...")
+        from evon import sync_servers
+        try:
+            sync_servers.do_sync()
+            click.echo('{"status": "success"}')
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')

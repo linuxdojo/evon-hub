@@ -155,6 +155,16 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
     def __init__(self, *args, **kwargs):
         self.vpn_mgmt_servers = EVON_HUB_CONFIG["vpn_mgmt_servers"]
         self.vpn_mgmt_users = EVON_HUB_CONFIG["vpn_mgmt_users"]
+        try:
+            self.vpn_mgmt_servers.get_status()
+        except BrokenPipeError:
+            self.vpn_mgmt_servers.disconnect()
+            self.vpn_mgmt_servers.connect()
+        try:
+            self.vpn_mgmt_users.get_status()
+        except BrokenPipeError:
+            self.vpn_mgmt_users.disconnect()
+            self.vpn_mgmt_users.connect()
         super().__init__(*args, **kwargs)
 
     @retry(ParsingError, tries=5, delay=1)
