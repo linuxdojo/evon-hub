@@ -10,14 +10,15 @@
  * ❌ check for duplicate (currently connected) uuid and reject if so (blocked: ovpn mgmt interface hangs during auth exec)
  * ✅ consider discovery|operational modes via custom login scripts for server acquisition vs. changeless op mode
 * add an auth script for UDP that checks against a dango user
-
-## Mapper
-
-* implement
+* on Evon Hub service start: sync all connected state in all django Server objects (consider concurrency)
 
 ## Policy
 
 * implement
+
+## Cloud
+
+* actuate Route53 changes on Server.save() for connect=True/False
 
 ## Miscelaneous
 
@@ -28,10 +29,10 @@
 * in django admin, show related properties of user models, ie. show tokens in the auth.Users app
 * default admin password is ec2 id. Force change first login.
 * during hub deploy, wtf is this: Extracting...cpio: ././@LongLink not created: newer or same age version exists 
-* rename systemd service to evonhub
+* ✅ rename systemd service to evonhub
+* in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
 
 
 # Future Roadmap
 
-* in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
 * consider redirecting all hub urls to django app in nginx. SSL certs and ALLOWED_HOSTS needs to be managed accordingly. Alternate/simpler: allow clients to choose their own domain prefix rather than the 5 character auto-generated one.
