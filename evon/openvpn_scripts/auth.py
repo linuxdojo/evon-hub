@@ -12,7 +12,7 @@ import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'
 django.setup()
 from hub.models import Server, Config  # noqa
-from log import get_evon_logger  # noqa
+from evon.log import get_evon_logger  # noqa
 
 
 logger = get_evon_logger()
@@ -21,7 +21,7 @@ password = os.environ["password"]
 config = Config.get_solo()
 
 
-logger.info(f"validating new Server connection with username: {username}")
+logger.info(f"Authenticating new Server connection with username: {username}")
 
 if not config.discovery_mode and not Server.objects.filter(uuid=username).first():
     logger.warning(f"Denying login for user '{username}': discovery_mode disabled, not accepting new Servers")
@@ -37,4 +37,4 @@ server, created = Server.objects.update_or_create(
     }
 )
 
-logger.info(f"Accepting connection for username: {username}")
+logger.info(f"Authenticated connection for username: {username}")
