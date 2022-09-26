@@ -1,0 +1,6 @@
+[Unit]
+Description=Sync all Evon-connected servers to reflect current connected state
+
+[Service]
+ExecStart=/usr/local/bin/evon --sync-servers
+Type=oneshot
