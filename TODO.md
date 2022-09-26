@@ -9,8 +9,8 @@
 * ✅ create auth-user-pass-verify script for `evon-hub/templates/openvpn/server/server_tcp.conf`
  * ❌ check for duplicate (currently connected) uuid and reject if so (blocked: ovpn mgmt interface hangs during auth exec)
  * ✅ consider discovery|operational modes via custom login scripts for server acquisition vs. changeless op mode
+* ✅ on Evon Hub service start: sync all connected state in all django Server objects (consider concurrency)
 * add an auth script for UDP that checks against a dango user
-* on Evon Hub service start: sync all connected state in all django Server objects (consider concurrency)
 
 ## Policy
 
@@ -31,10 +31,6 @@
 * during hub deploy, wtf is this: Extracting...cpio: ././@LongLink not created: newer or same age version exists 
 * ✅ rename systemd service to evonhub
 * in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
-* add max server count check to auth.py
+* ✅ add max server count check to auth.py
 * implement last_seen on server objects
-
-
-# Future Roadmap
-
 * consider redirecting all hub urls to django app in nginx. SSL certs and ALLOWED_HOSTS needs to be managed accordingly. Alternate/simpler: allow clients to choose their own domain prefix rather than the 5 character auto-generated one.
