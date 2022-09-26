@@ -67,4 +67,4 @@ quick-deploy: # DEV ONLY - upload local non-Django project elements to remote de
 		hub/ \
 		eapi/ \
 		root@$(EC2_HOST):/opt/evon-hub/
-	ssh root@$(EC2_HOST) "bash --login -c 'systemctl restart evonapi'"
+	ssh root@$(EC2_HOST) "bash --login -c 'systemctl restart evonhub'"

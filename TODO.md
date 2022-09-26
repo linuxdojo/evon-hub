@@ -31,7 +31,8 @@
 * during hub deploy, wtf is this: Extracting...cpio: ././@LongLink not created: newer or same age version exists 
 * ✅ rename systemd service to evonhub
 * in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
-* fire unix_socket connects and sync_servers.do_sync() after app.ready signal in hub.apps, see https://stackoverflow.com/questions/63768435/how-to-call-a-function-after-all-django-apps-have-started
+* add max server count check to auth.py
+* implement last_seen on server objects
 
 
 # Future Roadmap

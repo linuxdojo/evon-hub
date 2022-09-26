@@ -213,8 +213,10 @@ def main(**kwargs):
             sys.exit(rc)
 
     if kwargs["sync_servers"]:
-        logger.info("syncing server connected state...")
         from evon import sync_servers
+        if kwargs["debug"]:
+            logger.setLevel(logging.DEBUG)
+        logger.info("syncing server connected state...")
         try:
             sync_servers.do_sync()
             click.echo('{"status": "success"}')
