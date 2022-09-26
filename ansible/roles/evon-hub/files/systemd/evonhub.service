@@ -4,6 +4,7 @@ After=syslog.target
 
 [Service]
 ExecStart=/opt/evon-hub/.env/bin/uwsgi --pythonpath /opt/evon-hub/.env/lib/python3.10/site-packages/ -w eapi.wsgi:application --uwsgi-socket 127.0.0.1:31338 --enable-threads --threads 20 --uid evonhub
+ExecStartPost=/usr/local/bin/evon --sync-servers
 Restart=always
 Type=notify
 StandardError=syslog

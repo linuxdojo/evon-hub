@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
 import requests
-from retry import retry
+#from retry import retry
 
 from eapi.settings import EVON_HUB_CONFIG
 from evon import log
@@ -155,19 +155,9 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
     def __init__(self, *args, **kwargs):
         self.vpn_mgmt_servers = EVON_HUB_CONFIG["vpn_mgmt_servers"]
         self.vpn_mgmt_users = EVON_HUB_CONFIG["vpn_mgmt_users"]
-        try:
-            self.vpn_mgmt_servers.get_status()
-        except BrokenPipeError:
-            self.vpn_mgmt_servers.disconnect()
-            self.vpn_mgmt_servers.connect()
-        try:
-            self.vpn_mgmt_users.get_status()
-        except BrokenPipeError:
-            self.vpn_mgmt_users.disconnect()
-            self.vpn_mgmt_users.connect()
         super().__init__(*args, **kwargs)
 
-    @retry(ParsingError, tries=5, delay=1)
+    #@retry(ParsingError, tries=5, delay=1)
     @extend_schema(
         operation_id="openvpn_list"
     )
@@ -176,10 +166,12 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
         """
         Obteain a list of connected Servers
         """
+        self.vpn_mgmt_servers.connect()
         clients = {k: v.common_name for k, v in self.vpn_mgmt_servers.get_status().routing_table.items()}
+        self.vpn_mgmt_servers.disconnect()
         return Response(clients)
 
-    @retry(ParsingError, tries=5, delay=1)
+    #@retry(ParsingError, tries=5, delay=1)
     @extend_schema(
         operation_id="openvpn_kill"
     )
@@ -191,5 +183,7 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
         if not "uuid" in request.data:
             return Response({"status": "error", "message": "uuid missing in request"}, status="400")
         uuid = request.data["uuid"]
+        self.vpn_mgmt_servers.connect()
         result = self.vpn_mgmt_servers.send_command(f"kill {uuid}")
+        self.vpn_mgmt_servers.disconnect()
         return Response({"status": "ok", "message": result})
