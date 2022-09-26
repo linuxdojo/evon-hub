@@ -129,17 +129,35 @@
   ansible.builtin.copy:
     src: systemd/evonhub.service
     dest: /usr/lib/systemd/system
-  register: systemd_unit
+  register: systemd_unit_evonhub
+
+- name: deploy evonsync systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonsync.service
+    dest: /usr/lib/systemd/system
+  register: systemd_unit_evonsync
+
+- name: deploy evonsync timer systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonsync.timer
+    dest: /usr/lib/systemd/system
+  register: systemd_unit_evonsync_timer
 
 - name: reload systemd
   ansible.builtin.shell: systemctl daemon-reload
-  when: systemd_unit.changed
+  when: systemd_unit_evonhub.changed or systemd_unit_evonsync.changed or systemd_unit_evonsync_timer.changed
 
 - name: start and persist evonhub service
   ansible.builtin.service:
     name: evonhub
     state: restarted
     enabled: true
+
+- name: Enable evonsync timer unit
+  ansible.builtin.systemd:
+    name: evonsync.timer
+    state: started
+    enabled: yes
 
 
 ### Setup Nginx

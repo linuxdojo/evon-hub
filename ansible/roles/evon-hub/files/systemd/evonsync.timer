@@ -1,0 +1,8 @@
+[Unit]
+Description=Sync all Evon-connected servers hourly
+
+[Timer]
+OnCalendar=hourly
+
+[Install]
+WantedBy=timers.target

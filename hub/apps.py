@@ -1,5 +1,5 @@
-from django.apps import AppConfig
 from auditlog.apps import AuditlogConfig
+from django.apps import AppConfig
 
 
 class HubConfig(AppConfig):
