@@ -130,8 +130,12 @@ class Server(models.Model):
         # set disconnected_since
         if self.connected:
             self.disconnected_since = None
+            # update dns, add record
+            #TODO
         else:
             self.disconnected_since = timezone.now()
+            # update dns, remove record
+            #TODO
         # validate and save
         self.full_clean()
         super().save(*args, **kwargs)
