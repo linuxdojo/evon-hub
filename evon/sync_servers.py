@@ -73,4 +73,4 @@ def do_sync():
     logger.info(f"Applying DNS changes: {payload}")
     payload = inject_pub_ipv4(json.dumps(payload))
     response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
-    logger.info(f"reponse: {response}")
+    logger.info(f"set_records reponse: {response}")
