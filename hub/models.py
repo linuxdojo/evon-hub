@@ -2,11 +2,12 @@ import ipaddress
 import os
 import re
 
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.dispatch.dispatcher import receiver
-from django.core.exceptions import ValidationError
 from django.utils import timezone
+import pytz
 from solo.models import SingletonModel
 
 from eapi.settings import EVON_VARS
@@ -89,13 +90,13 @@ class Server(models.Model):
         validators=[EvonIPV4Validator],
         help_text="This value is auto-assigned and static for this Server"
     )
-    # connected and last_connected will be auto-updated by mapper.py
+    # connected and disconnected_since will be auto-updated by mapper.py
     connected = models.BooleanField(
         default=False,
         editable=False
     )
-    last_connected = models.DateTimeField(
-        verbose_name="Last Connected",
+    disconnected_since = models.DateTimeField(
+        verbose_name="Disconnected Since",
         blank=True,
         null=True,
         editable=False
@@ -105,6 +106,7 @@ class Server(models.Model):
         return self.fqdn
 
     def save(self, *args, **kwargs):
+        # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
             for ipv4_addr in vpn_ipv4_addresses():
                 if not Server.objects.filter(ipv4_address=ipv4_addr).first():
@@ -113,8 +115,8 @@ class Server(models.Model):
             else:
                 # we're out of addresses, the validator will warn the user
                 logger.warning(f"Overlay network is out of addresses!")
+        # auto-append account domain to supplied fqdn
         if not self.fqdn.endswith(EVON_VARS["account_domain"]):
-            # auto-append account domain to supplied fqdn
             self.fqdn = f"{self.fqdn}.{EVON_VARS['account_domain']}"
         # ensure fqdn is unique by adding appending index into to the first label if necessary
         desired_fqdn = self.fqdn
@@ -125,6 +127,11 @@ class Server(models.Model):
             parts = desired_fqdn.split(".")
             parts[0] = parts[0] + f"-{index}"
             self.fqdn = ".".join(parts)
+        # set disconnected_since
+        if self.connected:
+            self.disconnected_since = None
+        else:
+            self.disconnected_since = timezone.now()
         # validate and save
         self.full_clean()
         super().save(*args, **kwargs)
