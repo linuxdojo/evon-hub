@@ -1,12 +1,15 @@
-import django
 import os
+import json
+
+import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'  # noqa
 django.setup()  # noqa
 from django.contrib.auth.models import User  # noqa
 
 from eapi.settings import EVON_HUB_CONFIG  # noqa
 from hub.models import Server  # noqa
-
+from evon import evon_api  # noqa
+from evon.cli import EVON_API_URL, EVON_API_KEY, inject_pub_ipv4  # noqa
 from evon.log import get_evon_logger  # noqa
 
 
@@ -17,11 +20,15 @@ def do_sync():
     """
     Sync all Server objects to reflect current connected state
     """
+    # obtain current state
     all_servers = Server.objects.all()
     vpn = EVON_HUB_CONFIG["vpn_mgmt_servers"]
     vpn.connect()
-    connected_uuids = [c.common_name for c in vpn.get_status().routing_table.values()]
+    vpn_clients = {k: v.common_name for k, v in vpn.get_status().routing_table.items()}
     vpn.disconnect()
+
+    # refresh django db
+    connected_uuids = vpn_clients.values()
     for server in all_servers:
         if server.uuid in connected_uuids:
             if not server.connected:
@@ -37,3 +44,33 @@ def do_sync():
                 server.save()
             else:
                 logger.debug(f"leaving connected as False for server {server.fqdn}")
+
+    # refresh dns
+    current_records = {k[:k.rfind(".")]: v for k, v in json.loads(evon_api.get_records(EVON_API_URL, EVON_API_KEY)).items()}
+    current_clients = {Server.objects.get(ipv4_address=ip_addr).fqdn: ip_addr for ip_addr in vpn_clients.keys()}
+    new = {}
+    removed = {}
+    updated = {}
+    unchanged = {}
+    for fqdn in current_records:
+        if fqdn not in current_clients:
+            removed[fqdn] = current_records[fqdn]
+        elif current_clients[fqdn] == current_records[fqdn]:
+            unchanged[fqdn] = current_records[fqdn]
+        else:
+            updated[fqdn] = current_clients[fqdn]
+    for fqdn in current_clients:
+        if fqdn not in current_records:
+            new[fqdn] = current_clients[fqdn]
+    payload = {
+        "changes": {
+            "new": new,
+            "removed": removed,
+            "updated": updated,
+            "unchanged": unchanged
+        }
+    }
+    logger.info(f"Applying DNS changes: {payload}")
+    payload = inject_pub_ipv4(json.dumps(payload))
+    response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
+    logger.info(f"reponse: {response}")
