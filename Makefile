@@ -61,10 +61,13 @@ deploy: # make package, publish and run installer on remote host
 	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'"
 
 quick-deploy: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
-	scp -r \
-		evon/ \
-		ansible/ \
-		hub/ \
-		eapi/ \
+	echo "Quick deploying..."
+	rsync -avP \
+		evon \
+		ansible \
+		hub \
+		eapi \
 		root@$(EC2_HOST):/opt/evon-hub/
+	echo "Bounching evonapi services..."
 	ssh root@$(EC2_HOST) "bash --login -c 'systemctl restart evonhub'"
+	echo "Done."
