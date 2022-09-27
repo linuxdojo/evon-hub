@@ -1,4 +1,5 @@
 import ipaddress
+import json
 import os
 import re
 
@@ -12,10 +13,14 @@ from solo.models import SingletonModel
 
 from eapi.settings import EVON_VARS
 from hub.exceptions import OutOfAddresses
+from evon import evon_api
+from evon.cli import EVON_API_URL, EVON_API_KEY, inject_pub_ipv4
+from evon.log import get_evon_logger
 
 
 ##### Setup globals
 
+logger = get_evon_logger()
 FQDN_PATTERN = re.compile(r'(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)')
 UUID_PATTERN = re.compile(r'^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}$')
 HOSTNAME_PATTERN = re.compile(r"^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?$")
@@ -131,11 +136,31 @@ class Server(models.Model):
         if self.connected:
             self.disconnected_since = None
             # update dns, add record
-            #TODO
+            payload = {
+                "changes": {
+                    "new": {self.fqdn: self.ipv4_address},
+                    "removed": {},
+                    "updated": {},
+                    "unchanged": {}
+                }
+            }
+            payload = inject_pub_ipv4(json.dumps(payload))
+            response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
+            logger.info(f"set_records reponse: {response}")
         else:
             self.disconnected_since = timezone.now()
             # update dns, remove record
-            #TODO
+            payload = {
+                "changes": {
+                    "new": {},
+                    "removed": {self.fqdn: self.ipv4_address},
+                    "updated": {},
+                    "unchanged": {}
+                }
+            }
+            payload = inject_pub_ipv4(json.dumps(payload))
+            response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
+            logger.info(f"set_records reponse: {response}")
         # validate and save
         self.full_clean()
         super().save(*args, **kwargs)
