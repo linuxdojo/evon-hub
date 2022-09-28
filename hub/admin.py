@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.auth.admin import UserAdmin, GroupAdmin
+from django.contrib.auth.models import User, Group
 from django.db import models
 from django.forms.widgets import Select
 from django.utils import timezone
@@ -55,3 +57,27 @@ class ServerGroupAdmin(admin.ModelAdmin):
     inlines = [
         ServerInline,
     ]
+
+
+class UserInLine(admin.TabularInline):
+    model = Group.user_set.through
+    extra = 0
+
+
+admin.site.unregister(Group)
+@admin.register(Group)
+class GenericGroup(GroupAdmin):
+    inlines = [UserInLine]
+    list_display = ["name", "users"]
+
+    def users(self, obj):
+        return ", ".join(u.username for u in obj.user_set.all())
+
+
+admin.site.unregister(User)
+@admin.register(User)
+class GenericUser(UserAdmin):
+    list_display = ["username", "is_active", "is_staff", "is_superuser", "group_membership"]
+
+    def group_membership(self, obj):
+        return ", ".join([g.name for g in obj.groups.all()])
