@@ -13,7 +13,7 @@ import hub.models
 
 @admin.register(hub.models.Policy)
 class PolicyAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["name", "description"]
 
 
 @admin.register(hub.models.Config)
