@@ -60,6 +60,9 @@ deploy: # make package, publish and run installer on remote host
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
 	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'"
 
+clean: # remove unneeded artefacts from repo
+	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
+
 quick-deploy: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
 	echo "Quick deploying..."
 	rsync -avP \
