@@ -55,6 +55,7 @@ publish: # publish package
 
 deploy: # make package, publish and run installer on remote host
 	make test
+	make clean
 	make package
 	make publish
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
@@ -64,6 +65,7 @@ clean: # remove unneeded artefacts from repo
 	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
 
 quick-deploy: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
+	make clean
 	echo "Quick deploying..."
 	rsync -avP \
 		evon \
