@@ -64,7 +64,28 @@ def EvonFQDNValidator(value):
         )
 
 
+def ServerGroupNameValidator(value):
+    if "," in value:
+        raise ValidationError(
+            "Name must not contain commas"
+        )
+
+
 ##### Model Classes
+
+class ServerGroup(models.Model):
+    name = models.CharField(
+        max_length=200,
+        validators=[ServerGroupNameValidator],
+    )
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Server Groups"
+
 
 class Server(models.Model):
     uuid = models.CharField(
@@ -105,6 +126,11 @@ class Server(models.Model):
         blank=True,
         null=True,
         editable=False
+    )
+    server_groups = models.ManyToManyField(
+        ServerGroup,
+        blank=True,
+        verbose_name="Server Groups"
     )
 
     def __str__(self):
@@ -166,20 +192,15 @@ class Server(models.Model):
         super().save(*args, **kwargs)
 
 
-class ServerGroup(models.Model):
-    name = models.CharField(max_length=200)
-    create_date = models.DateTimeField('date created')
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = "Server Groups"
-
-
 class Policy(models.Model):
     name = models.CharField(max_length=200)
-    create_date = models.DateTimeField('date created')
+    description = models.TextField(blank=True, null=True)
+    policy_document = models.JSONField(
+        null=True,
+        default=dict,
+        verbose_name="Policy Document",
+        help_text="A JSON object containing a policy describing permissions for Users, Groups, Servers and Server Groups"
+    )
 
     def __str__(self):
         return self.name
