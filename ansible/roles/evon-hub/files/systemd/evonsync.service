@@ -2,5 +2,5 @@
 Description=Sync all Evon-connected servers to reflect current connected state
 
 [Service]
-ExecStart=/usr/local/bin/evon --sync-servers
+ExecStart=/opt/evon-hub/evon/hourly_job.sh
 Type=oneshot
