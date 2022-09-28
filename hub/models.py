@@ -29,6 +29,10 @@ HOSTNAME_PATTERN = re.compile(r"^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,
 ##### Helper Functions
 
 def vpn_ipv4_addresses():
+    """
+    Produces a list of all available IPv4 addresses that can be assigned to client-side
+    OpenVPN connections on the overlay network subnet.
+    """
     subnet_key = EVON_VARS["subnet_key"]
     evon_subnet = f"100.{subnet_key}.224.0/19"
     evon_network = ipaddress.ip_network(evon_subnet)
