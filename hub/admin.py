@@ -8,6 +8,7 @@ from django.utils import timezone
 from solo.admin import SingletonModelAdmin
 import humanfriendly
 
+from eapi.settings import EVON_VARS
 import hub.models
 
 
@@ -57,6 +58,11 @@ class ServerGroupAdmin(admin.ModelAdmin):
     inlines = [
         ServerInline,
     ]
+    list_display = ["name", "servers"]
+
+    def servers(self, obj):
+        suffix = f'.{EVON_VARS["account_domain"]}'
+        return ", ".join(s.fqdn.replace(suffix, "") for s in obj.server_set.all())
 
 
 class UserInLine(admin.TabularInline):
