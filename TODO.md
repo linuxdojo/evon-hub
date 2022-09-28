@@ -18,7 +18,7 @@
 
 ## Cloud
 
-* actuate Route53 changes on Server.save() for connect=True/False
+* ✅ actuate Route53 changes on Server.save() for connect=True/False
 
 ## Miscelaneous
 
@@ -28,7 +28,6 @@
 * address TODO, FIXME, XXX comments
 * in django admin, show related properties of user models, ie. show tokens in the auth.Users app
 * default admin password is ec2 id. Force change first login.
-* during hub deploy, wtf is this: Extracting...cpio: ././@LongLink not created: newer or same age version exists 
 * ✅ rename systemd service to evonhub
 * in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
 * ✅ add max server count check to auth.py
