@@ -13,10 +13,12 @@ help: # Show this help
 	  column -s: -t
 
 test: # Run unit tests
+	echo "##### Running Tests #####"
 	pytest evon/ eapi/ hub/
 	flake8 --ignore=E501 evon/
 
 package: # produce package artefact ready for publishing
+	echo "##### Packaging #####"
 	rm -f evon-hub_*.sh
 	# generate env
 	ENV=$(ENV) support/gen_env.py
@@ -50,10 +52,12 @@ package: # produce package artefact ready for publishing
 	echo Wrote package file: $(OUTFILE)
 
 publish: # publish package
+	echo "##### Publishing Package #####"
 	scp evon-hub_*.sh  $(EC2_USER)@$(EC2_HOST):evon-hub_latest.sh
 	# TODO publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
 
 deploy: # make package, publish and run installer on remote host
+	echo "##### Deploying #####"
 	make test
 	make clean
 	make package
@@ -62,9 +66,11 @@ deploy: # make package, publish and run installer on remote host
 	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'"
 
 clean: # remove unneeded artefacts from repo
+	echo "##### Cleaning Repo #####"
 	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
 
 quick-deploy: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
+	echo "##### Quick Deploying #####"
 	make clean
 	echo "Quick deploying..."
 	rsync -avP \

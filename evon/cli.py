@@ -1,22 +1,25 @@
 #!/usr/bin/env python
+# flake8: noqa
 
 #################################
 # EVON CLI
 #################################
 
 
+import io
 import json
 import logging
 import logging.handlers
 import os
 import pkg_resources
+from rich.console import Console
 import subprocess
 import sys
-import yaml
+import textwrap
 
 import click
 from dotenv import dotenv_values
-from pathlib import Path
+import requests
 
 from evon import log, evon_api
 
@@ -28,10 +31,6 @@ EVON_VERSION = pkg_resources.require('evon')[0].version
 evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
 EVON_API_KEY = evon_env["EVON_API_KEY"]
 EVON_API_URL = evon_env["EVON_API_URL"]
-BASE_DIR = Path(__file__).resolve().parent.parent
-with open(os.path.join(BASE_DIR, "evon_vars.yaml")) as f:
-    EVON_VARS = yaml.safe_load(f)
-ACCOUNT_DOMAIN = EVON_VARS["account_domain"]
 MUTEX_OPTIONS = [
     "get_inventory",
     "get_account_info",
@@ -76,6 +75,24 @@ class MutuallyExclusiveOption(click.Option):
         )
 
 
+class RichCommand(click.Command):
+
+    def format_help_text(self, ctx, formatter):
+        sio = io.StringIO()
+        console = Console(file=sio, force_terminal=True)
+        console.print(
+            textwrap.dedent(
+                f"""
+                 [bold green]__| |  |    \ \  |
+                 _|  \  | () |  \ | Hub CLI
+                ___|  _/  ___/_| _| v{EVON_VERSION}
+               [ Elastic Virtual Overlay Network ]"""
+            ),
+            highlight=False,
+        )
+        formatter.write(sio.getvalue())
+
+
 def inject_pub_ipv4(json_data):
     try:
         data = json.loads(json_data)
@@ -87,21 +104,13 @@ def inject_pub_ipv4(json_data):
 
 
 @click.command(
+    cls=RichCommand,
     context_settings={
         "help_option_names": [
             '-h', '--help'
         ]
     },
     no_args_is_help=True,
-    help=f"""
-        Evon Hub CLI v{EVON_VERSION}.
-        Output is written to stdout as JSON, logs are written to syslog and
-        will also be echoed to stderr unless --quiet is specified.
-
-
-        Visit your Evon Hub WebUI at https://{ACCOUNT_DOMAIN}.
-        Default username/password is: admin/<Instance_ID_of_this_EC2>
-    """
 )
 @click.option(
     "--get-inventory",
@@ -119,7 +128,7 @@ def inject_pub_ipv4(json_data):
     help=("Upsert/delete zone records specified as JSON in the following format: "
           """'{"new": {"fqdn": "ipv4", ...},  "removed": {"fqdn": "ipv4", ...}, """
           """"updated": {"fqdn": "ipv4", ...}, "unchanged": {"fqdn": "ipv4", ...}}'"""
-    )  # noqa
+    )
 )
 @click.option(
     "--get-account-info",
@@ -188,8 +197,12 @@ def main(**kwargs):
         logger.info("getting account info...")
         json_payload = '{"changes": {"new": {}, "removed": {}, "updated": {}, "unchanged": {}}}'
         json_payload = inject_pub_ipv4(json_payload)
-        result = evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
-        click.echo(result)
+        result = json.loads(evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload))
+        # append ec2 instance id
+        response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+        iid = response.json()["instanceId"]
+        result["ec2_instance_id"] = iid
+        click.echo(json.dumps(result, indent=2))
 
     if kwargs["get_deploy_key"]:
         logger.info("getting bootstrap deploy key...")
