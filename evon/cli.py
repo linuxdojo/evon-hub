@@ -12,9 +12,11 @@ import os
 import pkg_resources
 import subprocess
 import sys
+import yaml
 
 import click
 from dotenv import dotenv_values
+from pathlib import Path
 
 from evon import log, evon_api
 
@@ -26,7 +28,10 @@ EVON_VERSION = pkg_resources.require('evon')[0].version
 evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
 EVON_API_KEY = evon_env["EVON_API_KEY"]
 EVON_API_URL = evon_env["EVON_API_URL"]
-
+BASE_DIR = Path(__file__).resolve().parent.parent
+with open(os.path.join(BASE_DIR, "evon_vars.yaml")) as f:
+    EVON_VARS = yaml.safe_load(f)
+ACCOUNT_DOMAIN = EVON_VARS["account_domain"]
 MUTEX_OPTIONS = [
     "get_inventory",
     "get_account_info",
@@ -91,7 +96,12 @@ def inject_pub_ipv4(json_data):
     help=f"""
         Evon Hub CLI v{EVON_VERSION}.
         Output is written to stdout as JSON, logs are written to syslog and
-        will also be echoed to stderr unless --quiet is specified."""
+        will also be echoed to stderr unless --quiet is specified.
+
+
+        Visit your Evon Hub WebUI at https://{ACCOUNT_DOMAIN}.
+        Default username/password is: admin/<Instance_ID_of_this_EC2>
+    """
 )
 @click.option(
     "--get-inventory",
