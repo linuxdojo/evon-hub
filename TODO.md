@@ -12,12 +12,17 @@
 
 * implement
 
+## Admin site
+
+* add download link to bootstrap
+* add download link to client openvpn configuration
+
 ## Miscelaneous
 
 * setup support@evon.link email and add to cli and web admin, setup webpage on linuxdojo.com
+* documentation (readthedocs/sphinx style)
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
-* address TODO, FIXME, XXX comments
-
+* address TODO, FIXME, XXX
 
 # Future Release
 
