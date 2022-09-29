@@ -24,3 +24,4 @@
 * consider redirecting all hub urls to django app in nginx. SSL certs and ALLOWED_HOSTS needs to be managed accordingly. Alternate/simpler: allow clients to choose their own domain prefix rather than the 5 character auto-generated one.
 * default admin password is ec2 id. Force change first login.
 * in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
+* add mfa (consider django-mfa2 or django-mfa3)
