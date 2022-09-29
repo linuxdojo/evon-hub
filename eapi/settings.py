@@ -92,6 +92,18 @@ JAZZMIN_SETTINGS = {
     "topmenu_links": [
         {"name": "Click here for API Documentation", "url": "/api", "new_window": True},
     ],
+    "custom_links": {
+        "hub":[
+            {
+                "name": "Boostrap",
+                "url": "/hub/bootstrap",
+            },
+            {
+                "name": "OpenVPN Client",
+                "url": "/hub/ovpn_client"
+            },
+        ]
+    },
     "icons": {
         "auditlog.logentry": "fas fa-list-alt",
         "authtoken.tokenproxy": "fas fa-key",
