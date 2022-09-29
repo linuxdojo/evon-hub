@@ -83,7 +83,13 @@ class GenericGroup(GroupAdmin):
 admin.site.unregister(User)
 @admin.register(User)
 class GenericUser(UserAdmin):
-    list_display = ["username", "is_active", "is_staff", "is_superuser", "group_membership"]
+    list_display = ["username", "is_active", "is_superuser", "group_membership"]
 
     def group_membership(self, obj):
         return ", ".join([g.name for g in obj.groups.all()])
+
+    def save_model(self, request, obj, form, change):
+        if request.user.is_superuser:
+            if obj.username != "deployer":
+                obj.is_staff = True
+                obj.save()
