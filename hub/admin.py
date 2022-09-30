@@ -5,12 +5,22 @@ from django.contrib.auth.models import User, Group
 from django.db import models
 from django.forms.widgets import Select
 from django.utils import timezone
+from etc.admin import CustomModelPage, admins
 from solo.admin import SingletonModelAdmin
 import humanfriendly
 
 from eapi.settings import EVON_VARS
 import hub.models
 
+
+class BootstrapPage(CustomModelPage):
+    title = "Evon Bootstrap"
+    bound_admin = admins.CustomPageModelAdmin  # set admin class for this page
+
+
+@admin.register(BootstrapPage)
+class BootstrapPageModelAdmin(admins.ReadonlyAdmin):
+    pass
 
 @admin.register(hub.models.Policy)
 class PolicyAdmin(admin.ModelAdmin):
