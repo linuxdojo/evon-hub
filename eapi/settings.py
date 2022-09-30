@@ -90,7 +90,7 @@ JAZZMIN_SETTINGS = {
         "auditlog",
     ],
     "topmenu_links": [
-        {"name": "Click here for API Documentation", "url": "/api", "new_window": True},
+        {"name": "View API Documentation", "url": "/api", "new_window": True},
     ],
     "custom_links": {
         "hub":[
