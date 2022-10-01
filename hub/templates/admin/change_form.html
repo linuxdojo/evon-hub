@@ -1,0 +1,9 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+  {% if custom_content is defined %}
+    {{ block.super }}
+  {% else %}
+    {{ custom_content | safe }}
+  {% endif %}
+{% endblock %}

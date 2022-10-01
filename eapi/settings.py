@@ -92,18 +92,6 @@ JAZZMIN_SETTINGS = {
     "topmenu_links": [
         {"name": "View API Documentation", "url": "/api", "new_window": True},
     ],
-    "custom_links": {
-        "hub":[
-            {
-                "name": "Boostrap",
-                "url": "/hub/bootstrap",
-            },
-            {
-                "name": "OpenVPN Client",
-                "url": "/hub/ovpn_client"
-            },
-        ]
-    },
     "icons": {
         "auditlog.logentry": "fas fa-list-alt",
         "authtoken.tokenproxy": "fas fa-key",
@@ -113,6 +101,7 @@ JAZZMIN_SETTINGS = {
         "hub.server": "fas fa-server",
         "hub.config": "fas fa-cog",
         "hub.servergroup": "fas fa-network-wired",
+        "hub.bootstrap": "fas fa-download",
     },
 }
 
