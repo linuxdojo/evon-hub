@@ -1,0 +1,60 @@
+<div id="content-main" class="col-12">
+  <div class="card card-primary card-outline">
+    <div class="card-body">
+      <div id="content-main" class="col-12">
+        Evon Bootsrap is a run-once shell script that persistently connects a Linux system to your overlay network. Evon Bootstrap can also be run using Docker. The following Linux distributions are direclty supported:
+        <br />
+        <br />
+        <ul>
+          <li>AlmaLinux</li>
+          <li>Alpine</li>
+          <li>Amazon Linux 2</li>
+          <li>Arch Linux</li>
+          <li>CentOS 7 or higher</li>
+          <li>Debian 9 or higher</li>
+          <li>Fedora Linux</li>
+          <li>Rocky Linux</li>
+          <li>Ubuntu 18.04 or higher</li>
+          <li>OpenSUSE 15 or higher</li>
+          <li>Any modern Linux distribution using Docker</li>
+        </ul>
+      Note: The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user is required when both downloading and installing Bootstrap, and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below CLI invocations include this token for your convenience.
+      </div>
+    </div>
+
+    <div class="card-header">
+      Download Bootstrap
+    </div>
+
+    <div class="card-body">
+      <h5>Direct download:</h5>
+      <span>Direct download link: <a href="/api/bootstrap/download">bootstrap.sh</a></span>
+      <br />
+      <br />
+      <h5>Download using curl:</h5>
+      Run the following command on your server:
+      <pre>curl -s 'https://{{ account_domain }}/api/bootstrap/download' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
+      <h5>Download using wget:</h5>
+      Run the following command on your server:
+      <pre>wget --header 'Authorization: Token {{ deploy_token }}' 'https://{{ account_domain }}/api/bootstrap/download' -O bootstrap.sh; chmod +x bootstrap.sh</pre>
+      <h5>Using Docker:</h5>
+      Visit <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">https://hub.docker.com/r/linuxdojo/evon-bootstrap</a> for detail about using the Dockerised Boostrap. See below for invocation details.
+    </div>
+    <div class="card-header">
+      Run Bootstrap
+    </div>
+    <div class="card-body">
+      <h5>Using bootstrap.sh:</h5>
+      Run the following command as root on your server:
+      <pre>EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
+      Note: Your server needs to be able to connect to {{ account_domain }} on TCP/443 either directly or via a https proxy for Bootstrap run successfully. For help regarding proxy setup, uninstallation and other options, run command:
+      <pre>./bootstrap.sh --help</pre>
+      <h5>Using Docker:</h5>
+      The Dockerised Bootstrap will require the following to environment variables to be set, as referenced on the <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">Evon Bootstrap Docker Hub page</a>:
+      <pre>
+ACCOUNT_DOMAIN={{ account_domain }}
+EVON_DEPLOY_KEY={{ deploy_token }}
+      </pre>
+    </div>
+  </div>
+</div>

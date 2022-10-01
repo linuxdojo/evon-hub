@@ -1,15 +1,79 @@
+import os
+
 from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import User, Group
 from django.db import models
 from django.forms.widgets import Select
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
+from django.urls import path
+from django.template import Context
+from django.template import Template
 from solo.admin import SingletonModelAdmin
 import humanfriendly
 
-from eapi.settings import EVON_VARS
+from eapi.settings import EVON_VARS, BASE_DIR
 import hub.models
+
+
+admin.site.site_header = "Evon Hub Admin"
+admin.site.site_title = "Evon Hub Admin"
+
+
+@admin.register(hub.models.Bootstrap)
+class BootstrapAdmin(admin.ModelAdmin):
+    view_on_site: bool = False
+    actions = None
+    custom_template_filename = "bootstrap.html"
+
+    def has_add_permission(self, request):
+        return True
+
+    def has_module_permission(self, request, obj=None):
+        if request.user.is_superuser:
+            return True
+        return False
+
+    def get_urls(self):
+        meta = self.model._meta
+        patterns = [path(
+            '',
+            self.admin_site.admin_view(self.view_custom),
+            name=f'{meta.app_label}_{meta.model_name}_changelist'
+        )]
+        return patterns
+
+    def view_custom(self, request):
+        custom_context = {
+            "account_domain": EVON_VARS["account_domain"],
+            "deploy_token": User.objects.get(username="deployer").auth_token,
+        }
+        template_path = os.path.join(f"{BASE_DIR}", "hub", "templates", "hub", self.custom_template_filename)
+        with open(template_path) as f:
+            custom_template = f.read()
+        template = Template(custom_template)
+        context = Context(custom_context)
+        custom_content = template.render(context)
+
+        context: dict = {
+            'show_save': False,
+            'show_save_and_continue': False,
+            'show_save_and_add_another': False,
+            'title': self.model._meta.verbose_name,
+            'custom_content': custom_content,
+        }
+        return self._changeform_view(request, object_id=None, form_url='', extra_context=context)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        return HttpResponseRedirect(request.path)
+
+    def save_model(self, request, obj, form, change):
+        obj.bound_request = request
+        obj.bound_admin = self
+        obj.save()
+
 
 
 @admin.register(hub.models.Policy)

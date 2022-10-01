@@ -8,6 +8,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 import pytz
 from solo.models import SingletonModel
 
@@ -76,6 +77,34 @@ def ServerGroupNameValidator(value):
 
 
 ##### Model Classes
+
+class Bootstrap(models.Model):
+    title = _('Bootstrap Page')
+    app_label = 'admin'
+    #bound_request = None
+    #bound_admin = None
+
+    class Meta:
+        #abstract = True
+        #managed = False
+        verbose_name = "Bootstrap"
+        verbose_name_plural = "Bootstrap"
+
+    @classmethod
+    def __init_subclass__(cls):
+        meta = cls.Meta
+        meta.verbose_name = meta.verbose_name_plural = cls.title
+        meta.app_label = cls.app_label
+        super().__init_subclass__()
+
+    @classmethod
+    def register(cls, *, admin_model=None):
+        register(cls)(admin_model or cls.bound_admin or CustomPageModelAdmin)
+
+    def save(self):
+        self.bound_admin.message_success(self.bound_request, _('Done.'))
+        super().save()
+
 
 class ServerGroup(models.Model):
     name = models.CharField(
