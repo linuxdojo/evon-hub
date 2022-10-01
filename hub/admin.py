@@ -22,6 +22,55 @@ admin.site.site_header = "Evon Hub Admin"
 admin.site.site_title = "Evon Hub Admin"
 
 
+@admin.register(hub.models.OVPNClientConfig)
+class OVPNClientAdmin(admin.ModelAdmin):
+    view_on_site: bool = False
+    actions = None
+    custom_template_filename = "openvpn_client_config.html"
+
+    def has_add_permission(self, request):
+        return True
+
+    def has_module_permission(self, request, obj=None):
+        return True
+
+    def get_urls(self):
+        meta = self.model._meta
+        patterns = [path(
+            '',
+            self.admin_site.admin_view(self.view_custom),
+            name=f'{meta.app_label}_{meta.model_name}_changelist'
+        )]
+        return patterns
+
+    def view_custom(self, request):
+        custom_context = {
+            "account_domain": EVON_VARS["account_domain"],
+            "deploy_token": User.objects.get(username="deployer").auth_token,
+        }
+        template_path = os.path.join(f"{BASE_DIR}", "hub", "templates", "hub", self.custom_template_filename)
+        with open(template_path) as f:
+            custom_template = f.read()
+        template = Template(custom_template)
+        context = Context(custom_context)
+        custom_content = template.render(context)
+
+        context: dict = {
+            'show_save': False,
+            'show_save_and_continue': False,
+            'show_save_and_add_another': False,
+            'title': self.model._meta.verbose_name,
+            'custom_content': custom_content,
+        }
+        return self._changeform_view(request, object_id=None, form_url='', extra_context=context)
+
+    def response_add(self, request, obj, post_url_continue=None):
+        return HttpResponseRedirect(request.path)
+
+    def save_model(self, request, obj, form, change):
+        pass
+
+
 @admin.register(hub.models.Bootstrap)
 class BootstrapAdmin(admin.ModelAdmin):
     view_on_site: bool = False
@@ -70,10 +119,7 @@ class BootstrapAdmin(admin.ModelAdmin):
         return HttpResponseRedirect(request.path)
 
     def save_model(self, request, obj, form, change):
-        obj.bound_request = request
-        obj.bound_admin = self
-        obj.save()
-
+        pass
 
 
 @admin.register(hub.models.Policy)
