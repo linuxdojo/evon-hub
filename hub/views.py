@@ -96,11 +96,12 @@ class PingViewSet(ViewSet):
         return Response({"message": "pong"})
 
 
-class BootstrapViewSet(ViewSet):
+class BootstrapViewSet(AccessViewSetMixin, ViewSet):
     """
     Download the `bootstrap.sh` installer for connecting remote systems to the overlay network hosted by this Hub.
     """
     serializer_class = serializers.BootstrapSerializer
+    access_policy = permissions.BootstrapAccessPolicy
 
     @extend_schema(
         operation_id="bootstrap_retrieve"
