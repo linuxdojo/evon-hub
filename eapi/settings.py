@@ -84,9 +84,12 @@ JAZZMIN_SETTINGS = {
         "auth.group",
         "authtoken",
         "hub",
+        "hub.config",
         "hub.server",
         "hub.servergroup",
         "hub.policy",
+        "hub.bootstrap",
+        "hub.ovpnclientconfig",
         "auditlog",
     ],
     "topmenu_links": [
@@ -102,6 +105,7 @@ JAZZMIN_SETTINGS = {
         "hub.config": "fas fa-cog",
         "hub.servergroup": "fas fa-network-wired",
         "hub.bootstrap": "fas fa-download",
+        "hub.ovpnclientconfig": "fas fa-laptop-code",
     },
 }
 

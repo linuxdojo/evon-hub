@@ -14,7 +14,6 @@
 
 ## Admin site
 
-* add download link to bootstrap
 * add download link to client openvpn configuration
 
 ## Miscelaneous
@@ -23,6 +22,7 @@
 * documentation (readthedocs/sphinx style)
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 * address TODO, FIXME, XXX
+* create a new persisted secret key in settings.py when deploying?
 
 # Future Release
 

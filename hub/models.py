@@ -78,15 +78,36 @@ def ServerGroupNameValidator(value):
 
 ##### Model Classes
 
-class Bootstrap(models.Model):
-    title = _('Bootstrap Page')
+class OVPNClientConfig(models.Model):
+    # Note: inspired by https://django-etc.readthedocs.io/en/latest/admin.html
+    title = _('OpenVPN Client Config Page')
     app_label = 'admin'
-    #bound_request = None
-    #bound_admin = None
 
     class Meta:
-        #abstract = True
-        #managed = False
+        verbose_name = "OpenVPN Client"
+        verbose_name_plural = "OpenVPN Client"
+
+    @classmethod
+    def __init_subclass__(cls):
+        meta = cls.Meta
+        meta.verbose_name = meta.verbose_name_plural = cls.title
+        meta.app_label = cls.app_label
+        super().__init_subclass__()
+
+    @classmethod
+    def register(cls, *, admin_model=None):
+        register(cls)(admin_model or cls.bound_admin)
+
+    def save(self):
+        pass
+
+
+class Bootstrap(models.Model):
+    # Note: inspired by https://django-etc.readthedocs.io/en/latest/admin.html
+    title = _('Bootstrap Page')
+    app_label = 'admin'
+
+    class Meta:
         verbose_name = "Bootstrap"
         verbose_name_plural = "Bootstrap"
 
@@ -99,11 +120,10 @@ class Bootstrap(models.Model):
 
     @classmethod
     def register(cls, *, admin_model=None):
-        register(cls)(admin_model or cls.bound_admin or CustomPageModelAdmin)
+        register(cls)(admin_model or cls.bound_admin)
 
     def save(self):
-        self.bound_admin.message_success(self.bound_request, _('Done.'))
-        super().save()
+        pass
 
 
 class ServerGroup(models.Model):
