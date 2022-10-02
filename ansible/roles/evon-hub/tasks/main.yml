@@ -421,8 +421,3 @@
     - name: post-failure exit
       ansible.builtin.fail:
         msg: "exiting due to failure in task: {{ ansible_failed_task.name }}"
-
-
-# TODO:
-### setup Mapper
-
