@@ -34,6 +34,7 @@ router.register(r'ping', hub.views.PingViewSet, basename="ping")
 router.register(r'bootstrap', hub.views.BootstrapViewSet, basename="bootstrap")
 router.register(r'iid', hub.views.IIDViewSet, basename="iid")
 router.register(r'openvpn', hub.views.OpenVPNMgmtViewSet, basename="openvpn")
+router.register(r'ovpnclient', hub.views.OVPNClientViewSet, basename="ovpnclient")
 
 urlpatterns = [
     re_path(r'^favicon\.ico$', RedirectView.as_view(permanent=False, url='/static/favicon.ico')),
