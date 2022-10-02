@@ -57,7 +57,7 @@ elif [[ -e /etc/debian_version ]]; then
     group_name="nogroup"
 elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release ]]; then
     os="centos"
-    os_version=$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+    os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
     group_name="nobody"
 elif [[ -e /etc/fedora-release ]]; then
     os="fedora"
@@ -82,7 +82,7 @@ elif grep -qs "Arch" /etc/os-release; then
     group_name="nobody"
 else
     echo "This installer seems to be running on an unsupported Linux distribution.
-Supported distros are AlmaLinux, Alpine, Amazon Linux, Arch, CentOS, Debian, Fedora, Rocky Linux, Ubuntu and openSUSE."
+Supported distros are AlmaLinux, Alpine, Amazon Linux, Arch, CentOS, Debian, Fedora, RHEL, Rocky Linux, Ubuntu and openSUSE."
     exit 1
 fi
 
@@ -95,7 +95,7 @@ elif [[ "$os" == "debian" && "$os_version" -lt 9 ]]; then
     echo "Debian 9 or higher is required to run this installer."
     exit 1
 elif [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
-    echo "CentOS 7 or higher is required to run this installer."
+    echo "RHEL/CentOS 7 or higher is required to run this installer."
     exit 1
 elif [[ "$os" == "opensuse" && $(echo $os_version | cut -d. -f1) -lt 15  ]]; then
     echo "openSUSE major version 15 higher is required to run this installer."
