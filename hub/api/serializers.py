@@ -58,6 +58,10 @@ class BootstrapSerializer(serializers.Serializer):
     pass
 
 
+class OVPNClientSerializer(serializers.Serializer):
+    pass
+
+
 class IIDSerializer(serializers.Serializer):
     pass
 

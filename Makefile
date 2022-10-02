@@ -57,11 +57,11 @@ publish: # publish package
 	# TODO publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
 
 deploy: # make package, publish and run installer on remote host
-	echo "##### Deploying #####"
 	make test
 	make clean
 	make package
 	make publish
+	echo "##### Deploying #####"
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
 	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'"
 
