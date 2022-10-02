@@ -15,21 +15,10 @@ class ServerAccessPolicy(AccessPolicy):
             "effect": "allow",
             "condition": "is_superuser"
         },
-        {
-            "action": ["*"],
-            "principal": ["*"],
-            "effect": "allow",
-            "condition": "is_same_source"
-        }
     ]
 
-    def is_same_source(self, request, view, action) -> bool:
-        """
-        True if requestor_ip_address matches the Server.ipv4_address object in the request
-        """
-        #requestor_ip_addr = request.META['REMOTE_ADDR']
-        #TODO ensure uuid field is present in request and that it matches what is stored
-        return True
+    #TODO when we get around to implementing policy, only allow users to list/retrieve
+    #     the servers which they are permitted to see.
 
     def is_authenticated(self, request, view, action) -> bool:
         return request.user.is_authenticated
