@@ -98,7 +98,7 @@ class PingViewSet(ViewSet):
 
 class BootstrapViewSet(AccessViewSetMixin, ViewSet):
     """
-    Download the `bootstrap.sh` installer for connecting remote systems to the overlay network hosted by this Hub.
+    Download the `bootstrap.sh` installer for connecting remote systems to this overlay network.
     """
     serializer_class = serializers.BootstrapSerializer
     access_policy = permissions.BootstrapAccessPolicy
@@ -114,6 +114,27 @@ class BootstrapViewSet(AccessViewSetMixin, ViewSet):
         response = FileResponse(f, content_type='application/octet-stream')
         response['Content-Length'] = os.path.getsize(bootstrap_filepath)
         response['Content-Disposition'] = f'attachment; filename="{bootstrap_filename}"'
+        return response
+
+
+class OVPNClientViewSet(AccessViewSetMixin, ViewSet):
+    """
+    Download the `EvonHub.ovpn` OpenVPN configuration file for user access to this overlay network.
+    """
+    serializer_class = serializers.OVPNClientSerializer
+    access_policy = permissions.OVPNClientAccessPolicy
+
+    @extend_schema(
+        operation_id="ovpnclient_retrieve"
+    )
+    @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
+    def download(self, *args, **kwargs):
+        ovpnclient_filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "EvonHub.ovpn")
+        ovpnclient_filename = os.path.basename(ovpnclient_filepath)
+        f = open(ovpnclient_filepath, "rb")
+        response = FileResponse(f, content_type='application/octet-stream')
+        response['Content-Length'] = os.path.getsize(ovpnclient_filepath)
+        response['Content-Disposition'] = f'attachment; filename="{ovpnclient_filename}"'
         return response
 
 

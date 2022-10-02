@@ -64,10 +64,23 @@ class BootstrapAccessPolicy(AccessPolicy):
             "action": ["*"],
             "principal": ["*"],
             "effect": "allow",
-            "condition": "is_superuser"
+            "condition": "is_deployer"
         },
     ]
 
-    def is_superuser(self, request, view, action) -> bool:
-        return request.user.is_superuser
+    def is_deployer(self, request, view, action) -> bool:
+        return request.user.username in ["admin", "deployer"]
 
+
+class OVPNClientAccessPolicy(AccessPolicy):
+    statements = [
+        {
+            "action": ["*"],
+            "principal": ["*"],
+            "effect": "allow",
+            "condition": "is_authenticated"
+        },
+    ]
+
+    def is_authenticated(self, request, view, action) -> bool:
+        return request.user.is_authenticated
