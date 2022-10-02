@@ -28,6 +28,9 @@ class OVPNClientAdmin(admin.ModelAdmin):
     actions = None
     custom_template_filename = "openvpn_client_config.html"
 
+    def has_view_permission(self, request, obj=None):
+        return True
+
     def has_add_permission(self, request):
         return True
 

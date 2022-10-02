@@ -49,7 +49,7 @@ package: # produce package artefact ready for publishing
 	# cleanup
 	rm -f /tmp/evon_hub.tar.gz
 	sed -i 's/__VERSION__/$(VER)/g' $(OUTFILE)
-	echo Wrote package file: $(OUTFILE)
+	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
 publish: # publish package
 	echo "##### Publishing Package #####"

@@ -399,6 +399,11 @@
         chmod +x /opt/evon-hub/build_bootstrap/bootstrap.sh
         mv /opt/evon-hub/build_bootstrap/bootstrap.sh /opt/evon-hub
 
+    - name: create openvpn user client config
+      ansible.builtin.template:
+        src: openvpn/client/client.ovpn
+        dest: /opt/evon-hub/EvonHub.ovpn
+
     - name: cleanup
       ansible.builtin.file:
         state: absent
