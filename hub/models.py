@@ -9,6 +9,7 @@ from django.db import models
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import User, Group
 import pytz
 from solo.models import SingletonModel
 
@@ -245,14 +246,66 @@ class Server(models.Model):
         super().save(*args, **kwargs)
 
 
+class Rule(models.Model):
+    ANY = "A"
+    ICMP = "I"
+    TCP = "T"
+    UDP = "U"
+    PROTOCOLS = (
+        (ICMP, "ICMP"),
+        (TCP, "TCP"),
+        (UDP, "UDP"),
+        (ANY, "ANY"),
+    )
+    name = models.CharField(max_length=200)
+    source_users = models.ManyToManyField(
+        User,
+        blank=True,
+        verbose_name="Source Users"
+    )
+    source_groups = models.ManyToManyField(
+        Group,
+        blank=True,
+        verbose_name="Source Groups"
+    )
+    source_servers = models.ManyToManyField(
+        Server,
+        blank=True,
+        verbose_name="Source Servers"
+    )
+    source_servergroups = models.ManyToManyField(
+        ServerGroup,
+        blank=True,
+        verbose_name="Source Server Groups"
+    )
+    destination_protocol = models.CharField(max_length=1, choices=PROTOCOLS)
+    destination_port_from = models.IntegerField(blank=True, null=True)
+    destination_port_to = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = "Rules"
+
+
 class Policy(models.Model):
     name = models.CharField(max_length=200)
-    description = models.TextField(blank=True, null=True)
-    policy_document = models.JSONField(
-        null=True,
-        default=dict,
-        verbose_name="Policy Document",
-        help_text="A JSON object containing a policy describing permissions for Users, Groups, Servers and Server Groups"
+    description = models.CharField(max_length=256, blank=True, null=True)
+    rules = models.ManyToManyField(
+        Rule,
+        blank=True,
+        verbose_name="Rules"
+    )
+    servers = models.ManyToManyField(
+        Server,
+        blank=True,
+        verbose_name="Target Servers"
+    )
+    serversgroups = models.ManyToManyField(
+        ServerGroup,
+        blank=True,
+        verbose_name="Target Server Groups"
     )
 
     def __str__(self):
