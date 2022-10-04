@@ -4,17 +4,9 @@
 
 * implement s3 publishing and upgrading process
 
-## OpenVPN
-
-* add an auth script for UDP that checks against a dango user
-
 ## Policy
 
 * implement
-
-## Admin site
-
-* add download link to client openvpn configuration
 
 ## Miscelaneous
 
@@ -22,7 +14,8 @@
 * documentation (readthedocs/sphinx style)
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 * address TODO, FIXME, XXX
-* create a new persisted secret key in settings.py when deploying?
+* create a new persisted secret key in settings.py when deploying, see https://saasitive.com/tutorial/generate-django-secret-key/
+* add option to set hostname in bootstrap (rather than `uname -n` default) and expose UUID and HOSTNAME via env var options in bootstrap docker
 
 # Future Release
 

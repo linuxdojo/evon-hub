@@ -12,7 +12,8 @@ from eapi.settings import EVON_VARS
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
-    if created and instance.username in ["admin", "deployer"]:
+    # every new user gets an api token
+    if created:
         Token.objects.create(user=instance)
 
 
@@ -21,7 +22,7 @@ def delete_user(sender, instance, **kwargs):
     """
     Ensure admin and deployer are immutable
     """
-    #XXX this produces an empty 403 Forbidden page. Consider how to improve it.
+    #XXX this produces an empty 403 Forbidden page in Admin. Consider how to improve it.
     if instance.username in ["admin", "deployer"]:
         raise PermissionDenied
 
