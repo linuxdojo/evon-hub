@@ -11,6 +11,9 @@ from django.utils import timezone
 from django.urls import path
 from django.template import Context
 from django.template import Template
+from rest_framework.authtoken.models import Token, TokenProxy
+from rest_framework.authtoken.admin import TokenAdmin 
+
 from solo.admin import SingletonModelAdmin
 import humanfriendly
 
@@ -20,6 +23,55 @@ import hub.models
 
 admin.site.site_header = "Evon Hub Admin"
 admin.site.site_title = "Evon Hub Admin"
+
+admin.site.unregister(TokenProxy)
+
+@admin.register(TokenProxy)
+class HubTokenAdmin(TokenAdmin):
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        else:
+            return qs.filter(user=request.user)
+
+    def has_module_permission(self, request, obj=None):
+        return True
+
+    def has_view_permission(self, request, obj=None):
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
+    def has_save_permission(self, request, obj=None):
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
+    def has_add_permission(self, request, obj=None):
+        return True
+
+    def get_changeform_initial_data(self, request):
+        if not request.user.is_superuser:
+            return {"user": request.user}
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        request = kwargs.get("request")
+        if not request:
+            return super().formfield_for_dbfield(db_field, **kwargs)
+        formfield = super().formfield_for_dbfield(db_field, **kwargs)
+        if not request.user.is_superuser:
+            formfield.choices = (c for c in formfield.choices if c[1] == request.user.username)
+        return formfield
+
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['show_save_and_continue'] = False
+        extra_context['show_save_and_add_another'] = False
+        return super().changeform_view(request, object_id, form_url, extra_context)
 
 
 @admin.register(hub.models.OVPNClientConfig)
@@ -58,7 +110,7 @@ class OVPNClientAdmin(admin.ModelAdmin):
         context = Context(custom_context)
         custom_content = template.render(context)
 
-        context: dict = {
+        context = {
             'show_save': False,
             'show_save_and_continue': False,
             'show_save_and_add_another': False,
@@ -109,7 +161,7 @@ class BootstrapAdmin(admin.ModelAdmin):
         context = Context(custom_context)
         custom_content = template.render(context)
 
-        context: dict = {
+        context = {
             'show_save': False,
             'show_save_and_continue': False,
             'show_save_and_add_another': False,
