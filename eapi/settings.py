@@ -77,7 +77,7 @@ JAZZMIN_SETTINGS = {
     "site_logo": "evon_logo_e.png",
     "site_icon": "favicon.ico",
     "copyright": "LinuxDojo.com",
-    "related_modal_active": True,
+    #"related_modal_active": True,
     "order_with_respect_to": [
         "auth",
         "auth.user",
