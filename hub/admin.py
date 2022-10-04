@@ -177,9 +177,20 @@ class BootstrapAdmin(admin.ModelAdmin):
         pass
 
 
+@admin.register(hub.models.Rule)
+class RuleAdmin(admin.ModelAdmin):
+    pass
+
+
+class RuleInline(admin.TabularInline):
+    model = hub.models.Policy.rules.through
+
 @admin.register(hub.models.Policy)
 class PolicyAdmin(admin.ModelAdmin):
     list_display = ["name", "description"]
+    inlines = [
+        RuleInline,
+    ]
 
 
 @admin.register(hub.models.Config)
