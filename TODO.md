@@ -7,6 +7,7 @@
 ## Policy
 
 * implement
+* add "All Users" and "All Servers" groups
 
 ## Miscelaneous
 
