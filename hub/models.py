@@ -247,15 +247,15 @@ class Server(models.Model):
 
 
 class Rule(models.Model):
-    ANY = "A"
-    ICMP = "I"
     TCP = "T"
     UDP = "U"
+    ICMP = "I"
+    ANY = "A"
     PROTOCOLS = (
-        (ICMP, "ICMP"),
         (TCP, "TCP"),
         (UDP, "UDP"),
-        (ANY, "ANY"),
+        (ICMP, "ICMP"),
+        (ANY, "Any Protocol"),
     )
     name = models.CharField(max_length=200)
     source_users = models.ManyToManyField(
@@ -279,8 +279,12 @@ class Rule(models.Model):
         verbose_name="Source Server Groups"
     )
     destination_protocol = models.CharField(max_length=1, choices=PROTOCOLS)
-    destination_port_from = models.IntegerField(blank=True, null=True)
-    destination_port_to = models.IntegerField(blank=True, null=True)
+    destination_ports = models.CharField(
+        max_length=256,
+        blank=True,
+        null=True,
+        help_text="Comma separated port numbers and dashed ranges, eg: 80,443,7000-8000",
+    )
 
     def __str__(self):
         return self.name
