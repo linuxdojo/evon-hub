@@ -255,7 +255,7 @@ class ServerAdmin(admin.ModelAdmin):
             return f"{hf_delta} ago"
 
     def groups(self, obj):
-        return ", ".join(sg.name for sg in obj.server_groups.all())
+        return ", ".join(sg.name for sg in obj.server_groups.all() if sg.name != "All Servers")
 
 
 class ServerInline(admin.TabularInline):
@@ -269,8 +269,25 @@ class ServerGroupAdmin(admin.ModelAdmin):
     ]
     list_display = ["name", "servers"]
 
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.name == "All Servers":
+            return False
+        return True
+
+    def has_save_permission(self, request, obj=None):
+        if obj and obj.name == "All Servers":
+            return False
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.name == "All Servers":
+            return False
+        return True
+
     def servers(self, obj):
         suffix = f'.{EVON_VARS["account_domain"]}'
+        if obj.name == "All Servers":
+            return "All Servers"
         return ", ".join(s.fqdn.replace(suffix, "") for s in obj.server_set.all())
 
 
@@ -285,7 +302,24 @@ class GenericGroup(GroupAdmin):
     inlines = [UserInLine]
     list_display = ["name", "users"]
 
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.name == "All Users":
+            return False
+        return True
+
+    def has_save_permission(self, request, obj=None):
+        if obj and obj.name == "All Users":
+            return False
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        if obj and obj.name == "All Users":
+            return False
+        return True
+
     def users(self, obj):
+        if obj.name == "All Users":
+            return "All Users"
         return ", ".join(u.username for u in obj.user_set.all())
 
 
@@ -295,7 +329,7 @@ class GenericUser(UserAdmin):
     list_display = ["username",  "first_name", "last_name", "email", "is_active", "is_superuser", "group_membership"]
 
     def group_membership(self, obj):
-        return ", ".join([g.name for g in obj.groups.all()])
+        return ", ".join([g.name for g in obj.groups.all() if g.name != "All Users"])
 
     def save_model(self, request, obj, form, change):
         if request.user.is_superuser:
