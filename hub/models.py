@@ -190,7 +190,7 @@ class Server(models.Model):
     def __str__(self):
         return self.fqdn
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, dev_mode=False, **kwargs):
         # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
             for ipv4_addr in vpn_ipv4_addresses():
@@ -224,9 +224,10 @@ class Server(models.Model):
                     "unchanged": {}
                 }
             }
-            payload = inject_pub_ipv4(json.dumps(payload))
-            response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
-            logger.info(f"set_records reponse: {response}")
+            if not dev_mode:
+                payload = inject_pub_ipv4(json.dumps(payload))
+                response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
+                logger.info(f"set_records reponse: {response}")
         else:
             self.disconnected_since = timezone.now()
             # update dns, remove record
@@ -238,9 +239,10 @@ class Server(models.Model):
                     "unchanged": {}
                 }
             }
-            payload = inject_pub_ipv4(json.dumps(payload))
-            response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
-            logger.info(f"set_records reponse: {response}")
+            if not dev_mode:
+                payload = inject_pub_ipv4(json.dumps(payload))
+                response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
+                logger.info(f"set_records reponse: {response}")
         # validate and save
         self.full_clean()
         super().save(*args, **kwargs)
