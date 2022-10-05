@@ -183,7 +183,7 @@ class RuleAdmin(admin.ModelAdmin):
     model = hub.models.Rule
     description = dedent("""
         Define allowed connection sources (Users, Groups, Servers, Server Groups) and destination protocols/ports here.
-        Connection destinations (Servers and Server Groups) are controlled when you create a Policy. Rules are effective only when added to Policy.
+        Connection destinations (Servers and Server Groups) are controlled when you create a Policy. Rules created here are effective only when added to Policy.
     """)
     fieldsets = (
         ('Rule', {
