@@ -1,4 +1,5 @@
 import os
+from textwrap import dedent
 
 from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
@@ -179,11 +180,22 @@ class BootstrapAdmin(admin.ModelAdmin):
 
 @admin.register(hub.models.Rule)
 class RuleAdmin(admin.ModelAdmin):
-    pass
+    model = hub.models.Rule
+    description = dedent("""
+        Define allowed connection sources (Users, Groups, Servers, Server Groups) and destination protocols/ports here.
+        Connection destinations (Servers and Server Groups) are controlled when you create a Policy. Rules are effective only when added to Policy.
+    """)
+    fieldsets = (
+        ('Rule', {
+            'fields': tuple([f.name for f in model._meta.fields if f.name != "id"] + [f.name for f in model._meta.many_to_many]),
+            'description': description
+        }),
+    )
 
 
 class RuleInline(admin.TabularInline):
     model = hub.models.Policy.rules.through
+
 
 @admin.register(hub.models.Policy)
 class PolicyAdmin(admin.ModelAdmin):
@@ -191,6 +203,16 @@ class PolicyAdmin(admin.ModelAdmin):
     inlines = [
         RuleInline,
     ]
+    model = hub.models.Policy
+    description = dedent("""
+        Apply Rules to target (destination) Servers and Server Groups here. Rules define allowed connection sources (Users and Servers) and protocols.
+    """)
+    fieldsets = (
+        ('Policy', {
+            'fields': tuple([f.name for f in model._meta.fields if f.name != "id"] + [f.name for f in model._meta.many_to_many]),
+            'description': description
+        }),
+    )
 
 
 @admin.register(hub.models.Config)
