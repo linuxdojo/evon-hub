@@ -67,6 +67,13 @@ class ServerGroupViewSet(ModelViewSet):
     serializer_class = serializers.ServergroupSerializer
 
 
+class RuleViewSet(ModelViewSet):
+    """
+    Source Rules 
+    """
+    queryset = models.Rule.objects.all()
+    serializer_class = serializers.RuleSerializer
+
 class PolicyViewSet(ModelViewSet):
     """
     Permissions policies
