@@ -27,6 +27,7 @@ admin.site.site_title = "Evon Hub Admin"
 
 admin.site.unregister(TokenProxy)
 
+
 @admin.register(TokenProxy)
 class HubTokenAdmin(TokenAdmin):
 
@@ -191,6 +192,11 @@ class RuleAdmin(admin.ModelAdmin):
             'description': description
         }),
     )
+    list_display = ["name", "sources", "destination_protocol", "destination_ports"]
+
+    def sources(self, obj):
+        return obj.get_unified_sources()
+
 
 
 class RuleInline(admin.TabularInline):
@@ -213,6 +219,16 @@ class PolicyAdmin(admin.ModelAdmin):
             'description': description
         }),
     )
+    list_display = ["name", "description", "source_rules", "target_servers", "target_server_groups"]
+
+    def source_rules(self, obj):
+        return ", ".join([r.name for r in obj.rules.all()])
+
+    def target_servers(self, obj):
+        return ", ".join([s.short_name() for s in obj.servers.all()])
+
+    def target_server_groups(self, obj):
+        return ", ".join([s.name for s in obj.servergroups.all()])
 
 
 @admin.register(hub.models.Config)
@@ -285,10 +301,9 @@ class ServerGroupAdmin(admin.ModelAdmin):
         return True
 
     def servers(self, obj):
-        suffix = f'.{EVON_VARS["account_domain"]}'
         if obj.name == "All Servers":
             return "All Servers"
-        return ", ".join(s.fqdn.replace(suffix, "") for s in obj.server_set.all())
+        return ", ".join(s.short_name() for s in obj.server_set.all())
 
 
 class UserInLine(admin.TabularInline):
