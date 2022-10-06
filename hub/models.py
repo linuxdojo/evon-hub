@@ -190,6 +190,11 @@ class Server(models.Model):
     def __str__(self):
         return self.fqdn
 
+    def short_name(self):
+        suffix = f'.{EVON_VARS["account_domain"]}'
+        return self.fqdn.replace(suffix, "")
+
+
     def save(self, *args, dev_mode=False, **kwargs):
         # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
@@ -291,6 +296,13 @@ class Rule(models.Model):
     def __str__(self):
         return self.name
 
+    def get_unified_sources(self):
+        rule_sources = [u.username for u in self.source_users.all()] + \
+            [g.name for g in self.source_groups.all()] + \
+            [s.short_name() for s in self.source_servers.all()] + \
+            [sg.name for sg in self.source_servergroups.all()]
+        return ", ".join(rule_sources)
+
     class Meta:
         verbose_name_plural = "Rules"
 
@@ -308,7 +320,7 @@ class Policy(models.Model):
         blank=True,
         verbose_name="Target Servers"
     )
-    serversgroups = models.ManyToManyField(
+    servergroups = models.ManyToManyField(
         ServerGroup,
         blank=True,
         verbose_name="Target Server Groups"
