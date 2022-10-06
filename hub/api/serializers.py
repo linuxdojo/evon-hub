@@ -11,21 +11,32 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DjangoUser
-        fields = ('id', 'username')
+        fields = (
+            'id',
+            'username',
+            'password',
+            'is_superuser',
+            'first_name',
+            'last_name',
+            'email',
+            'is_active',
+            'groups',
+            'user_permissions'
+        )
 
 
 class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DjangoGroup
-        fields = ('id', 'name')
+        fields = '__all__'
 
 
 class ServerSerializer(FieldAccessMixin, serializers.ModelSerializer):
 
     class Meta:
         model = models.Server
-        fields = ('id', 'fqdn', 'ipv4_address', 'uuid')
+        fields = ('id', 'fqdn', 'ipv4_address', 'uuid', 'server_groups')
         access_policy = ServerAccessPolicy
 
 
@@ -33,14 +44,21 @@ class ServergroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.ServerGroup
-        fields = ('id', 'name')
+        fields = '__all__'
+
+
+class RuleSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Rule
+        fields = '__all__'
 
 
 class PolicySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Policy
-        fields = ('id', 'name')
+        fields = '__all__'
 
 
 class ConfigSerializer(serializers.ModelSerializer):
