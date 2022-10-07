@@ -194,8 +194,27 @@ class Server(models.Model):
         suffix = f'.{EVON_VARS["account_domain"]}'
         return self.fqdn.replace(suffix, "")
 
+    def user_has_access(self, user):
+        """
+        returns True if user is permitted to view this server instance based on policy, else False
+        """
+        if not self.policy_set.all() and \
+                not [sg.server_set.all() for sg in p.servergroups.all() for p in s.policy_set.all()]:
+            # server is not linked to any policies, return False
+            return False
+        # TODO continue here...
+
+
 
     def save(self, *args, dev_mode=False, **kwargs):
+        # force dev mode if we're not on an AL2 EC2 instance
+        if not dev_mode:
+            try:
+                with open("/etc/os-release") as f:
+                    if not "Amazon Linux" in f.read():
+                        dev_mode = True
+            except:
+                dev_mode = True
         # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
             for ipv4_addr in vpn_ipv4_addresses():
