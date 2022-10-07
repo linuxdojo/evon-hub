@@ -192,11 +192,13 @@ class RuleAdmin(admin.ModelAdmin):
             'description': description
         }),
     )
-    list_display = ["name", "sources", "destination_protocol", "destination_ports"]
+    list_display = ["name", "sources", "destination_protocol", "destination_ports", "policies_using_rule"]
 
     def sources(self, obj):
         return obj.get_unified_sources()
 
+    def policies_using_rule(self, obj):
+        return ", ".join([p.name for p in obj.policy_set.all()])
 
 
 class RuleInline(admin.TabularInline):
@@ -251,6 +253,9 @@ class ConfigAdmin(admin.ModelAdmin):
 class ServerAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'fqdn','ipv4_address', 'connected', 'disconnected_since', 'last_seen')
     list_display = ['fqdn', 'uuid', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen', 'groups']
+
+    #def get_queryset(self, request):
+    # TODO ^^
 
     def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
         extra_context = extra_context or {}
