@@ -8,6 +8,13 @@
 
 * implement iptables actuation of policy
 
+## API
+
+* restrict queryset for servers in admin and api, use:
+  * Admin: https://docs.djangoproject.com/en/4.1/ref/contrib/admin/#django.contrib.admin.ModelAdmin.get_queryset
+  * API: https://www.django-rest-framework.org/api-guide/filtering/
+* validate api permissions
+
 ## Miscelaneous
 
 * setup support@evon.link email and add to cli and web admin, setup webpage on linuxdojo.com
