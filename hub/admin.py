@@ -47,6 +47,8 @@ admin.site.unregister(TokenProxy)
 
 @admin.register(TokenProxy)
 class HubTokenAdmin(TokenAdmin):
+    search_fields = ["key", "created"]
+    list_filter = ["user"]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -210,6 +212,8 @@ class RuleAdmin(admin.ModelAdmin):
         }),
     )
     list_display = ["name", "sources", "destination_protocol", "destination_ports", "policies_using_rule"]
+    search_fields = ["name", "destination_ports", "destination_protocol"]
+    list_filter = ["source_users", "source_groups", "source_servers", "source_servergroups", "policy"]
 
     def sources(self, obj):
         return format_html(", ".join([linkify(s) for s in obj.get_unified_sources()]))
@@ -239,6 +243,8 @@ class PolicyAdmin(admin.ModelAdmin):
         }),
     )
     list_display = ["name", "description", "source_rules", "target_servers", "target_server_groups"]
+    search_fields = ["name", "description"]
+    list_filter = ["rules", "servers", "servergroups"]
 
     def source_rules(self, obj):
         return format_html(", ".join([linkify(r) for r in obj.rules.all()]))
@@ -270,6 +276,8 @@ class ConfigAdmin(admin.ModelAdmin):
 class ServerAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'fqdn','ipv4_address', 'connected', 'disconnected_since', 'last_seen')
     list_display = ['fqdn', 'uuid', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen', 'groups']
+    search_fields = ["fqdn", "ipv4_address", "uuid", "disconnected_since"]
+    list_filter = ["connected", "server_groups"]
 
     #def get_queryset(self, request):
     # TODO ^^
@@ -305,7 +313,9 @@ class ServerGroupAdmin(admin.ModelAdmin):
     inlines = [
         ServerInline,
     ]
-    list_display = ["name", "servers"]
+    list_display = ["name", "description", "servers"]
+    search_fields = ["name", "description"]
+    list_filter = ["server"]
 
     def has_delete_permission(self, request, obj=None):
         if obj and obj.name == "All Servers":
@@ -338,6 +348,7 @@ admin.site.unregister(Group)
 class GenericGroup(GroupAdmin):
     inlines = [UserInLine]
     list_display = ["name", "users"]
+    list_filter = ["user"]
 
     def has_delete_permission(self, request, obj=None):
         if obj and obj.name == "All Users":
@@ -357,16 +368,17 @@ class GenericGroup(GroupAdmin):
     def users(self, obj):
         if obj.name == "All Users":
             return "All Users"
-        return ", ".join(u.username for u in obj.user_set.all())
+        return format_html(", ".join(linkify(u) for u in obj.user_set.all()))
 
 
 admin.site.unregister(User)
 @admin.register(User)
 class GenericUser(UserAdmin):
     list_display = ["username",  "first_name", "last_name", "email", "is_active", "is_superuser", "group_membership"]
+    list_filter = ["is_active", "is_superuser", "groups"]
 
     def group_membership(self, obj):
-        return ", ".join([g.name for g in obj.groups.all() if g.name != "All Users"])
+        return format_html(", ".join([linkify(g) for g in obj.groups.all() if g.name != "All Users"]))
 
     def save_model(self, request, obj, form, change):
         if request.user.is_superuser:

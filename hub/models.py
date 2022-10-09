@@ -132,7 +132,7 @@ class ServerGroup(models.Model):
         max_length=200,
         validators=[ServerGroupNameValidator],
     )
-    description = models.TextField(blank=True, null=True)
+    description = models.CharField(max_length=256, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -273,10 +273,10 @@ class Server(models.Model):
 
 
 class Rule(models.Model):
-    TCP = "T"
-    UDP = "U"
-    ICMP = "I"
-    ANY = "A"
+    TCP = "TCP"
+    UDP = "UDP"
+    ICMP = "ICMP"
+    ANY = "ALL"
     PROTOCOLS = (
         (TCP, "TCP"),
         (UDP, "UDP"),
@@ -304,7 +304,7 @@ class Rule(models.Model):
         blank=True,
         verbose_name="Source Server Groups"
     )
-    destination_protocol = models.CharField(max_length=1, choices=PROTOCOLS)
+    destination_protocol = models.CharField(max_length=4, choices=PROTOCOLS)
     destination_ports = models.CharField(
         max_length=256,
         blank=True,
