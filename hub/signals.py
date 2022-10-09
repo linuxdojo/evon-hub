@@ -3,13 +3,16 @@ from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.signals import user_logged_in
+from django.core.signals import request_started
 from django.core.exceptions import PermissionDenied
 from django.db.models.signals import pre_delete, post_save
 from django.dispatch import receiver
+from django.utils import timezone
 from rest_framework.authtoken.models import Token
+import zoneinfo
 
 from eapi.settings import EVON_VARS
-from hub.models import Server, ServerGroup
+from hub.models import Server, ServerGroup, Config
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -55,3 +58,11 @@ def post_login(sender, user, request, **kwargs):
                 request,
                 f"You are currently using the default admin password. Please navigate to your profile page to change it."
             )
+
+@receiver(request_started)
+def new_request(sender, environ, **kwargs):
+    """
+    Ensure correct timezone is set
+    """
+    tzname = Config.get_solo().timezone
+    timezone.activate(zoneinfo.ZoneInfo(tzname))
