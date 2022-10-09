@@ -17,9 +17,6 @@ class ServerAccessPolicy(AccessPolicy):
         },
     ]
 
-    #TODO when we get around to implementing policy, only allow users to list/retrieve
-    #     the servers which they are permitted to see.
-
     def is_authenticated(self, request, view, action) -> bool:
         return request.user.is_authenticated
 
@@ -30,6 +27,7 @@ class ServerAccessPolicy(AccessPolicy):
     def scope_fields(cls, request, fields: dict, instance=None) -> dict:
         if not request.user.is_superuser:
             fields.pop('uuid', None)
+            fields.pop('server_groups', None)
         return fields
 
 
