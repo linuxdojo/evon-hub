@@ -103,7 +103,7 @@ JAZZMIN_SETTINGS = {
         "auth.user": "fas fa-user",
         "hub.rule": "fas fa-check-circle",
         "hub.policy": "fas fa-shield-alt",
-        "hub.server": "fas fa-server",
+        "hub.server": "fas fa-desktop",
         "hub.config": "fas fa-cog",
         "hub.servergroup": "fas fa-network-wired",
         "hub.bootstrap": "fas fa-download",
