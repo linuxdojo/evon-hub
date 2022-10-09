@@ -1,4 +1,5 @@
 import ipaddress
+from itertools import chain
 import json
 import os
 import re
@@ -10,6 +11,7 @@ from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User, Group
+import humanfriendly
 from solo.models import SingletonModel
 import zoneinfo
 
@@ -194,16 +196,44 @@ class Server(models.Model):
         suffix = f'.{EVON_VARS["account_domain"]}'
         return self.fqdn.replace(suffix, "")
 
+    def last_seen(self):
+        if not self.disconnected_since:
+            return "now"
+        else:
+            delta = timezone.now() - self.disconnected_since
+            delta_seconds = round(delta.total_seconds())
+            hf_delta = humanfriendly.format_timespan(delta_seconds, detailed=False, max_units=2)
+            return f"{hf_delta} ago"
+
     def user_has_access(self, user):
         """
         returns True if user is permitted to interact with this server instance based on policy, else False
         """
-        if not self.policy_set.all() and \
-                not [sg.server_set.all() for sg in p.servergroups.all() for p in s.policy_set.all()]:
-            # server is not linked to any policies, return False
-            return False
-        # TODO continue here...
-
+        # get all policies that target this server
+        policies_targetting_server = list(
+            set(
+                chain(
+                    # get all policies who specify this server as a target server
+                    self.policy_set.all(),
+                    # get all policies who have a target server group containing this server
+                    Policy.objects.filter(servergroups__in=ServerGroup.objects.filter(server=self))
+                )
+            )
+        )
+        # generate unique set of source rules that these policies use
+        rules = list(set(chain(*[p.rules.all() for p in policies_targetting_server])))
+        # get all users that can access this server
+        users_with_access = list(
+            set(
+                chain(
+                    # get all users that are sourced by the set of rules
+                    list(chain(*[r.source_users.all() for r in rules])),
+                    # get all users that are in groups sourced by the set of rules
+                    list(chain(*[g.user_set.all() for g in list(chain(*[r.source_groups.all() for r in rules]))]))
+                )
+            )
+        )
+        return user in users_with_access
 
 
     def save(self, *args, dev_mode=False, **kwargs):
