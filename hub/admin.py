@@ -8,25 +8,42 @@ from django.contrib.auth.models import User, Group
 from django.db import models
 from django.forms.widgets import Select
 from django.http import HttpRequest, HttpResponse
-from django.utils import timezone
-from django.urls import path
 from django.template import Context
 from django.template import Template
+from django.urls import path
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.html import format_html
 from rest_framework.authtoken.models import Token, TokenProxy
 from rest_framework.authtoken.admin import TokenAdmin 
 
 from solo.admin import SingletonModelAdmin
 import humanfriendly
 
-from eapi.settings import EVON_VARS, BASE_DIR
+from eapi.settings import EVON_VARS, BASE_DIR, JAZZMIN_SETTINGS 
 import hub.models
 
 
 admin.site.site_header = "Evon Hub Admin"
 admin.site.site_title = "Evon Hub Admin"
 
-admin.site.unregister(TokenProxy)
 
+def linkify(obj, prepend_icon=True):
+    app_label = obj._meta.app_label
+    model_name = obj._meta.model_name
+    view_name = f'admin:{app_label}_{model_name}_change'
+    link_url = reverse(view_name, args=[obj.pk])
+    if getattr(obj, "short_name", None):
+        label = obj.short_name()
+    else:
+        label = obj
+    if prepend_icon:
+        icon = JAZZMIN_SETTINGS["icons"][f"{app_label}.{model_name}"]
+        label = format_html(f'<i class="{icon}"></i> {label}')
+    return format_html('<a href="{}">{}</a>', link_url, label)
+
+
+admin.site.unregister(TokenProxy)
 
 @admin.register(TokenProxy)
 class HubTokenAdmin(TokenAdmin):
@@ -195,10 +212,10 @@ class RuleAdmin(admin.ModelAdmin):
     list_display = ["name", "sources", "destination_protocol", "destination_ports", "policies_using_rule"]
 
     def sources(self, obj):
-        return obj.get_unified_sources()
+        return format_html(", ".join([linkify(s) for s in obj.get_unified_sources()]))
 
     def policies_using_rule(self, obj):
-        return ", ".join([p.name for p in obj.policy_set.all()])
+        return format_html(", ".join([linkify(p) for p in obj.policy_set.all()]))
 
 
 class RuleInline(admin.TabularInline):
@@ -224,13 +241,13 @@ class PolicyAdmin(admin.ModelAdmin):
     list_display = ["name", "description", "source_rules", "target_servers", "target_server_groups"]
 
     def source_rules(self, obj):
-        return ", ".join([r.name for r in obj.rules.all()])
+        return format_html(", ".join([linkify(r) for r in obj.rules.all()]))
 
     def target_servers(self, obj):
-        return ", ".join([s.short_name() for s in obj.servers.all()])
+        return format_html(", ".join([linkify(s) for s in obj.servers.all()]))
 
     def target_server_groups(self, obj):
-        return ", ".join([s.name for s in obj.servergroups.all()])
+        return format_html(", ".join([linkify(s) for s in obj.servergroups.all()]))
 
 
 @admin.register(hub.models.Config)
@@ -276,7 +293,7 @@ class ServerAdmin(admin.ModelAdmin):
             return f"{hf_delta} ago"
 
     def groups(self, obj):
-        return ", ".join(sg.name for sg in obj.server_groups.all() if sg.name != "All Servers")
+        return format_html(", ".join(linkify(sg) for sg in obj.server_groups.all() if sg.name != "All Servers"))
 
 
 class ServerInline(admin.TabularInline):
@@ -308,7 +325,7 @@ class ServerGroupAdmin(admin.ModelAdmin):
     def servers(self, obj):
         if obj.name == "All Servers":
             return "All Servers"
-        return ", ".join(s.short_name() for s in obj.server_set.all())
+        return format_html(", ".join(linkify(s) for s in obj.server_set.all()))
 
 
 class UserInLine(admin.TabularInline):
