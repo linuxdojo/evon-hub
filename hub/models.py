@@ -10,8 +10,8 @@ from django.dispatch.dispatcher import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User, Group
-import pytz
 from solo.models import SingletonModel
+import zoneinfo
 
 from eapi.settings import EVON_VARS
 from hub.exceptions import OutOfAddresses
@@ -354,7 +354,9 @@ class Policy(models.Model):
 
 
 class Config(SingletonModel):
+    TIMEZONES = ((tzone, tzone) for tzone in sorted(list(zoneinfo.available_timezones())))
     discovery_mode = models.BooleanField(default=True, help_text="Disable to prevent any new Servers from joining your overlay network")
+    timezone = models.CharField(max_length=64, choices=TIMEZONES, default="UTC", help_text="Select your local timezone")
 
     def __str__(self):
         return "Hub Configuration"
