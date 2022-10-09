@@ -58,6 +58,12 @@ class ServerViewSet(AccessViewSetMixin, ModelViewSet):
     serializer_class = serializers.ServerSerializer
     access_policy = permissions.ServerAccessPolicy
 
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return models.Server.objects.all()
+        allowed_servers = [s.pk for s in models.Server.objects.all() if s.user_has_access(self.request.user)]
+        return models.Server.objects.filter(pk__in=allowed_servers)
+
 
 class ServerGroupViewSet(ModelViewSet):
     """

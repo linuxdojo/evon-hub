@@ -285,9 +285,32 @@ class ServerAdmin(admin.ModelAdmin):
     def has_module_permission(self, request, obj=None):
         return True
 
+    def get_list_display(self, request):
+        """
+        hide groups field (column) from list view for non-superusers
+        """
+        list_display = super().get_list_display(request).copy()
+        if not request.user.is_superuser:
+            list_display.remove("groups")
+        return list_display
 
-    #def get_queryset(self, request):
-    # TODO ^^
+    def get_fieldsets(self, request, obj=None):
+        """
+        Hide server_groups and uuid fields from non-superusers
+        """
+        fieldsets = super().get_fieldsets(request, obj)
+        if not request.user.is_superuser:
+            for index, fieldset in enumerate(fieldsets):
+                if fieldset[0] == None:
+                    fieldsets[index] = (None, {'fields': ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
+                    break
+        return fieldsets
+
+    def get_queryset(self, request):
+        if request.user.is_superuser:
+            return hub.models.Server.objects.all()
+        allowed_servers = [s.pk for s in hub.models.Server.objects.all() if s.user_has_access(request.user)]
+        return hub.models.Server.objects.filter(pk__in=allowed_servers)
 
     def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
         extra_context = extra_context or {}
@@ -297,15 +320,6 @@ class ServerAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request, obj=None):
         return False
-
-    def last_seen(self, obj):
-        if not obj.disconnected_since:
-            return "now"
-        else:
-            delta = timezone.now() - obj.disconnected_since
-            delta_seconds = round(delta.total_seconds())
-            hf_delta = humanfriendly.format_timespan(delta_seconds, detailed=False, max_units=2)
-            return f"{hf_delta} ago"
 
     def groups(self, obj):
         return format_html(", ".join(linkify(sg) for sg in obj.server_groups.all() if sg.name != "All Servers"))
