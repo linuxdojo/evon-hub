@@ -36,7 +36,7 @@ class ServerSerializer(FieldAccessMixin, serializers.ModelSerializer):
 
     class Meta:
         model = models.Server
-        fields = ('id', 'fqdn', 'ipv4_address', 'uuid', 'server_groups')
+        fields = ('id', 'fqdn', 'ipv4_address', 'uuid', 'connected', 'disconnected_since', 'last_seen', 'server_groups')
         access_policy = ServerAccessPolicy
 
 

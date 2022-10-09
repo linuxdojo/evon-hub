@@ -10,13 +10,11 @@
 
 ## API
 
-* restrict queryset for servers in admin and api, use:
-  * Admin: https://docs.djangoproject.com/en/4.1/ref/contrib/admin/#django.contrib.admin.ModelAdmin.get_queryset
-  * API: https://www.django-rest-framework.org/api-guide/filtering/
 * validate api permissions
 
 ## Miscelaneous
 
+* finish help text on OpenVPN Client page about listing servers
 * setup support@evon.link email and add to cli and web admin, setup webpage on linuxdojo.com
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 * address TODO, FIXME, XXX
