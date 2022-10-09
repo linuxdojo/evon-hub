@@ -224,6 +224,7 @@ class RuleAdmin(admin.ModelAdmin):
 
 class RuleInline(admin.TabularInline):
     model = hub.models.Policy.rules.through
+    verbose_name = "Rule"
 
 
 @admin.register(hub.models.Policy)
@@ -327,6 +328,7 @@ class ServerAdmin(admin.ModelAdmin):
 
 class ServerInline(admin.TabularInline):
     model = hub.models.Server.server_groups.through
+    verbose_name = "Server"
 
 
 @admin.register(hub.models.ServerGroup)
@@ -362,6 +364,7 @@ class ServerGroupAdmin(admin.ModelAdmin):
 class UserInLine(admin.TabularInline):
     model = Group.user_set.through
     extra = 0
+    verbose_name = "User"
 
 
 admin.site.unregister(Group)
