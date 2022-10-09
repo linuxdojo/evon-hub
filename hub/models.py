@@ -196,7 +196,7 @@ class Server(models.Model):
 
     def user_has_access(self, user):
         """
-        returns True if user is permitted to view this server instance based on policy, else False
+        returns True if user is permitted to interact with this server instance based on policy, else False
         """
         if not self.policy_set.all() and \
                 not [sg.server_set.all() for sg in p.servergroups.all() for p in s.policy_set.all()]:
@@ -316,11 +316,12 @@ class Rule(models.Model):
         return self.name
 
     def get_unified_sources(self):
-        rule_sources = [u.username for u in self.source_users.all()] + \
-            [g.name for g in self.source_groups.all()] + \
-            [s.short_name() for s in self.source_servers.all()] + \
-            [sg.name for sg in self.source_servergroups.all()]
-        return ", ".join(rule_sources)
+        unified_sources = \
+            list(self.source_users.all()) + \
+            list(self.source_groups.all()) + \
+            list(self.source_servers.all()) + \
+            list(self.source_servergroups.all())
+        return unified_sources
 
     class Meta:
         verbose_name_plural = "Rules"
