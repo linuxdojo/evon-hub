@@ -279,6 +279,13 @@ class ServerAdmin(admin.ModelAdmin):
     search_fields = ["fqdn", "ipv4_address", "uuid", "disconnected_since"]
     list_filter = ["connected", "server_groups"]
 
+    def has_view_permission(self, request, obj=None):
+        return True
+
+    def has_module_permission(self, request, obj=None):
+        return True
+
+
     #def get_queryset(self, request):
     # TODO ^^
 
