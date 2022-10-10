@@ -21,21 +21,19 @@
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
-        <h5>On Windows</h5>
         <hr>
+        <h5>On Windows</h5>
         Download and install OpenVPN for Windows <a href="https://openvpn.net/community-downloads/" target="_blank">here</a>. Version 2.5.7 is tested working, however version 2.4.x or greater should work. Once installed, right-click the <strong>EvonHub.ovpn</strong> file and select "Import into OpenVPN-GUI".<br />
         <br />
         To connect, right-click the OpenVPN-GUI icon in the system tray and click Connect. You'll be prompted for your Evon Hub username/password.
         <br />
-        <br />
-        <h5>On Mac OSX</h5>
         <hr>
+        <h5>On Mac OSX</h5>
         Download and install Tunnelblick <a href="https://tunnelblick.net/downloads.html" target="_blank">here</a>. Once installed, open the <strong>EvonHub.ovpn</strong> file and import it into Tunnelblick.<br /><br />
         To connect, click the Tunnelblick icon in the Status Menu and click "Connect EvonHub". You'll be prompted for your Evon Hub username/password.
         <br />
-        <br />
-        <h5>On Linux</h5>
         <hr>
+        <h5>On Linux</h5>
         <strong>Using NetworkManager:</strong><br />
         <br />
         Import the <strong>EvonHub.ovpn</strong> file into NetworkManager by entering the following commands, replacing <strong>your_evon_hub_username</strong> with your Evon Hub username below:
@@ -45,9 +43,8 @@ nmcli connection modify EvonHub ipv4.never-default true
 nmcli connection modify EvonHub +vpn.data username=your_evon_hub_username</pre>
         To connect, click your NetworkManager icon, select VPN Connections -> EvonHub. You will be prompted for your password upon connection.
         <br />
-        <br />
-        <h5>Using OpenVPN CLI (any OS):</h5>
         <hr>
+        <h5>Using OpenVPN CLI (any OS):</h5>
         Enter the following command as a user with appropriate privileges (eg. Administrator/root):
         <pre>openvpn EvonHub.ovpn</pre>
         You'll be promoted for your Evon Hub username/password. To connect non-interactively, update your <strong>EvonHub.ovpn</strong> file, referring to the <strong>--auth-user-pass</strong> setting in the <a href="https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/" target="_blank">OpenVPN 2.4 Reference Manual</a>.
@@ -60,10 +57,51 @@ nmcli connection modify EvonHub +vpn.data username=your_evon_hub_username</pre>
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
-        #TODO
+        You can obtain a list of servers to which you're able to connect (subject to Policy defined by an admin) either via the <a href="/hub/server">Servers</a> menu option in this Web UI or via the Evon Hub API.<br/>
+        <br/>
+        Example scripts are provided below for listing your servers via the API. These examples include your <a href="/authtoken/tokenproxy/">Authentication Token</a> in clear text, therefore care should be taken to keep these scripts private if used as is.<br />
+        <hr>
+        <h5>list_servers.sh using Bash:</h5>
+        <pre>
+#!/bin/bash
+url="https://{{ account_domain }}/api/server"
+auth_token="{{ auth_token }}"
+echo -e "IPv4           \t State\t FQDN"
+while [ "${url}" != "null" ]; do
+    response=$(curl -s "${url}" -H "Authorization: Token ${auth_token}")
+    echo ${response} | \
+        jq -rM '.results[] | .ipv4_address + " " + (.connected|tostring) + " " + .fqdn' | \
+            sed 's/ /\t /g' | sed 's/true/up/g' | sed 's/false/down/g'
+    url=$(echo $response | jq -r '.next')
+done</pre>
+        Note that the <strong>curl</strong>, <strong>jq</strong> and <strong>sed</strong> commands are required by the above script.
+        <hr>
+        <h5>list_servers.ps1 using PowerShell:</h5>
+        <pre>
+#!/usr/bin/pwsh
+$url = "https://{{ account_domain }}/api/server"
+$auth_token = "{{ auth_token }}"
+write-host "IPv4           `t State`t FQDN"
+while ( $url -ne $null ) {
+    $response = Invoke-RestMethod -Uri $url -Headers @{"Authorization" = "Token $auth_token"}
+    foreach ( $server in $response.results ) {
+        $state = if ($server.connected) {"up"} else {"down"}
+        write-host $server.ipv4_address `t $state `t $server.fqdn
+    }
+    $url = $response.next
+}</pre>
+        <hr>
+        <h5>Example Usage:</h5>
+        <pre>
+$ chmod +x list_servesrs.sh
+$ ./list_servers.sh
+IPv4             State   FQDN
+100.111.224.6    up      webserver.example.com.{{ account_domain }}
+100.111.224.10   up      appserver.{{ account_domain }}
+100.111.224.14   down    test.example.com.{{ account_domain }}
+100.111.224.18   up      fileserver.{{ account_domain }}
+$</pre>
       </div>
     </div>
-
-
   </div>
 </div>
