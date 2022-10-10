@@ -122,7 +122,7 @@ class OVPNClientAdmin(admin.ModelAdmin):
     def view_custom(self, request):
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
-            "deploy_token": User.objects.get(username="deployer").auth_token,
+            "auth_token": User.objects.get(username=request.user.username).auth_token,
         }
         template_path = os.path.join(f"{BASE_DIR}", "hub", "templates", "hub", self.custom_template_filename)
         with open(template_path) as f:
