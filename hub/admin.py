@@ -293,6 +293,7 @@ class ServerAdmin(admin.ModelAdmin):
         list_display = super().get_list_display(request).copy()
         if not request.user.is_superuser:
             list_display.remove("groups")
+            list_display.remove("uuid")
         return list_display
 
     def get_fieldsets(self, request, obj=None):
