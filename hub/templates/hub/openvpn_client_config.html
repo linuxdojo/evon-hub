@@ -161,7 +161,7 @@ url="https://{{ account_domain }}/api/server"
 auth_token="{{ auth_token }}"
 
 print("IPv4           \t State\t FQDN")
-while url != None:
+while url:
     data = requests.get(url, headers={"Authorization": f"Token {auth_token}"}).json()
     for server in data['results']:
         state = "up" if server["connected"] else "down"
