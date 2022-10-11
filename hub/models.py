@@ -32,13 +32,18 @@ HOSTNAME_PATTERN = re.compile(r"^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,
 
 ##### Helper Functions
 
-def vpn_ipv4_addresses():
+def vpn_ipv4_addresses(for_users=False):
     """
     Produces a list of all available IPv4 addresses that can be assigned to client-side
     OpenVPN connections on the overlay network subnet.
+
+    if `for_users` == Ture, use the User subnet, else use the Server subnet
     """
     subnet_key = EVON_VARS["subnet_key"]
-    evon_subnet = f"100.{subnet_key}.224.0/19"
+    if for_users:
+        evon_subnet = f"100.{subnet_key}.208.0/20"
+    else:
+        evon_subnet = f"100.{subnet_key}.224.0/19"
     evon_network = ipaddress.ip_network(evon_subnet)
     client_addresses = [format(s[2]) for s in evon_network.subnets(new_prefix=30)][1:]
     return client_addresses
@@ -46,18 +51,31 @@ def vpn_ipv4_addresses():
 
 ##### Model Validators
 
-def EvonIPV4Validator(value):
+def EvonIPV4Validator(value, for_users=False):
+    """
+    Validate IPv4 Address fields
+
+    if `for_users` == Ture, use the User subnet, else use the Server subnet
+    """
     subnet_key = EVON_VARS["subnet_key"]
-    evon_subnet = f"100.{subnet_key}.224.0/19"
-    all_vpn_client_addresses = set(vpn_ipv4_addresses())
+    if for_users:
+        evon_subnet = f"100.{subnet_key}.208.0/20"
+    else:
+        evon_subnet = f"100.{subnet_key}.224.0/19"
+    all_vpn_client_addresses = set(vpn_ipv4_addresses(for_users=for_users))
     used_vpn_client_addresses = set(Server.objects.values_list("ipv4_address", flat=True).distinct())
     available_vpn_client_addresses =  all_vpn_client_addresses.difference(used_vpn_client_addresses)
     if not available_vpn_client_addresses:
-        raise ValidationError("Your overlay network is out of addresses! Consider deleting one or more servers.")
+        saturatetd_objects = "users" if for_users else "servers"
+        raise ValidationError(f"Your overlay network is out of addresses! Consider deleting one or more {saturatetd_objects}.")
     if value not in all_vpn_client_addresses:
         raise ValidationError(
             f"Invalid address - ipv4_address must be the 3rd address within any /30 subnet of {evon_subnet}"
         )
+
+
+def EvonIPV4UserValidator(value):
+    return EvonIPV4Validator(value, for_users=True)
 
 
 def EvonFQDNValidator(value):
@@ -235,7 +253,6 @@ class Server(models.Model):
         )
         return user in users_with_access
 
-
     def save(self, *args, dev_mode=False, **kwargs):
         # force dev mode if we're not on an AL2 EC2 instance
         if not dev_mode:
@@ -253,7 +270,7 @@ class Server(models.Model):
                     break
             else:
                 # we're out of addresses, the validator will warn the user
-                logger.warning(f"Overlay network is out of addresses!")
+                logger.warning(f"Overlay network is out of server addresses!")
         # auto-append account domain to supplied fqdn
         if not self.fqdn.endswith(EVON_VARS["account_domain"]):
             self.fqdn = f"{self.fqdn}.{EVON_VARS['account_domain']}"
@@ -394,3 +411,29 @@ class Config(SingletonModel):
     class Meta:
         verbose_name = "Config"
         verbose_name_plural = "Config"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    ipv4_address = models.GenericIPAddressField(
+        verbose_name="IPv4 Address",
+        editable=False,
+        protocol="IPv4",
+        validators=[EvonIPV4UserValidator],
+        help_text="This value is auto-assigned and static for this User"
+    )
+
+    def __str__(self):
+        return "Profile"
+
+    def save(self, *args, dev_mode=False, **kwargs):
+        # dhcp-style ipv4_address assignment
+        if not self.ipv4_address:
+            for ipv4_addr in vpn_ipv4_addresses(for_users=True):
+                if not UserProfile.objects.filter(ipv4_address=ipv4_addr).first():
+                    self.ipv4_address = ipv4_addr
+                    break
+            else:
+                # we're out of addresses, the validator will warn the user
+                logger.warning(f"Overlay network is out of user addresses!")
+        super().save(*args, **kwargs)

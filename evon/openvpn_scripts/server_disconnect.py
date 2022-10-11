@@ -1,8 +1,8 @@
 #!/opt/evon-hub/.env/bin/python
 
-#######################################
-# Evon OpenVPN Client Disconnect Script
-#######################################
+#########################################
+# Evon OpenVPN Server Disconnect Script
+#########################################
 
 
 import os

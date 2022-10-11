@@ -1,7 +1,7 @@
 #!/opt/evon-hub/.env/bin/python
 
 #######################################
-# Evon OpenVPN Client Connect Script
+# Evon OpenVPN Server Connect Script
 #######################################
 
 
@@ -12,7 +12,6 @@ import sys
 import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'
 django.setup()
-from eapi.settings import EVON_VARS  # noqa
 from hub.models import Server  # noqa
 from evon.log import get_evon_logger  # noqa
 
@@ -42,7 +41,6 @@ if not server:
 # generate dynamic CCD content for client
 local = server.ipv4_address
 remote = ipaddress.ip_address(local) - 1
-subnet_key = EVON_VARS["subnet_key"]
 ccd_config = f'ifconfig-push {local} {remote}'
 with open(ccd_file, "w") as f:
     f.write(ccd_config)

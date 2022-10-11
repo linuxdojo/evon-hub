@@ -283,6 +283,9 @@ class ServerAdmin(admin.ModelAdmin):
     def has_view_permission(self, request, obj=None):
         return True
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
     def has_module_permission(self, request, obj=None):
         return True
 
@@ -319,9 +322,6 @@ class ServerAdmin(admin.ModelAdmin):
         extra_context['show_save'] = True
         extra_context['show_save_and_continue'] = False
         return super().changeform_view(request, object_id, form_url, extra_context)
-
-    def has_add_permission(self, request, obj=None):
-        return False
 
     def groups(self, obj):
         return format_html(", ".join(linkify(sg) for sg in obj.server_groups.all() if sg.name != "All Servers"))
@@ -364,7 +364,7 @@ class ServerGroupAdmin(admin.ModelAdmin):
 
 class UserInLine(admin.TabularInline):
     model = Group.user_set.through
-    extra = 0
+    extra = 1
     verbose_name = "User"
 
 
@@ -396,14 +396,32 @@ class GenericGroup(GroupAdmin):
         return format_html(", ".join(linkify(u) for u in obj.user_set.all()))
 
 
+class ProfileInLine(admin.StackedInline):
+    model = hub.models.UserProfile
+    can_delete = False
+    verbose_name = "IPv4 Address"
+    verbose_name_plural = "IPv4 Address"
+    readonly_fields = ['ipv4_address']
+
+
 admin.site.unregister(User)
 @admin.register(User)
 class GenericUser(UserAdmin):
-    list_display = ["username",  "first_name", "last_name", "email", "is_active", "is_superuser", "group_membership"]
+    list_display = ["username",  "first_name", "last_name", "email", "is_active", "is_superuser", "ipv4_address", "group_membership"]
     list_filter = ["is_active", "is_superuser", "groups"]
+    inlines = [ProfileInLine]
+    extra_search_fields = ["userprofile__ipv4_address"]
+
+    def __init__(self, *args, **kwargs):
+        res = super().__init__(*args, **kwargs)
+        self.search_fields = list(self.search_fields) + self.extra_search_fields
+        return res
 
     def group_membership(self, obj):
         return format_html(", ".join([linkify(g) for g in obj.groups.all() if g.name != "All Users"]))
+
+    def ipv4_address(self, obj):
+        return obj.userprofile.ipv4_address
 
     def save_model(self, request, obj, form, change):
         if request.user.is_superuser:

@@ -12,7 +12,8 @@ from rest_framework.authtoken.models import Token
 import zoneinfo
 
 from eapi.settings import EVON_VARS
-from hub.models import Server, ServerGroup, Config
+from hub.models import Server, ServerGroup, Config, UserProfile
+
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -20,9 +21,12 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         # create token
         Token.objects.create(user=instance)
+        # create a user profile
+        UserProfile.objects.create(user=instance)
         # add to group
         all_users_group = Group.objects.get(name="All Users")
         instance.groups.add(all_users_group)
+
 
 @receiver(post_save, sender=Server)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -30,15 +34,18 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
         all_servers_group = ServerGroup.objects.get(name="All Servers")
         instance.server_groups.add(all_servers_group)
 
+
 @receiver(pre_delete, sender=Group)
 def delete_group(sender, instance, **kwargs):
     if instance.name == "All Users":
         raise PermissionDenied
 
+
 @receiver(pre_delete, sender=ServerGroup)
 def delete_server_group(sender, instance, **kwargs):
     if instance.name == "All Servers":
         raise PermissionDenied
+
 
 @receiver(pre_delete, sender=User)
 def delete_user(sender, instance, **kwargs):
@@ -47,6 +54,7 @@ def delete_user(sender, instance, **kwargs):
     """
     if instance.username in ["admin", "deployer"]:
         raise PermissionDenied
+
 
 @receiver(user_logged_in)
 def post_login(sender, user, request, **kwargs):
@@ -58,6 +66,7 @@ def post_login(sender, user, request, **kwargs):
                 request,
                 f"You are currently using the default admin password. Please navigate to your profile page to change it."
             )
+
 
 @receiver(request_started)
 def new_request(sender, environ, **kwargs):
