@@ -60,12 +60,37 @@ nmcli connection modify EvonHub +vpn.data username=your_evon_hub_username</pre>
         You can obtain a list of servers to which you're able to connect (subject to Policy defined by an admin) either via the <a href="/hub/server">Servers</a> menu option in this Web UI or via the Evon Hub API.<br/>
         <br/>
         Example scripts are provided below for listing your servers via the API. These examples include your <a href="/authtoken/tokenproxy/">Authentication Token</a> in clear text, therefore care should be taken to keep these scripts private if used as is.<br />
-        <hr>
-        <h5>list_servers.sh using Bash:</h5>
-        <pre>
+        <br />
+        <ul class="nav nav-tabs" role="tablist" id="jazzy-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" data-toggle="pill" role="tab" aria-controls="bash-tab" aria-selected="true" href="#bash-tab">
+              Bash
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="powershell-tab" aria-selected="false" href="#powershell-tab">
+              PowerShell
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="python-tab" aria-selected="false" href="#python-tab">
+              Python
+            </a>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div id="bash-tab" class="tab-pane fade active show" role="tabpanel" aria-labelledby="bash-tab">
+            <div class="card ">
+              <div class="p-5">
+                <hr>
+                <h5>list_servers.sh</h5>
+                Note that the <strong>curl</strong>, <strong>jq</strong> and <strong>sed</strong> commands are required by the below script.
+                <pre>
 #!/bin/bash
+
 url="https://{{ account_domain }}/api/server"
 auth_token="{{ auth_token }}"
+
 echo -e "IPv4           \t State\t FQDN"
 while [ "${url}" != "null" ]; do
     response=$(curl -s "${url}" -H "Authorization: Token ${auth_token}")
@@ -74,13 +99,31 @@ while [ "${url}" != "null" ]; do
             sed 's/ /\t /g' | sed 's/true/up/g' | sed 's/false/down/g'
     url=$(echo $response | jq -r '.next')
 done</pre>
-        Note that the <strong>curl</strong>, <strong>jq</strong> and <strong>sed</strong> commands are required by the above script.
-        <hr>
-        <h5>list_servers.ps1 using PowerShell:</h5>
-        <pre>
+                <hr>
+                <h5>Example Usage:</h5>
+                <pre>
+$ chmod +x list_servesrs.sh
+$ ./list_servers.sh
+IPv4             State   FQDN
+100.111.224.6    up      webserver.example.com.{{ account_domain }}
+100.111.224.10   up      appserver.{{ account_domain }}
+100.111.224.14   down    test.example.com.{{ account_domain }}
+100.111.224.18   up      fileserver.{{ account_domain }}
+$</pre>
+              </div>
+            </div>
+          </div>
+          <div id="powershell-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="powershell-tab">
+            <div class="card ">
+              <div class="p-5">
+                <hr>
+                <h5>list_servers.ps1</h5>
+                <pre>
 #!/usr/bin/pwsh
+
 $url = "https://{{ account_domain }}/api/server"
 $auth_token = "{{ auth_token }}"
+
 write-host "IPv4           `t State`t FQDN"
 while ( $url -ne $null ) {
     $response = Invoke-RestMethod -Uri $url -Headers @{"Authorization" = "Token $auth_token"}
@@ -90,17 +133,55 @@ while ( $url -ne $null ) {
     }
     $url = $response.next
 }</pre>
-        <hr>
-        <h5>Example Usage:</h5>
-        <pre>
-$ chmod +x list_servesrs.sh
-$ ./list_servers.sh
+                <hr>
+                <h5>Example Usage:</h5>
+                <pre>
+PS C:\scripts> .\list_servers.ps1
+IPv4             State   FQDN
+100.111.224.6    up      webserver.example.com.{{ account_domain }}
+100.111.224.10   up      appserver.{{ account_domain }}
+100.111.224.14   down    test.example.com.{{ account_domain }}
+100.111.224.18   up      fileserver.{{ account_domain }}
+PS C:\scripts></pre>
+              </div>
+            </div>
+          </div>
+          <div id="python-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="python-tab">
+            <div class="card ">
+              <div class="p-5">
+                <hr>
+                <h5>list_servers.py</h5>
+                  Note that the <strong>requests</strong> library is required by the below script. 
+                <pre>
+#!/usr/bin/env python
+
+import requests
+
+url="https://{{ account_domain }}/api/server"
+auth_token="{{ auth_token }}"
+
+print("IPv4           \t State\t FQDN")
+while url != None:
+    data = requests.get(url, headers={"Authorization": f"Token {auth_token}"}).json()
+    for server in data['results']:
+        state = "up" if server["connected"] else "down"
+        print(f"{server['ipv4_address']} \t {state} \t {server['fqdn']}")
+    url = data["next"]</pre>
+                <hr>
+                <h5>Example Usage:</h5>
+                <pre>
+$ pip install --user requests
+$ python list_servers.py
 IPv4             State   FQDN
 100.111.224.6    up      webserver.example.com.{{ account_domain }}
 100.111.224.10   up      appserver.{{ account_domain }}
 100.111.224.14   down    test.example.com.{{ account_domain }}
 100.111.224.18   up      fileserver.{{ account_domain }}
 $</pre>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
