@@ -1,6 +1,8 @@
 #!/bin/bash
+
 url="https://xxxxx.evon.link/api/server"
 auth_token="xxx"
+
 echo -e "IPv4           \t State\t FQDN"
 while [ "${url}" != "null" ]; do
     response=$(curl -s "${url}" -H "Authorization: Token ${auth_token}")
