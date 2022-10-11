@@ -15,7 +15,6 @@
 ## Miscelaneous
 
 * make "admin" and "deployer" usernames immutable (override user field validation?)
-* rename permissions.py to policies.py
 * setup support@evon.link email and add to cli and web admin, setup webpage on linuxdojo.com
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 * address TODO, FIXME, XXX

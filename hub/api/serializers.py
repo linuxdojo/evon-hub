@@ -4,7 +4,7 @@ from django.contrib.auth.models import User as DjangoUser
 from django.contrib.auth.models import Group as DjangoGroup
 from rest_access_policy import FieldAccessMixin
 
-from hub.permissions import ServerAccessPolicy
+from hub.policies import ServerAccessPolicy
 
 
 class UserSerializer(serializers.ModelSerializer):
