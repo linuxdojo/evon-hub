@@ -18,7 +18,7 @@ import requests
 from eapi.settings import EVON_HUB_CONFIG
 from evon import log
 from hub import models
-from hub import permissions
+from hub import policies
 from hub.api import serializers
 from hub.renderers import BinaryFileRenderer
 
@@ -56,7 +56,7 @@ class ServerViewSet(AccessViewSetMixin, ModelViewSet):
     """
     queryset = models.Server.objects.all()
     serializer_class = serializers.ServerSerializer
-    access_policy = permissions.ServerAccessPolicy
+    access_policy = policies.ServerAccessPolicy
 
     def get_queryset(self):
         if self.request.user.is_superuser:
@@ -114,7 +114,7 @@ class BootstrapViewSet(AccessViewSetMixin, ViewSet):
     Download the `bootstrap.sh` installer for connecting remote systems to this overlay network.
     """
     serializer_class = serializers.BootstrapSerializer
-    access_policy = permissions.BootstrapAccessPolicy
+    access_policy = policies.BootstrapAccessPolicy
 
     @extend_schema(
         operation_id="bootstrap_retrieve"
@@ -135,7 +135,7 @@ class OVPNClientViewSet(AccessViewSetMixin, ViewSet):
     Download the `EvonHub.ovpn` OpenVPN configuration file for user access to this overlay network.
     """
     serializer_class = serializers.OVPNClientSerializer
-    access_policy = permissions.OVPNClientAccessPolicy
+    access_policy = policies.OVPNClientAccessPolicy
 
     @extend_schema(
         operation_id="ovpnclient_retrieve"
@@ -185,7 +185,7 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
     OpenVPN Management Interface
     """
     serializer_class = serializers.OpenVPNMgmtSerializer
-    access_policy = permissions.OpenVPNMgmtAccessPolicy
+    access_policy = policies.OpenVPNMgmtAccessPolicy
 
     def __init__(self, *args, **kwargs):
         self.vpn_mgmt_servers = EVON_HUB_CONFIG["vpn_mgmt_servers"]
