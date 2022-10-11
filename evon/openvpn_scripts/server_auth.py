@@ -1,8 +1,8 @@
 #!/opt/evon-hub/.env/bin/python
 
-############################
-# Evon OpenVPN Auth Script
-############################
+##################################
+# Evon OpenVPN Server Auth Script
+##################################
 
 
 import os
