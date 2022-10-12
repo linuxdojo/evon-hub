@@ -5,33 +5,55 @@ from django.contrib.auth.models import User, Group
 from django.contrib.auth.signals import user_logged_in
 from django.core.signals import request_started
 from django.core.exceptions import PermissionDenied
-from django.db.models.signals import pre_delete, post_save
+from django.db.models.signals import pre_delete, post_save, post_migrate
 from django.dispatch import receiver
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 import zoneinfo
 
 from eapi.settings import EVON_VARS
-from hub.models import Server, ServerGroup, Config, UserProfile
+import hub.models
 
 
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+@receiver(post_migrate)
+def create_default_groups(sender, **kwargs):
+    if sender.name == "hub":
+        # create All Users group
+        group, created = hub.models.Group.objects.update_or_create(
+            name="All Users",
+        )
+        all_users = hub.models.User.objects.all()
+        for user in all_users:
+            if user not in group.user_set.all():
+                user.groups.add(group)
+
+        # create All Servers group
+        server_group, created = hub.models.ServerGroup.objects.update_or_create(
+            name="All Servers",
+        )
+        all_servers = hub.models.Server.objects.all()
+        for server in all_servers:
+            if server not in server_group.server_set.all():
+                server.server_groups.add(server_group)
+
+
+@receiver(post_save, sender=hub.models.User)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     # every new user gets an api token and gets added to All Users group
     if created:
         # create token
         Token.objects.create(user=instance)
         # create a user profile
-        UserProfile.objects.create(user=instance)
+        hub.models.UserProfile.objects.create(user=instance)
         # add to group
         all_users_group = Group.objects.get(name="All Users")
         instance.groups.add(all_users_group)
 
 
-@receiver(post_save, sender=Server)
-def create_auth_token(sender, instance=None, created=False, **kwargs):
+@receiver(post_save, sender=hub.models.Server)
+def add_server_to_all_servers_group(sender, instance=None, created=False, **kwargs):
     if created:
-        all_servers_group = ServerGroup.objects.get(name="All Servers")
+        all_servers_group = hub.models.ServerGroup.objects.get(name="All Servers")
         instance.server_groups.add(all_servers_group)
 
 
@@ -41,7 +63,7 @@ def delete_group(sender, instance, **kwargs):
         raise PermissionDenied
 
 
-@receiver(pre_delete, sender=ServerGroup)
+@receiver(pre_delete, sender=hub.models.ServerGroup)
 def delete_server_group(sender, instance, **kwargs):
     if instance.name == "All Servers":
         raise PermissionDenied
@@ -73,5 +95,5 @@ def new_request(sender, environ, **kwargs):
     """
     Ensure correct timezone is set
     """
-    tzname = Config.get_solo().timezone
+    tzname = hub.models.Config.get_solo().timezone
     timezone.activate(zoneinfo.ZoneInfo(tzname))
