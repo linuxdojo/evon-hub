@@ -5,7 +5,7 @@ from django.contrib.auth.models import User, Group
 from django.contrib.auth.signals import user_logged_in
 from django.core.signals import request_started
 from django.core.exceptions import PermissionDenied
-from django.db.models.signals import pre_delete, post_save, post_migrate
+from django.db.models.signals import pre_save, pre_delete, post_save, post_migrate
 from django.dispatch import receiver
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
@@ -67,6 +67,28 @@ def delete_group(sender, instance, **kwargs):
 def delete_server_group(sender, instance, **kwargs):
     if instance.name == "All Servers":
         raise PermissionDenied
+
+
+@receiver(pre_delete, sender=hub.models.User)
+def delete_user(sender, instance, **kwargs):
+    if instance.pk in [1, 2]:
+        # disallow deletion of admin or deployer user
+        raise PermissionDenied
+
+
+@receiver(pre_save, sender=hub.models.User)
+def pre_save_user(sender, instance, **kwargs):
+    # make necessary attributes of admin and deployer immutable
+    if instance.pk == 1:
+        instance.username = "admin"
+        instance.is_superuser = True
+        instance.is_staff = True
+        instance.active = True
+    elif instance.pk == 2:
+        instance.username = "deployer"
+        instance.is_superuser = False
+        instance.is_staff = False
+        instance.active = True
 
 
 @receiver(pre_delete, sender=User)

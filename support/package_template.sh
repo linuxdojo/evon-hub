@@ -220,7 +220,7 @@ User = get_user_model()
 if not User.objects.filter(username='admin').exists():
     User.objects.create_superuser('admin', '', json.loads(resp.text)['instanceId'])
 if not User.objects.filter(username='deployer').exists():
-    User.objects.create_user('deployer', '', '')
+    User.objects.create_user('deployer', is_staff=False)
 models.Config.get_solo()
 EOF
 
