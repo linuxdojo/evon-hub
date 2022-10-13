@@ -121,7 +121,6 @@ package_list='
     patch
     python2-certbot-nginx
     readline-devel
-    squid
     sslh
     tk-devel
     tmux

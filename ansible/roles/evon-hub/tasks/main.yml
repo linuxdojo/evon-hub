@@ -82,15 +82,6 @@
   when: iptables_copy.changed
 
 
-### Setup Squid
-
-- name: configure squid
-  ansible.builtin.service:
-    name: squid
-    enabled: true
-    state: started
-
-
 ### Setup rsyslog and logrotate
 
 - name: configure rsyslog
