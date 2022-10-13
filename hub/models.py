@@ -28,6 +28,7 @@ logger = get_evon_logger()
 FQDN_PATTERN = re.compile(r'(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)')
 UUID_PATTERN = re.compile(r'^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}$')
 HOSTNAME_PATTERN = re.compile(r"^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?$")
+DEST_PORTSPEC_PATTERN = re.compile(r"^[\s0-9,-]*$")
 
 
 ##### Helper Functions
@@ -47,6 +48,14 @@ def vpn_ipv4_addresses(for_users=False):
     evon_network = ipaddress.ip_network(evon_subnet)
     client_addresses = [format(s[2]) for s in evon_network.subnets(new_prefix=30)][1:]
     return client_addresses
+
+
+def on_al2():
+    try:
+        with open("/etc/os-release") as f:
+            return "Amazon Linux" in f.read()
+    except:
+        return False
 
 
 ##### Model Validators
@@ -154,11 +163,11 @@ class ServerGroup(models.Model):
     )
     description = models.CharField(max_length=256, blank=True, null=True)
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         verbose_name_plural = "Server Groups"
+
+    def __str__(self):
+        return self.name
 
 
 class Server(models.Model):
@@ -255,13 +264,8 @@ class Server(models.Model):
 
     def save(self, *args, dev_mode=False, **kwargs):
         # force dev mode if we're not on an AL2 EC2 instance
-        if not dev_mode:
-            try:
-                with open("/etc/os-release") as f:
-                    if not "Amazon Linux" in f.read():
-                        dev_mode = True
-            except:
-                dev_mode = True
+        if not on_al2():
+            dev_mode = True
         # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
             for ipv4_addr in vpn_ipv4_addresses():
@@ -356,8 +360,11 @@ class Rule(models.Model):
         max_length=256,
         blank=True,
         null=True,
-        help_text="Comma separated port numbers and dashed ranges, eg: 80,443,7000-8000",
+        help_text="Single or comma separated port numbers with dashed ranges are supported, eg: 80,443,7000-8000",
     )
+
+    class Meta:
+        verbose_name_plural = "Rules"
 
     def __str__(self):
         return self.name
@@ -370,8 +377,55 @@ class Rule(models.Model):
             list(self.source_servergroups.all())
         return unified_sources
 
-    class Meta:
-        verbose_name_plural = "Rules"
+    def clean(self):
+        # validate destination_ports
+        if self.destination_protocol in [self.TCP, self.UDP]:
+            if not self.destination_ports:
+                raise ValidationError(
+                    {'destination_ports': ('At least one port must be specified for destination protocols TCP or UDP')}
+                )
+        else:
+            if self.destination_ports:
+                raise ValidationError(
+                    {'destination_ports': ('Ports can only be specified for destination protocols TCP or UDP')}
+                )
+        # validate destination_ports portspec
+        if not DEST_PORTSPEC_PATTERN.match(self.destination_ports):
+            raise ValidationError(
+                {'destination_ports': ('Illegal characters in port specification')}
+            )
+        for portspec in self.destination_ports.split(","):
+            port_range = []
+            for port in portspec.split("-"):
+                try:
+                    int_port = int(port)
+                except ValueError as e:
+                    raise ValidationError(
+                        {'destination_ports': (f"Malformed port: '{portspec}'")}
+                    )
+                if not 0 <= int_port <= 65535:
+                    raise ValidationError(
+                        {'destination_ports': (f"Port '{port}' is out of range, ports must be between 0 and 65535.")}
+                    )
+                port_range.append(int_port)
+            if len(port_range) == 2:
+                if not port_range[0] < port_range[1]:
+                    raise ValidationError(
+                        {'destination_ports': (f"Malformed port range '{portspec}', start port must be less than end port.")}
+                    )
+            elif len(port_range) > 2:
+                # too many dashes specified
+                raise ValidationError(
+                    {'destination_ports': (f"Malformed port range '{portspec}'.")}
+                )
+
+
+    def save(self, *args, **kwargs):
+        # validate and save
+        self.full_clean()
+        # strip whitespace from portspec
+        self.destination_ports = self.destination_ports.replace(" ", "")
+        super().save(*args, **kwargs)
 
 
 class Policy(models.Model):
@@ -393,11 +447,11 @@ class Policy(models.Model):
         verbose_name="Target Server Groups"
     )
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         verbose_name_plural = "Policies"
+
+    def __str__(self):
+        return self.name
 
 
 class Config(SingletonModel):
@@ -405,12 +459,12 @@ class Config(SingletonModel):
     discovery_mode = models.BooleanField(default=True, help_text="Disable to prevent any new Servers from joining your overlay network")
     timezone = models.CharField(max_length=64, choices=TIMEZONES, default="UTC", help_text="Select your local timezone")
 
-    def __str__(self):
-        return "Hub Configuration"
-
     class Meta:
         verbose_name = "Config"
         verbose_name_plural = "Config"
+
+    def __str__(self):
+        return "Hub Configuration"
 
 
 class UserProfile(models.Model):
