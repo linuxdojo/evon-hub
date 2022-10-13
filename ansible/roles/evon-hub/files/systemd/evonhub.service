@@ -10,6 +10,7 @@ Type=notify
 StandardError=syslog
 NotifyAccess=main
 PrivateTmp=false
+AmbientCapabilities=CAP_NET_ADMIN
 
 [Install]
 WantedBy=multi-user.target
