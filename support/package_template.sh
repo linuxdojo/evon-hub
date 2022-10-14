@@ -109,6 +109,8 @@ package_list='
     iproute
     iptables-services
     jq
+    libcap
+    libcap-devel
     libffi-devel
     MariaDB-client
     MariaDB-devel
