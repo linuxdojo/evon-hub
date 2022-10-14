@@ -192,7 +192,6 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
         self.vpn_mgmt_users = EVON_HUB_CONFIG["vpn_mgmt_users"]
         super().__init__(*args, **kwargs)
 
-    #@retry(ParsingError, tries=5, delay=1)
     @extend_schema(
         operation_id="openvpn_list"
     )
@@ -206,7 +205,6 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
         self.vpn_mgmt_servers.disconnect()
         return Response(clients)
 
-    #@retry(ParsingError, tries=5, delay=1)
     @extend_schema(
         operation_id="openvpn_kill"
     )
