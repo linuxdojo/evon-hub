@@ -4,10 +4,6 @@
 
 * implement s3 publishing and upgrading process
 
-## Policy
-
-* implement iptables actuation of policy
-
 ## API
 
 * validate api permissions
@@ -24,6 +20,8 @@
 
 # Future Release
 
+* add tooltips top Admin group objects to show members at a glance
+* rename policy.servergroups to policy.target_server_groups and policy.servers to policy.target_servers
 * add a connected bool field to UserProfile and show in admin User list
 * documentation (readthedocs/sphinx style)
 * consider redirecting all hub urls to django app in nginx. SSL certs and ALLOWED_HOSTS needs to be managed accordingly. Alternate/simpler: allow clients to choose their own domain prefix rather than the 5 character auto-generated one.

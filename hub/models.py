@@ -324,6 +324,9 @@ class Server(models.Model):
 
 
 class Rule(models.Model):
+    # prefix string for iptables chains that reflect this rule
+    chain_name_prefix = "evon-rule-"
+    # choices for destination_protofol field
     TCP = "TCP"
     UDP = "UDP"
     ICMP = "ICMP"
@@ -334,6 +337,7 @@ class Rule(models.Model):
         (ICMP, "ICMP"),
         (ANY, "Any Protocol"),
     )
+    # model fields
     name = models.CharField(
         max_length=200,
         help_text="eg. 'Allow web access'"
@@ -371,6 +375,10 @@ class Rule(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_chain_name(self):
+        "returns iptables chain name for this rule"
+        return f"{self.chain_name_prefix}{self.pk}"
 
     def get_unified_sources(self):
         unified_sources = \
