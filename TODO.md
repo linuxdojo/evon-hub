@@ -14,6 +14,7 @@
 
 ## Miscelaneous
 
+* sync all Rule and Policy firewall rules on app start
 * add get syslog logs to api endpoints
 * setup support@evon.link email and add to cli and web admin, setup webpage on linuxdojo.com
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required

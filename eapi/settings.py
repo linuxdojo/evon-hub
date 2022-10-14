@@ -66,6 +66,9 @@ EVON_HUB_CONFIG = {
     "vpn_mgmt_users": VPN(unix_socket="/etc/openvpn/evon_mgmt_users"),
 }
 
+# location of XTABLES_LIBDIR for in hub.firewall.iptc lib
+os.environ["XTABLES_LIBDIR"] = "/usr/lib64/xtables"
+
 with open(os.path.join(BASE_DIR, "evon_vars.yaml")) as f:
     EVON_VARS = yaml.safe_load(f)
 

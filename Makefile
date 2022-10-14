@@ -82,3 +82,10 @@ quick-deploy: # DEV ONLY - upload local non-Django project elements to remote de
 	echo "Bounching evonapi service..."
 	ssh root@$(EC2_HOST) "bash --login -c 'systemctl restart evonhub'"
 	echo "Done."
+
+shell: # launch an eapi shell as root
+	sudo bash -c '. .env/bin/activate && eapi shell'
+
+runserver: # run the dev server as root
+	sudo bash -c '. .env/bin/activate && eapi runserver'
+
