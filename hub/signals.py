@@ -70,11 +70,22 @@ def create_rule(sender, instance=None, created=False, **kwargs):
 
     firewall.apply_rule(instance)
 
+
+@receiver(post_save, sender=hub.models.Policy)
+def create_rule(sender, instance=None, created=False, **kwargs):
+    "create iptables chain for rule"
+
+    firewall.apply_policy(instance)
+
+
 @receiver(m2m_changed)
 def update_rule(sender, instance=None, created=False, **kwargs):
-    "update iptables chain for rule"
+    "update iptables for rules and policies"
+
     if isinstance(instance, hub.models.Rule):
         firewall.apply_rule(instance)
+    if isinstance(instance, hub.models.Policy):
+        firewall.apply_policy(instance)
 
 
 @receiver(pre_delete, sender=hub.models.Rule)
