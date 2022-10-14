@@ -4,6 +4,10 @@
 
 * implement s3 publishing and upgrading process
 
+## Policy
+
+* add signal to re-apply rules and policies when groups or servergroups change
+
 ## API
 
 * validate api permissions
