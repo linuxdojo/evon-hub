@@ -186,11 +186,12 @@ def delete_all(flush_only=True):
         delete_chain(chain_name)
 
 
-def init():
+def init(full=True):
     """
     Initialise iptables chains for evon Rules and Policies.
     This function is implemented in Ansible and applied during deployment, but is re-implemented
     here if required on development systems without disrupting existing FW config.
+    if `full` == False, just create the core chains.
     """
     # create core chains
     core_chains = ["evon-main", "evon-policy"]
@@ -199,8 +200,8 @@ def init():
             iptc.easy.add_chain("filter", chain_name)
     # add rule to chain FORWARD -> evon-main
     main_chain_comment = "evon-forward-to-evon-main"
+    subnet_key = EVON_VARS["subnet_key"]
     if not [r for r in iptc.easy.dump_table('filter')['FORWARD'] if r.get("comment", {}).get("comment") == main_chain_comment]:
-        subnet_key = EVON_VARS["subnet_key"]
         rule = iptc.Rule()
         match = iptc.Match(rule, "iprange")
         match.src_range = f"100.{ subnet_key }.208.1-100.{ subnet_key }.255.254"
@@ -226,5 +227,6 @@ def init():
     rule.target = iptc.Target(rule, "evon-policy")
     ipt_chain.insert_rule(rule)
     # sync all rules and policies
-    sync_all_rules()
-    sync_all_policies()
+    if full:
+        sync_all_rules()
+        sync_all_policies()
