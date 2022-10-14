@@ -161,21 +161,26 @@ def sync_all_policies():
         apply_policy(policy)
     
 
-def delete_all():
+def delete_all(flush_only=True):
     """
-    Delete all evon-related firewall rules. Convenience function for development.
+    Convenience function for development.
+    Delete all rules and policies and revert to initialised state.
+    If flush_only=False, delete absolutely all evon-related firewall rules and chains.
     """
-    # delete evon-main ref in FORWARD chain
-    table = iptc.Table(iptc.Table.FILTER)
-    ipt_chain = iptc.Chain(table, "FORWARD")
-    for rule in ipt_chain.rules:
-        if rule.target.name == "evon-main":
-            ipt_chain.delete_rule(rule)
-            break
-    # flush and delete evon-main chain
-    delete_chain("evon-main")
-    # flush and delete evon-policy chain
-    delete_chain("evon-policy")
+    if flush_only:
+        iptc.easy.flush_chain("filter", "evon-policy")
+    else:
+        # delete evon-main ref in FORWARD chain
+        table = iptc.Table(iptc.Table.FILTER)
+        ipt_chain = iptc.Chain(table, "FORWARD")
+        for rule in ipt_chain.rules:
+            if rule.target.name == "evon-main":
+                ipt_chain.delete_rule(rule)
+                break
+        # flush and delete evon-main chain
+        delete_chain("evon-main")
+        # flush and delete evon-policy chain
+        delete_chain("evon-policy")
     # delete rule chains
     for chain_name in [c for c in iptc.easy.get_chains('filter') if c.startswith(hub.models.Rule.chain_name_prefix)]:
         delete_chain(chain_name)
