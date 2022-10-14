@@ -334,7 +334,10 @@ class Rule(models.Model):
         (ICMP, "ICMP"),
         (ANY, "Any Protocol"),
     )
-    name = models.CharField(max_length=200)
+    name = models.CharField(
+        max_length=200,
+        help_text="eg. 'Allow web access'"
+    )
     source_users = models.ManyToManyField(
         User,
         blank=True,
@@ -359,7 +362,7 @@ class Rule(models.Model):
     destination_ports = models.CharField(
         max_length=256,
         blank=True,
-        null=True,
+        default="",
         help_text="Single or comma separated port numbers with dashed ranges are supported, eg: 80,443,7000-8000",
     )
 
@@ -394,37 +397,38 @@ class Rule(models.Model):
             raise ValidationError(
                 {'destination_ports': ('Illegal characters in port specification')}
             )
-        for portspec in self.destination_ports.split(","):
-            port_range = []
-            for port in portspec.split("-"):
-                try:
-                    int_port = int(port)
-                except ValueError as e:
+        if self.destination_ports:
+            for portspec in self.destination_ports.split(","):
+                port_range = []
+                for port in portspec.split("-"):
+                    try:
+                        int_port = int(port)
+                    except ValueError as e:
+                        raise ValidationError(
+                            {'destination_ports': (f"Malformed port: '{portspec}'")}
+                        )
+                    if not 0 <= int_port <= 65535:
+                        raise ValidationError(
+                            {'destination_ports': (f"Port '{port}' is out of range, ports must be between 0 and 65535.")}
+                        )
+                    port_range.append(int_port)
+                if len(port_range) == 2:
+                    if not port_range[0] < port_range[1]:
+                        raise ValidationError(
+                            {'destination_ports': (f"Malformed port range '{portspec}', start port must be less than end port.")}
+                        )
+                elif len(port_range) > 2:
+                    # too many dashes specified
                     raise ValidationError(
-                        {'destination_ports': (f"Malformed port: '{portspec}'")}
+                        {'destination_ports': (f"Malformed port range '{portspec}'.")}
                     )
-                if not 0 <= int_port <= 65535:
-                    raise ValidationError(
-                        {'destination_ports': (f"Port '{port}' is out of range, ports must be between 0 and 65535.")}
-                    )
-                port_range.append(int_port)
-            if len(port_range) == 2:
-                if not port_range[0] < port_range[1]:
-                    raise ValidationError(
-                        {'destination_ports': (f"Malformed port range '{portspec}', start port must be less than end port.")}
-                    )
-            elif len(port_range) > 2:
-                # too many dashes specified
-                raise ValidationError(
-                    {'destination_ports': (f"Malformed port range '{portspec}'.")}
-                )
 
 
     def save(self, *args, **kwargs):
         # validate and save
         self.full_clean()
-        # strip whitespace from portspec
-        self.destination_ports = self.destination_ports.replace(" ", "")
+        # strip whitespace from portspec, uniquify and sort
+        self.destination_ports = ",".join(sorted(list(set(self.destination_ports.replace(" ", "").split(",")))))
         super().save(*args, **kwargs)
 
 

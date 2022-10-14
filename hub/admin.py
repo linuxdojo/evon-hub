@@ -5,7 +5,9 @@ from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import User, Group
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.forms import ModelForm
 from django.forms.widgets import Select
 from django.http import HttpRequest, HttpResponse
 from django.template import Context
@@ -14,8 +16,8 @@ from django.urls import path
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
-from rest_framework.authtoken.models import Token, TokenProxy
 from rest_framework.authtoken.admin import TokenAdmin 
+from rest_framework.authtoken.models import Token, TokenProxy
 
 from solo.admin import SingletonModelAdmin
 import humanfriendly
@@ -76,10 +78,12 @@ class HubTokenAdmin(TokenAdmin):
         return True
 
     def get_changeform_initial_data(self, request):
+        "only show the logged in user if non-superuser"
         if not request.user.is_superuser:
             return {"user": request.user}
 
     def formfield_for_dbfield(self, db_field, **kwargs):
+        "hide all but the logged in user as choices when creating a new token as a non-superuser"
         request = kwargs.get("request")
         if not request:
             return super().formfield_for_dbfield(db_field, **kwargs)
@@ -198,12 +202,24 @@ class BootstrapAdmin(admin.ModelAdmin):
         pass
 
 
+class RuleForm(ModelForm):
+
+    def clean(self):
+        if self.cleaned_data["source_users"].count() + \
+                self.cleaned_data["source_groups"].count() + \
+                self.cleaned_data["source_servers"].count() + \
+                self.cleaned_data["source_servergroups"].count() == 0:
+            raise ValidationError("At least one source must be specified.")
+        return super().clean()
+
+
 @admin.register(hub.models.Rule)
 class RuleAdmin(admin.ModelAdmin):
     model = hub.models.Rule
+    form = RuleForm
     description = dedent("""
-        Define allowed connection sources (Users, Groups, Servers, Server Groups) and destination protocols/ports here.
-        Connection destinations (Servers and Server Groups) are controlled when you create a Policy. Rules created here are effective only when added to Policy.
+        A Rule defines allowed connection sources (Users, Groups, Servers, Server Groups) and destination protocols/ports.
+        Connection destinations (Servers and Server Groups) are defined when you create a Policy. Rules created here are effective only when added to Policy.
     """)
     fieldsets = (
         ('Rule', {
