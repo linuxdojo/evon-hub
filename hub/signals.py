@@ -66,21 +66,21 @@ def add_server_to_all_servers_group(sender, instance=None, created=False, **kwar
 
 @receiver(post_save, sender=hub.models.Rule)
 def create_rule(sender, instance=None, created=False, **kwargs):
-    "create iptables chain for rule"
+    "create iptables chain for Rule"
 
     firewall.apply_rule(instance)
 
 
 @receiver(post_save, sender=hub.models.Policy)
 def create_rule(sender, instance=None, created=False, **kwargs):
-    "create iptables chain for rule"
+    "create iptables rules for Policy"
 
     firewall.apply_policy(instance)
 
 
 @receiver(m2m_changed)
 def update_rule(sender, instance=None, created=False, **kwargs):
-    "update iptables for rules and policies"
+    "update iptables for Rules and Policies"
 
     if isinstance(instance, hub.models.Rule):
         firewall.apply_rule(instance)
@@ -90,9 +90,16 @@ def update_rule(sender, instance=None, created=False, **kwargs):
 
 @receiver(pre_delete, sender=hub.models.Rule)
 def delete_group(sender, instance, **kwargs):
-    "delete iptables chain for rule"
+    "delete iptables chain for Rule"
 
     firewall.delete_rule(instance)
+
+
+@receiver(pre_delete, sender=hub.models.Policy)
+def delete_group(sender, instance, **kwargs):
+    "delete iptables rules for Policy"
+
+    firewall.delete_policy(instance)
 
 
 @receiver(pre_delete, sender=Group)
