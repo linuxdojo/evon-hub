@@ -14,6 +14,7 @@
 
 ## Miscelaneous
 
+* pages for 500, 404 and 404 (when deleting admin/deployer users from signals)
 * sync all Rule and Policy firewall rules on app start
 * add get syslog logs to api endpoints
 * setup support@evon.link email and add to cli and web admin, setup webpage on linuxdojo.com
@@ -24,6 +25,7 @@
 
 # Future Release
 
+* replace evon cli with manage.py commands, and remove the sudo wrappers in /usr/local/bin, and set user=evonhub in the evonhub.service unit file. This needs to be root currently (gunicorn drops itself to evonhub user) so that the post script "evon --sync-servers" can run. Fix this.
 * add tooltips top Admin group objects to show members at a glance
 * rename policy.servergroups to policy.target_server_groups and policy.servers to policy.target_servers
 * add a connected bool field to UserProfile and show in admin User list

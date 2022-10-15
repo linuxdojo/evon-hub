@@ -1,16 +1,26 @@
 [Unit]
-Description=Manages the Evon Hub server
+Description=Evon Hub server
+Requires=evonhub.socket
 After=syslog.target
 
 [Service]
-ExecStart=/opt/evon-hub/.env/bin/uwsgi --pythonpath /opt/evon-hub/.env/lib/python3.10/site-packages/ -w eapi.wsgi:application --uwsgi-socket 127.0.0.1:31338 --enable-threads --threads 20 --uid evonhub
+WorkingDirectory=/opt/evon-hub
+ExecStart=/opt/evon-hub/.env/bin/gunicorn \
+          --access-logfile - \
+          --workers 3 \
+          --bind unix:/run/evon-gunicorn.sock \
+          --user evonhub \
+          eapi.wsgi
 ExecStartPost=/usr/local/bin/evon --sync-servers
+ExecReload=/usr/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
 Restart=always
 Type=notify
 StandardError=syslog
 NotifyAccess=main
-PrivateTmp=false
-AmbientCapabilities=CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
 
 [Install]
 WantedBy=multi-user.target
