@@ -116,6 +116,12 @@
     owner: evonhub
     recurse: yes
 
+- name: deploy evonhub.socket systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonhub.socket
+    dest: /usr/lib/systemd/system
+  register: systemd_unit_evonhub_socket
+
 - name: deploy evonhub systemd unit
   ansible.builtin.copy:
     src: systemd/evonhub.service
@@ -136,11 +142,16 @@
 
 - name: reload systemd
   ansible.builtin.shell: systemctl daemon-reload
-  when: systemd_unit_evonhub.changed or systemd_unit_evonsync.changed or systemd_unit_evonsync_timer.changed
+  when: systemd_unit_evonhub_socket or systemd_unit_evonhub.changed or systemd_unit_evonsync.changed or systemd_unit_evonsync_timer.changed
 
-- name: start and persist evonhub service
+- name: stop evonhub.service
   ansible.builtin.service:
-    name: evonhub
+    name: evonhub.service
+    state: stopped
+
+- name: start and persist evonhub socket
+  ansible.builtin.service:
+    name: evonhub.socket
     state: restarted
     enabled: true
 
@@ -153,31 +164,30 @@
 
 ### Setup Nginx
 
-- name: check if nginx config is present
-  ansible.builtin.stat:
-    path: /etc/nginx/conf.d/evon.conf
-  register: nginx_config_file
-
 - name: configure nginx
   ansible.builtin.template:
     src: nginx/evon.conf
-    dest: /etc/nginx/conf.d/evon.conf
-  when: not nginx_config_file.stat.exists
+    dest: /etc/nginx/conf.d/evon.conf.pre_certbot
   register: configure_nginx
+
+- name: deploy nginx configuration
+  ansible.builtin.shell: cp /etc/nginx/conf.d/evon.conf.pre_certbot /etc/nginx/conf.d/evon.conf
+  when: configure_nginx.changed
+  register: deploy_nginx
 
 - name: restart nginx
   ansible.builtin.service:
     name: nginx
     state: restarted
     enabled: true
-  when: configure_nginx.changed
+  when: deploy_nginx.changed
 
 - name: persist nginx service
   ansible.builtin.service:
     name: nginx
     enabled: true
     state: started
-  when: not configure_nginx.changed
+  when: not deploy_nginx.changed
 
 
 ### Setup CertBot

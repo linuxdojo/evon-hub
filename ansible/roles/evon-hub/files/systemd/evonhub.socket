@@ -1,0 +1,11 @@
+[Unit]
+Description=Evon Hub gunicorn socket
+
+[Socket]
+ListenStream=/run/evon-gunicorn.sock
+SocketUser=evonhub
+SocketGroup=nginx
+SocketMode=660
+
+[Install]
+WantedBy=sockets.target
