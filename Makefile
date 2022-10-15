@@ -67,6 +67,8 @@ deploy: # make package, publish and run installer on remote host
 
 clean: # remove unneeded artefacts from repo
 	echo "##### Cleaning Repo #####"
+	$(eval USER=$(shell whoami))
+	find . -user root | while read o; do sudo chown $(USER) "$$o"; done
 	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
 
 quick-deploy: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
