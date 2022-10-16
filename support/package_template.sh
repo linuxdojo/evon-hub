@@ -109,6 +109,7 @@ package_list='
     iproute
     iptables-services
     jq
+    glibc-devel
     libcap
     libcap-devel
     libffi-devel

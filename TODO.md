@@ -4,17 +4,13 @@
 
 * implement s3 publishing and upgrading process
 
-## Policy
-
-* add signal to re-apply rules and policies when groups or servergroups change
-
 ## API
 
 * validate api permissions
 
 ## Miscelaneous
 
-* sync all Rule and Policy firewall rules on app start
+* pages for 500, 404 and 404 (when deleting admin/deployer users from signals)
 * add get syslog logs to api endpoints
 * setup support@evon.link email and add to cli and web admin, setup webpage on linuxdojo.com
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
@@ -24,6 +20,7 @@
 
 # Future Release
 
+* replace evon cli and its sudo wrappers in /usr/local/bin with eapi manage commands
 * add tooltips top Admin group objects to show members at a glance
 * rename policy.servergroups to policy.target_server_groups and policy.servers to policy.target_servers
 * add a connected bool field to UserProfile and show in admin User list
