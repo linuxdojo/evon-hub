@@ -4,6 +4,12 @@
 
 * implement s3 publishing and upgrading process
 
+## iptables
+
+* deleting a user from a group does not update the rule chain.
+* updating the Groups os a rule does not update the evon-policy chain
+* deleting a rule does not delete the rule's iptables chain
+
 ## API
 
 * validate api permissions
