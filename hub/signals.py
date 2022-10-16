@@ -16,8 +16,33 @@ from hub import firewall
 import hub.models
 
 
+###############################
+##### pre_save events
+###############################
+
+@receiver(pre_save, sender=hub.models.User)
+def pre_save_user(sender, instance, **kwargs):
+    "prevent mutation of the admin and deployer users"
+
+    # make necessary attributes of admin and deployer immutable
+    if instance.pk == 1:
+        instance.username = "admin"
+        instance.is_superuser = True
+        instance.is_staff = True
+        instance.active = True
+    elif instance.pk == 2:
+        instance.username = "deployer"
+        instance.is_superuser = False
+        instance.is_staff = False
+        instance.active = True
+
+
+###############################
+##### post_save events
+###############################
+
 @receiver(post_save, sender=hub.models.Group)
-def save_group(sender, instance=None, created=False, **kwargs):
+def upsert_group(sender, instance=None, created=False, **kwargs):
     """
     Update iptables rules for any Rule that references this Group
     """
@@ -27,7 +52,7 @@ def save_group(sender, instance=None, created=False, **kwargs):
 
 
 @receiver(post_save, sender=hub.models.ServerGroup)
-def save_group(sender, instance=None, created=False, **kwargs):
+def upsert_servergroup(sender, instance=None, created=False, **kwargs):
     """
     Update iptables rules for any Rule or Policy that references this ServerGroup
     """
@@ -37,30 +62,6 @@ def save_group(sender, instance=None, created=False, **kwargs):
     policies = hub.models.Policy.objects.filter(servergroups__in=[instance])
     for policy in policies:
         firewall.apply_policy(policy)
-
-
-@receiver(post_migrate)
-def create_default_groups(sender, **kwargs):
-    "create default groups during db migrations"
-
-    if sender.name == "hub":
-        # create All Users group
-        group, created = hub.models.Group.objects.update_or_create(
-            name="All Users",
-        )
-        all_users = hub.models.User.objects.all()
-        for user in all_users:
-            if user not in group.user_set.all():
-                user.groups.add(group)
-
-        # create All Servers group
-        server_group, created = hub.models.ServerGroup.objects.update_or_create(
-            name="All Servers",
-        )
-        all_servers = hub.models.Server.objects.all()
-        for server in all_servers:
-            if server not in server_group.server_set.all():
-                server.server_groups.add(server_group)
 
 
 @receiver(post_save, sender=hub.models.User)
@@ -85,57 +86,26 @@ def add_server_to_all_servers_group(sender, instance=None, created=False, **kwar
     if created:
         all_servers_group = hub.models.ServerGroup.objects.get(name="All Servers")
         instance.server_groups.add(all_servers_group)
+        firewall.init()
 
 
 @receiver(post_save, sender=hub.models.Rule)
-def create_rule(sender, instance=None, created=False, **kwargs):
-    "create iptables chain for Rule"
+def upsert_rule(sender, instance=None, created=False, **kwargs):
+    "upsert iptables chain for Rule"
 
     firewall.apply_rule(instance)
 
 
 @receiver(post_save, sender=hub.models.Policy)
-def create_rule(sender, instance=None, created=False, **kwargs):
-    "create iptables rules for Policy"
+def upsert_policy(sender, instance=None, created=False, **kwargs):
+    "upsert iptables rules for Policy"
 
     firewall.apply_policy(instance)
 
 
-@receiver(post_delete, sender=hub.models.Rule)
-def delete_rule(sender, instance=None, **kwargs):
-
-    firewall.delete_rule(instance)
-
-
-@receiver(post_delete, sender=hub.models.Policy)
-def delete_rule(sender, instance=None, **kwargs):
-
-    firewall.delete_policy(instance)
-
-
-@receiver(m2m_changed)
-def update_rule(sender, instance=None, created=False, **kwargs):
-    "update iptables for Rules and Policies"
-
-    if isinstance(instance, hub.models.Rule):
-        firewall.apply_rule(instance)
-    if isinstance(instance, hub.models.Policy):
-        firewall.apply_policy(instance)
-
-
-@receiver(pre_delete, sender=hub.models.Rule)
-def delete_group(sender, instance, **kwargs):
-    "delete iptables chain for Rule"
-
-    firewall.delete_rule(instance)
-
-
-@receiver(pre_delete, sender=hub.models.Policy)
-def delete_group(sender, instance, **kwargs):
-    "delete iptables rules for Policy"
-
-    firewall.delete_policy(instance)
-
+###############################
+##### pre_delete events
+###############################
 
 @receiver(pre_delete, sender=Group)
 def delete_group(sender, instance, **kwargs):
@@ -162,22 +132,43 @@ def delete_user(sender, instance, **kwargs):
         raise PermissionDenied
 
 
-@receiver(pre_save, sender=hub.models.User)
-def pre_save_user(sender, instance, **kwargs):
-    "prevent mutation of the admin and deployer users"
+###############################
+##### post_delete events
+###############################
 
-    # make necessary attributes of admin and deployer immutable
-    if instance.pk == 1:
-        instance.username = "admin"
-        instance.is_superuser = True
-        instance.is_staff = True
-        instance.active = True
-    elif instance.pk == 2:
-        instance.username = "deployer"
-        instance.is_superuser = False
-        instance.is_staff = False
-        instance.active = True
+@receiver(post_delete)
+def delete_object(sender, instance=None, **kwargs):
+    """
+    Update fw rules on object deletions
+    """
+    if isinstance(instance, hub.models.Rule):
+        firewall.delete_rule(instance)
+    if isinstance(instance, hub.models.Policy):
+        firewall.delete_policy(instance)
+    else:
+        # just re-init if a user, group, server, servergroup, etc is deleted
+        firewall.init()
 
+
+###############################
+##### m2m_changed events
+###############################
+
+@receiver(m2m_changed)
+def update_object(sender, instance=None, created=False, **kwargs):
+    "update iptables for Rules and Policies"
+
+    if isinstance(instance, hub.models.Rule):
+        firewall.apply_rule(instance)
+    elif isinstance(instance, hub.models.Policy):
+        firewall.apply_policy(instance)
+    else:
+        firewall.init()
+
+
+###############################
+##### other events
+###############################
 
 @receiver(user_logged_in)
 def post_login(sender, user, request, **kwargs):
@@ -199,3 +190,27 @@ def new_request(sender, environ, **kwargs):
 
     tzname = hub.models.Config.get_solo().timezone
     timezone.activate(zoneinfo.ZoneInfo(tzname))
+
+
+@receiver(post_migrate)
+def create_default_groups(sender, **kwargs):
+    "create default groups during db migrations"
+
+    if sender.name == "hub":
+        # create All Users group
+        group, created = hub.models.Group.objects.update_or_create(
+            name="All Users",
+        )
+        all_users = hub.models.User.objects.all()
+        for user in all_users:
+            if user not in group.user_set.all():
+                user.groups.add(group)
+
+        # create All Servers group
+        server_group, created = hub.models.ServerGroup.objects.update_or_create(
+            name="All Servers",
+        )
+        all_servers = hub.models.Server.objects.all()
+        for server in all_servers:
+            if server not in server_group.server_set.all():
+                server.server_groups.add(server_group)
