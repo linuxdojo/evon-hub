@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from django.contrib.auth.signals import user_logged_in
 from django.core.signals import request_started
 from django.core.exceptions import PermissionDenied
@@ -41,7 +41,7 @@ def pre_save_user(sender, instance, **kwargs):
 ##### post_save events
 ###############################
 
-@receiver(post_save, sender=hub.models.Group)
+@receiver(post_save, sender=Group)
 def upsert_group(sender, instance=None, created=False, **kwargs):
     """
     Update iptables rules for any Rule that references this Group
