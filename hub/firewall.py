@@ -1,6 +1,7 @@
 from itertools import chain
 import uuid
 
+from django.contrib.auth.models import User
 import iptc
 
 from eapi.settings import EVON_VARS
@@ -33,7 +34,18 @@ def apply_rule(rule):
                 )
             )
         )
-    source_ipv4_addresses = [s.ipv4_address if isinstance(s, hub.models.Server) else s.userprofile.ipv4_address for s in source_objects]
+    # if a user got deleted, they will have no userprofile, filter it out of the source_objects list if present.
+    filtered_source_objects = []
+    for source_object in source_objects:
+        if isinstance(source_object, hub.models.User):
+            try:
+                source_object.userprofile
+                filtered_source_objects.append(source_object)
+            except User.userprofile.RelatedObjectDoesNotExist:
+                continue
+        else:
+            filtered_source_objects.append(source_object)
+    source_ipv4_addresses = [s.ipv4_address if isinstance(s, hub.models.Server) else s.userprofile.ipv4_address for s in filtered_source_objects]
 
     # Create iptables chain
     if chain_name in iptc.easy.get_chains('filter'):

@@ -4,12 +4,6 @@
 
 * implement s3 publishing and upgrading process
 
-## iptables
-
-* deleting a user from a group does not update the rule chain.
-* updating the Groups os a rule does not update the evon-policy chain
-* deleting a rule does not delete the rule's iptables chain
-
 ## API
 
 * validate api permissions
@@ -25,6 +19,7 @@
 
 # Future Release
 
+* add a config option to block a list of server UUIDs from connecting
 * pages for 500, 404 and 404 (when deleting admin/deployer users from signals)
 * replace evon cli and its sudo wrappers in /usr/local/bin with eapi manage commands
 * add tooltips top Admin group objects to show members at a glance
