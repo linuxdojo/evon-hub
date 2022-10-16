@@ -5,7 +5,7 @@ from django.contrib.auth.models import User, Group
 from django.contrib.auth.signals import user_logged_in
 from django.core.signals import request_started
 from django.core.exceptions import PermissionDenied
-from django.db.models.signals import pre_save, pre_delete, post_save, post_migrate, m2m_changed
+from django.db.models.signals import pre_save, pre_delete, post_delete, post_save, post_migrate, m2m_changed
 from django.dispatch import receiver
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
@@ -14,6 +14,29 @@ import zoneinfo
 from eapi.settings import EVON_VARS
 from hub import firewall
 import hub.models
+
+
+@receiver(post_save, sender=hub.models.Group)
+def save_group(sender, instance=None, created=False, **kwargs):
+    """
+    Update iptables rules for any Rule that references this Group
+    """
+    rules = hub.models.Rule.objects.filter(source_groups__in=[instance])
+    for rule in rules:
+        firewall.apply_rule(rule)
+
+
+@receiver(post_save, sender=hub.models.ServerGroup)
+def save_group(sender, instance=None, created=False, **kwargs):
+    """
+    Update iptables rules for any Rule or Policy that references this ServerGroup
+    """
+    rules = hub.models.Rule.objects.filter(source_servergroups__in=[instance])
+    for rule in rules:
+        firewall.apply_rule(rule)
+    policies = hub.models.Policy.objects.filter(servergroups__in=[instance])
+    for policy in policies:
+        firewall.apply_policy(policy)
 
 
 @receiver(post_migrate)
@@ -76,6 +99,18 @@ def create_rule(sender, instance=None, created=False, **kwargs):
     "create iptables rules for Policy"
 
     firewall.apply_policy(instance)
+
+
+@receiver(post_delete, sender=hub.models.Rule)
+def delete_rule(sender, instance=None, **kwargs):
+
+    firewall.delete_rule(instance)
+
+
+@receiver(post_delete, sender=hub.models.Policy)
+def delete_rule(sender, instance=None, **kwargs):
+
+    firewall.delete_policy(instance)
 
 
 @receiver(m2m_changed)

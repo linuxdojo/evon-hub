@@ -4,11 +4,6 @@
 
 * implement s3 publishing and upgrading process
 
-## IPTables
-
-* bug: deleting a rule does not update policy nor delete the rule chain.
-* apply rule/policy changes on group and servergroup changes
-
 ## API
 
 * validate api permissions
