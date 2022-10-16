@@ -102,138 +102,6 @@
     dest: /etc/logrotate.d/evon
 
 
-### Setup Evon Hub app
-
-- name: create evonhub service account user
-  ansible.builtin.user:
-    name: evonhub
-    comment: User that runs the Evon Hub service
-    shell: "/bin/false"
-
-- name: set ownership of evonhub app
-  ansible.builtin.file:
-    path: /opt/evon-hub
-    owner: evonhub
-    recurse: yes
-
-- name: deploy evonhub.socket systemd unit
-  ansible.builtin.copy:
-    src: systemd/evonhub.socket
-    dest: /usr/lib/systemd/system
-  register: systemd_unit_evonhub_socket
-
-- name: deploy evonhub systemd unit
-  ansible.builtin.copy:
-    src: systemd/evonhub.service
-    dest: /usr/lib/systemd/system
-  register: systemd_unit_evonhub
-
-- name: deploy evonsync systemd unit
-  ansible.builtin.copy:
-    src: systemd/evonsync.service
-    dest: /usr/lib/systemd/system
-  register: systemd_unit_evonsync
-
-- name: deploy evonsync timer systemd unit
-  ansible.builtin.copy:
-    src: systemd/evonsync.timer
-    dest: /usr/lib/systemd/system
-  register: systemd_unit_evonsync_timer
-
-- name: reload systemd
-  ansible.builtin.shell: systemctl daemon-reload
-  when: systemd_unit_evonhub_socket or systemd_unit_evonhub.changed or systemd_unit_evonsync.changed or systemd_unit_evonsync_timer.changed
-
-- name: stop evonhub.service
-  ansible.builtin.service:
-    name: evonhub.service
-    state: stopped
-
-- name: start and persist evonhub socket
-  ansible.builtin.service:
-    name: evonhub.socket
-    state: restarted
-    enabled: true
-
-- name: Enable evonsync timer unit
-  ansible.builtin.systemd:
-    name: evonsync.timer
-    state: started
-    enabled: yes
-
-
-### Setup Nginx
-
-- name: configure nginx
-  ansible.builtin.template:
-    src: nginx/evon.conf
-    dest: /etc/nginx/conf.d/evon.conf.pre_certbot
-  register: configure_nginx
-
-- name: deploy nginx configuration
-  ansible.builtin.shell: cp /etc/nginx/conf.d/evon.conf.pre_certbot /etc/nginx/conf.d/evon.conf
-  when: configure_nginx.changed
-  register: deploy_nginx
-
-- name: restart nginx
-  ansible.builtin.service:
-    name: nginx
-    state: restarted
-    enabled: true
-  when: deploy_nginx.changed
-
-- name: persist nginx service
-  ansible.builtin.service:
-    name: nginx
-    enabled: true
-    state: started
-  when: not deploy_nginx.changed
-
-
-### Setup CertBot
-
-- name: check if certbot already configured
-  ansible.builtin.lineinfile:
-    path: /etc/nginx/conf.d/evon.conf
-    regexp: 'managed by Certbot'
-    state: absent
-  check_mode: yes
-  changed_when: false
-  register: certbot_config
-
-- name: deploy certbot
-  ansible.builtin.shell: certbot run -d {{ account_domain }} --nginx -n --agree-tos --email root@{{ account_domain }}
-  when: not certbot_config.found
-  register: certbot_deploy
-
-- name: setup certbot auto renewal
-  ansible.builtin.copy:
-    src: cron.d/certbot
-    dest: /etc/cron.d/certbot
-  when: certbot_deploy.changed
-  
-- name: configure nginx bind port
-  ansible.builtin.replace:
-    path: /etc/nginx/conf.d/evon.conf
-    regexp: '443'
-    replace: '1443'
-  when: certbot_deploy.changed
-
-- name: restart nginx after certbot deploy
-  ansible.builtin.service:
-    name: nginx
-    state: restarted
-  when: certbot_deploy.changed
-
-
- ### Setup motd
-
-- name: configure motd
-  ansible.builtin.template:
-    src: motd/motd
-    dest: /etc/motd
-
-
 ### Setup easy-rsa
 
 - name: configure easy-rsa dir
@@ -335,16 +203,149 @@
 - name: set permissions on server management unix socket
   ansible.builtin.file:
     path: /etc/openvpn/evon_mgmt_servers
-    owner: evonapi
+    owner: evonhub
     group: root
     mode: '770'
 
 - name: set permissions on server management unix socket
   ansible.builtin.file:
     path: /etc/openvpn/evon_mgmt_users
-    owner: evonapi
+    owner: evonhub
     group: root
     mode: '770'
+
+
+### Setup Evon Hub app
+
+- name: create evonhub service account user
+  ansible.builtin.user:
+    name: evonhub
+    comment: User that runs the Evon Hub service
+    shell: "/bin/false"
+
+- name: set ownership of evonhub app
+  ansible.builtin.file:
+    path: /opt/evon-hub
+    owner: evonhub
+    recurse: yes
+
+- name: deploy evonhub.socket systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonhub.socket
+    dest: /usr/lib/systemd/system
+  register: systemd_unit_evonhub_socket
+
+- name: deploy evonhub systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonhub.service
+    dest: /usr/lib/systemd/system
+  register: systemd_unit_evonhub
+
+- name: deploy evonsync systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonsync.service
+    dest: /usr/lib/systemd/system
+  register: systemd_unit_evonsync
+
+- name: deploy evonsync timer systemd unit
+  ansible.builtin.copy:
+    src: systemd/evonsync.timer
+    dest: /usr/lib/systemd/system
+  register: systemd_unit_evonsync_timer
+
+- name: reload systemd
+  ansible.builtin.shell: systemctl daemon-reload
+  when: systemd_unit_evonhub_socket or systemd_unit_evonhub.changed or systemd_unit_evonsync.changed or systemd_unit_evonsync_timer.changed
+
+- name: restart and persist evonhub.service
+  ansible.builtin.service:
+    name: evonhub.service
+    state: restarted
+    enabled: true
+
+- name: start and persist evonhub socket
+  ansible.builtin.service:
+    name: evonhub.socket
+    state: restarted
+    enabled: true
+
+- name: Enable evonsync timer unit
+  ansible.builtin.systemd:
+    name: evonsync.timer
+    state: started
+    enabled: yes
+
+
+### Setup Nginx
+
+- name: configure nginx
+  ansible.builtin.template:
+    src: nginx/evon.conf
+    dest: /etc/nginx/conf.d/evon.conf.pre_certbot
+  register: configure_nginx
+
+- name: deploy nginx configuration
+  ansible.builtin.shell: cp /etc/nginx/conf.d/evon.conf.pre_certbot /etc/nginx/conf.d/evon.conf
+  when: configure_nginx.changed
+  register: deploy_nginx
+
+- name: restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+    enabled: true
+  when: deploy_nginx.changed
+
+- name: persist nginx service
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+  when: not deploy_nginx.changed
+
+
+### Setup CertBot
+
+- name: check if certbot already configured
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/conf.d/evon.conf
+    regexp: 'managed by Certbot'
+    state: absent
+  check_mode: yes
+  changed_when: false
+  register: certbot_config
+
+- name: deploy certbot
+  ansible.builtin.shell: certbot run -d {{ account_domain }} --nginx -n --agree-tos --email root@{{ account_domain }}
+  when: not certbot_config.found
+  register: certbot_deploy
+
+- name: setup certbot auto renewal
+  ansible.builtin.copy:
+    src: cron.d/certbot
+    dest: /etc/cron.d/certbot
+  when: certbot_deploy.changed
+  
+- name: configure nginx bind port
+  ansible.builtin.replace:
+    path: /etc/nginx/conf.d/evon.conf
+    regexp: '443'
+    replace: '1443'
+  when: certbot_deploy.changed
+
+- name: restart nginx after certbot deploy
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  when: certbot_deploy.changed
+
+
+ ### Setup motd
+
+- name: configure motd
+  ansible.builtin.template:
+    src: motd/motd
+    dest: /etc/motd
 
 
 ### setup Bootstrapper
