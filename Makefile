@@ -92,13 +92,13 @@ runserver: # run the dev server as root
 	sudo bash -c '. .env/bin/activate && eapi runserver'
 
 fwflush: # flush all Evon fw rules
-	sudo bash -c '. .env/bin/activate && eapi fwflush'
+	sudo bash -c '. .env/bin/activate && eapi fwctl --delete'
 
 fwdelete: # flush all Evon fw rules
-	sudo bash -c '. .env/bin/activate && eapi fwflush --delete'
+	sudo bash -c '. .env/bin/activate && eapi fwctl --delete-all'
 
 fwinit: # initialise core Evon fw rules and chains
-	sudo bash -c '. .env/bin/activate && eapi fwinit'
+	sudo bash -c '. .env/bin/activate && eapi fwctl --init'
 
-fwinitfull: # initialise all Evon fw rules and chains (including Rules and Policies)
-	sudo bash -c '. .env/bin/activate && eapi fwinit --full'
+fwinitempty: # initialise all Evon fw rules and chains (including Rules and Policies)
+	sudo bash -c '. .env/bin/activate && eapi fwctl --init-empty'
