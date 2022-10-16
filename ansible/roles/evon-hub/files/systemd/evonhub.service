@@ -9,9 +9,7 @@ ExecStart=/opt/evon-hub/.env/bin/gunicorn \
           --access-logfile - \
           --workers 3 \
           --bind unix:/run/evon-gunicorn.sock \
-          --user evonhub \
           eapi.wsgi
-ExecStartPost=/usr/local/bin/evon --sync-servers
 ExecReload=/usr/bin/kill -s HUP $MAINPID
 KillMode=mixed
 TimeoutStopSec=5
@@ -19,8 +17,14 @@ PrivateTmp=true
 Restart=always
 Type=notify
 StandardError=syslog
+StandardOutput=syslog
 NotifyAccess=main
+User=evonhub
 AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+# Sync all Server objects with OpenVPN connected state after start
+ExecStartPost=/opt/evon-hub/.env/bin/eapi sync
+# Init and sync all iptables chains/rules
+ExecStartPost=/opt/evon-hub/.env/bin/eapi fwctl --init
 
 [Install]
 WantedBy=multi-user.target

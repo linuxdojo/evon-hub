@@ -167,9 +167,12 @@ def delete_all(flush_only=True):
     Delete all rules and policies and revert to initialised state.
     If flush_only=False, delete absolutely all evon-related firewall rules and chains.
     """
-    if flush_only:
-        iptc.easy.flush_chain("filter", "evon-policy")
-    else:
+    # flush policy chain
+    iptc.easy.flush_chain("filter", "evon-policy")
+    # delete rule chains
+    for chain_name in [c for c in iptc.easy.get_chains('filter') if c.startswith(hub.models.Rule.chain_name_prefix)]:
+        delete_chain(chain_name)
+    if not flush_only:
         # delete evon-main ref in FORWARD chain
         table = iptc.Table(iptc.Table.FILTER)
         ipt_chain = iptc.Chain(table, "FORWARD")
@@ -181,9 +184,6 @@ def delete_all(flush_only=True):
         delete_chain("evon-main")
         # flush and delete evon-policy chain
         delete_chain("evon-policy")
-    # delete rule chains
-    for chain_name in [c for c in iptc.easy.get_chains('filter') if c.startswith(hub.models.Rule.chain_name_prefix)]:
-        delete_chain(chain_name)
 
 
 def init(full=True):
