@@ -72,8 +72,10 @@ def apply_policy(policy):
     policy_rule_comment = f"evon-policy-{policy.pk}"
     ipt_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "evon-policy")
     # delete policy rules here before recreating below.
-    delete_policy_rules(policy)
-    # iptc bug workaround where first rule in interation sometimes not being inserted, happens
+    delete_policy(policy)
+
+    ##### iptc bugfix workaround 
+    # bug: where first rule in interation sometimes not being inserted, happens
     # when rules are manually deleted using iptables command then re-added.
     # we insert a temp ICMP rule with a uuid in the comment, then if it exists, we delete it.
     # subsequent insertions will work.
@@ -91,7 +93,8 @@ def apply_policy(policy):
     if tmp_rule_list:
         tmp_rule = tmp_rule_list.pop()
         tmp_chain_handle.delete_rule(tmp_rule)
-    # end bugfix workaround
+    ##### end iptc bugfix workaround
+
     for target_chain in target_chains:
         for target_address in [t.ipv4_address for t in target_objects]:
             rule = iptc.Rule()
@@ -103,12 +106,41 @@ def apply_policy(policy):
             ipt_chain.insert_rule(rule)
 
 
+def delete_iptrules_by_target_name(chain_name, target_name):
+    """
+    deletes an iptables rule in chain `chain_name` with target `taget_name`
+    """
+    chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
+    rule_list = True
+    while rule_list:
+        rule_list = [r for r in chain_handle.rules if r.target.name == target_name]
+        # XXX we can only delete one rule at a time, then need to regenerate rule_list. Consider toggling autocommit in iptc.
+        if rule_list:
+            chain_handle.delete_rule(rule_list.pop())
+
+
+def delete_iptrules_by_comment(chain_name, comment):
+    """
+    deletes all rules matching `comment` in iptables chain with name `chain_name`
+    """
+    chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
+    rule_list = True
+    while rule_list:
+        rule_list = [r for r in chain_handle.rules if comment in [m.comment for m in r.matches]]
+        # XXX we can only delete one rule at a time, then need to regenerate rule_list. Consider toggling autocommit in iptc.
+        if rule_list:
+            chain_handle.delete_rule(rule_list.pop())
+
+    
 def delete_chain(chain_name):
     """
     Deletes an iptables chain matching `chain_name`
     """
     if chain_name in iptc.easy.get_chains('filter'):
         iptc.easy.flush_chain("filter", chain_name)
+        # delete chain refs, ie. any rules in any chain that have a jump target of `chain_name`
+        for cn in iptc.easy.get_chains('filter'):
+            delete_iptrules_by_target_name(chain_name, "evon-policy")
         iptc.easy.delete_chain("filter", chain_name)
 
 
@@ -116,25 +148,17 @@ def delete_rule(rule):
     """
     Takes a hub.models.Rule instance and deletes the corresponding iptables chain
     """
+    delete_iptrules_by_target_name("evon-policy", rule.get_chain_name())
     delete_chain(rule.get_chain_name())
 
-def delete_rules_by_comment(chain_name, comment):
-    """
-    deletes all rules matching `comment` in iptables chain with name `chain_name`
-    """
-    chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
-    rule_list = [r for r in chain_handle.rules if comment in [m.comment for m in r.matches]]
-    for rule in rule_list:
-        chain_handle.delete_rule(rule)
 
-
-def delete_policy_rules(policy):
+def delete_policy(policy):
     """
-    Takes in a hub.models.Policy and deletes the corresponding iptables rules in the evon-policy chain
+    Takes a hub.models.Policy and deletes the corresponding iptables rules in the evon-policy chain
     """
     chain_name = "evon-policy"
     policy_comment = f"evon-policy-{policy.pk}"
-    delete_rules_by_comment(chain_name, policy_comment)
+    delete_iptrules_by_comment(chain_name, policy_comment)
 
 
 def sync_all_rules():
@@ -163,12 +187,12 @@ def sync_all_policies():
 
 def delete_all(flush_only=True):
     """
-    Convenience function for development.
     Delete all rules and policies and revert to initialised state.
     If flush_only=False, delete absolutely all evon-related firewall rules and chains.
     """
     # flush policy chain
-    iptc.easy.flush_chain("filter", "evon-policy")
+    if "evon-policy" in iptc.easy.get_chains('filter'):
+        iptc.easy.flush_chain("filter", "evon-policy")
     # delete rule chains
     for chain_name in [c for c in iptc.easy.get_chains('filter') if c.startswith(hub.models.Rule.chain_name_prefix)]:
         delete_chain(chain_name)
@@ -189,8 +213,6 @@ def delete_all(flush_only=True):
 def init(full=True):
     """
     Initialise iptables chains for evon Rules and Policies.
-    This function is implemented in Ansible and applied during deployment, but is re-implemented
-    here if required on development systems without disrupting existing FW config.
     if `full` == False, just create the core chains.
     """
     # create core chains
@@ -212,10 +234,9 @@ def init(full=True):
         rule.target = iptc.Target(rule, "evon-main")
         ipt_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "FORWARD")
         ipt_chain.insert_rule(rule)
-    # add rules to evon-main chain including forward to evon-policy
-    # note, ansible adds some more stateful rules here via `ansible/roles/evon-hub/templates/iptables/iptables`
-    # that we skip as this is for local dev only.
+    # add main rules
     iptc.easy.flush_chain("filter", "evon-main")
+    # insert catch all evon traffic to drop
     ipt_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "evon-main")
     rule = iptc.Rule()
     match = iptc.Match(rule, "iprange")
@@ -223,8 +244,40 @@ def init(full=True):
     rule.add_match(match)
     rule.target = iptc.Target(rule, "DROP")
     ipt_chain.insert_rule(rule)
+    # insert all->evon-policy
     rule = iptc.Rule()
     rule.target = iptc.Target(rule, "evon-policy")
+    ipt_chain.insert_rule(rule)
+    # insert established/related -> accept
+    rule = iptc.Rule()
+    match = iptc.Match(rule, "state")
+    match.state = "RELATED,ESTABLISHED"
+    rule.add_match(match)
+    rule.target = iptc.Target(rule, "ACCEPT")
+    ipt_chain.insert_rule(rule)
+    # insert icmp conntrack established/related -> accept
+    rule = iptc.Rule()
+    rule.protocol = "icmp"
+    match = iptc.Match(rule, "conntrack")
+    match.ctstate = "RELATED,ESTABLISHED"
+    rule.add_match(match)
+    rule.target = iptc.Target(rule, "ACCEPT")
+    ipt_chain.insert_rule(rule)
+    # insert udp conntrack established/related -> accept
+    rule = iptc.Rule()
+    rule.protocol = "udp"
+    match = iptc.Match(rule, "conntrack")
+    match.ctstate = "RELATED,ESTABLISHED"
+    rule.add_match(match)
+    rule.target = iptc.Target(rule, "ACCEPT")
+    ipt_chain.insert_rule(rule)
+    # insert tcp conntrack established/related -> accept
+    rule = iptc.Rule()
+    rule.protocol = "tcp"
+    match = iptc.Match(rule, "conntrack")
+    match.ctstate = "RELATED,ESTABLISHED"
+    rule.add_match(match)
+    rule.target = iptc.Target(rule, "ACCEPT")
     ipt_chain.insert_rule(rule)
     # sync all rules and policies
     if full:
