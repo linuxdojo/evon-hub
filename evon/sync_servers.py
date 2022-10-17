@@ -16,6 +16,18 @@ from evon.log import get_evon_logger  # noqa
 logger = get_evon_logger()
 
 
+def kill_server(uuid):
+    vpn = EVON_HUB_CONFIG["vpn_mgmt_servers"]
+    vpn.connect()
+    uuids = [v.common_name for _, v in vpn.get_status().routing_table.items()]
+    if uuid in uuids:
+        result = vpn.send_command(f"kill {uuid}")
+    else:
+        result = "not connected"
+    vpn.disconnect()
+    logger.info(f"{result}")
+
+
 def do_sync():
     """
     Sync all Server objects to reflect current connected state
