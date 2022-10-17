@@ -1,11 +1,15 @@
 from itertools import chain
 import uuid
 
-from django.contrib.auth.models import User
 import iptc
 
+from eapi.settings import EVON_HUB_CONFIG
 from eapi.settings import EVON_VARS
+from evon.log import get_evon_logger
 import hub.models
+
+
+logger = get_evon_logger()
 
 
 def apply_rule(rule):
@@ -34,18 +38,7 @@ def apply_rule(rule):
                 )
             )
         )
-    # if a user got deleted, they will have no userprofile, filter it out of the source_objects list if present.
-    filtered_source_objects = []
-    for source_object in source_objects:
-        if isinstance(source_object, hub.models.User):
-            try:
-                source_object.userprofile
-                filtered_source_objects.append(source_object)
-            except User.userprofile.RelatedObjectDoesNotExist:
-                continue
-        else:
-            filtered_source_objects.append(source_object)
-    source_ipv4_addresses = [s.ipv4_address if isinstance(s, hub.models.Server) else s.userprofile.ipv4_address for s in filtered_source_objects]
+    source_ipv4_addresses = [s.ipv4_address if isinstance(s, hub.models.Server) else s.userprofile.ipv4_address for s in source_objects]
 
     # Create iptables chain
     if chain_name in iptc.easy.get_chains('filter'):
@@ -150,9 +143,9 @@ def delete_chain(chain_name):
     """
     if chain_name in iptc.easy.get_chains('filter'):
         iptc.easy.flush_chain("filter", chain_name)
-        # delete chain refs, ie. any rules in any chain that have a jump target of `chain_name`
+        # delete chain refs in "evon-policy" chain
         for cn in iptc.easy.get_chains('filter'):
-            delete_iptrules_by_target_name(chain_name, "evon-policy")
+            delete_iptrules_by_target_name(cn, chain_name)
         iptc.easy.delete_chain("filter", chain_name)
 
 
@@ -160,7 +153,6 @@ def delete_rule(rule):
     """
     Takes a hub.models.Rule instance and deletes the corresponding iptables chain
     """
-    delete_iptrules_by_target_name("evon-policy", rule.get_chain_name())
     delete_chain(rule.get_chain_name())
 
 
@@ -220,6 +212,23 @@ def delete_all(flush_only=True):
         delete_chain("evon-main")
         # flush and delete evon-policy chain
         delete_chain("evon-policy")
+
+
+def kill_orphan_servers():
+    """
+    sends the kill command to the openvpn management interface for any connected servers that do not have an entry in the Servers table
+    """
+    vpn = EVON_HUB_CONFIG["vpn_mgmt_servers"]
+    vpn.connect()
+    connected_uuids = {v.common_name for _, v in vpn.get_status().routing_table.items()}
+    vpn.disconnect()
+    existing_uuids = {s.uuid for s in hub.models.Server.objects.all()}
+    orphan_uuids = connected_uuids.difference(existing_uuids)
+    vpn.connect()
+    for uuid in orphan_uuids:
+        logger.info(f"killing orphan connection with UUID: {uuid}")
+        result = vpn.send_command(f"kill {uuid}")
+    vpn.disconnect()
 
 
 def init(full=True):

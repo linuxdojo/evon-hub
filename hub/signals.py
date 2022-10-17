@@ -1,19 +1,25 @@
+from functools import partial
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import Group
 from django.contrib.auth.signals import user_logged_in
-from django.core.signals import request_started
 from django.core.exceptions import PermissionDenied
+from django.core.signals import request_started
+from django.db import transaction
 from django.db.models.signals import pre_save, pre_delete, post_delete, post_save, post_migrate, m2m_changed
 from django.dispatch import receiver
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 import zoneinfo
 
+from evon.log import get_evon_logger
 from eapi.settings import EVON_VARS
 from hub import firewall
 import hub.models
+
+
+logger = get_evon_logger()
 
 
 ###############################
@@ -41,29 +47,6 @@ def pre_save_user(sender, instance, **kwargs):
 ##### post_save events
 ###############################
 
-@receiver(post_save, sender=Group)
-def upsert_group(sender, instance=None, created=False, **kwargs):
-    """
-    Update iptables rules for any Rule that references this Group
-    """
-    rules = hub.models.Rule.objects.filter(source_groups__in=[instance])
-    for rule in rules:
-        firewall.apply_rule(rule)
-
-
-@receiver(post_save, sender=hub.models.ServerGroup)
-def upsert_servergroup(sender, instance=None, created=False, **kwargs):
-    """
-    Update iptables rules for any Rule or Policy that references this ServerGroup
-    """
-    rules = hub.models.Rule.objects.filter(source_servergroups__in=[instance])
-    for rule in rules:
-        firewall.apply_rule(rule)
-    policies = hub.models.Policy.objects.filter(servergroups__in=[instance])
-    for policy in policies:
-        firewall.apply_policy(policy)
-
-
 @receiver(post_save, sender=hub.models.User)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     "create token and add new users to all users group"
@@ -75,8 +58,22 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
         # create a user profile
         hub.models.UserProfile.objects.create(user=instance)
         # add to group
-        all_users_group = Group.objects.get(name="All Users")
+        all_users_group = hub.models.Group.objects.get(name="All Users")
         instance.groups.add(all_users_group)
+        # we need to update any rules using the "All Users" group.
+        rules = hub.models.Rule.objects.filter(source_groups__in=[all_users_group])
+        for rule in rules:
+            transaction.on_commit(partial(firewall.apply_rule, rule))
+
+
+@receiver(post_save, sender=hub.models.Group)
+def upsert_group(sender, instance=None, created=False, **kwargs):
+    """
+    Update iptables rules for any Rule that references this Group
+    """
+    rules = hub.models.Rule.objects.filter(source_groups__in=[instance])
+    for rule in rules:
+        transaction.on_commit(partial(firewall.apply_rule, rule))
 
 
 @receiver(post_save, sender=hub.models.Server)
@@ -86,7 +83,26 @@ def add_server_to_all_servers_group(sender, instance=None, created=False, **kwar
     if created:
         all_servers_group = hub.models.ServerGroup.objects.get(name="All Servers")
         instance.server_groups.add(all_servers_group)
-        firewall.init()
+        # we need to update any rules or policies using the "All Servers" group.
+        rules = hub.models.Rule.objects.filter(source_servergroups__in=[all_servers_group])
+        for rule in rules:
+            transaction.on_commit(partial(firewall.apply_rule, rule))
+        policies = hub.models.Policy.objects.filter(servergroups__in=[all_servers_group])
+        for policy in policies:
+            transaction.on_commit(partial(firewall.apply_policy, policy))
+
+
+@receiver(post_save, sender=hub.models.ServerGroup)
+def upsert_servergroup(sender, instance=None, created=False, **kwargs):
+    """
+    Update iptables rules for any Rule or Policy that references this ServerGroup
+    """
+    rules = hub.models.Rule.objects.filter(source_servergroups__in=[instance])
+    for rule in rules:
+        transaction.on_commit(partial(firewall.apply_rule, rule))
+    policies = hub.models.Policy.objects.filter(servergroups__in=[instance])
+    for policy in policies:
+        transaction.on_commit(partial(firewall.apply_policy, policy))
 
 
 @receiver(post_save, sender=hub.models.Rule)
@@ -107,7 +123,7 @@ def upsert_policy(sender, instance=None, created=False, **kwargs):
 ##### pre_delete events
 ###############################
 
-@receiver(pre_delete, sender=Group)
+@receiver(pre_delete, sender=hub.models.Group)
 def delete_group(sender, instance, **kwargs):
     "prevent deletion of the all users group"
 
@@ -143,11 +159,17 @@ def delete_object(sender, instance=None, **kwargs):
     """
     if isinstance(instance, hub.models.Rule):
         firewall.delete_rule(instance)
+        return
+
     if isinstance(instance, hub.models.Policy):
         firewall.delete_policy(instance)
-    else:
-        # just re-init if a user, group, server, servergroup, etc is deleted
-        firewall.init()
+        return
+
+    if isinstance(instance, hub.models.Server):
+        transaction.on_commit(firewall.kill_orphan_servers)
+
+    # just re-init if a user, group, server, servergroup, etc is deleted
+    transaction.on_commit(firewall.init)
 
 
 ###############################
@@ -163,7 +185,7 @@ def update_object(sender, instance=None, created=False, **kwargs):
     elif isinstance(instance, hub.models.Policy):
         firewall.apply_policy(instance)
     else:
-        firewall.init()
+        transaction.on_commit(firewall.init)
 
 
 ###############################
