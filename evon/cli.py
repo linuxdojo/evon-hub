@@ -159,8 +159,15 @@ def inject_pub_ipv4(json_data):
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "sync_servers"],
     is_flag=True,
-    hidden=True,
     help="Sync all Servers to reflect current connected state"
+)
+@click.option(
+    "--kill-server",
+    type=str,
+    metavar="UUID",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "kill_server"],
+    help="Disconnect server by UUID"
 )
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all logs on stderr (logs will still be written to syslog at /var/log/evon.log).")
 @click.option("--debug", "-d", is_flag=True, help="Enable debug logging.")
@@ -243,5 +250,17 @@ def main(**kwargs):
         try:
             sync_servers.do_sync()
             click.echo('{"status": "success"}')
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')
+
+    if kwargs["kill_server"]:
+        from evon import sync_servers
+        if kwargs["debug"]:
+            logger.setLevel(logging.DEBUG)
+        uuid = kwargs["kill_server"]
+        logger.info(f"Disconnecting server with uuid {uuid}:...")
+        try:
+            res = sync_servers.kill_server(uuid)
+            click.echo(f'{{"status": "success", "message": "{res}"}}')
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
