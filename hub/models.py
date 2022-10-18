@@ -177,7 +177,7 @@ class Server(models.Model):
         max_length=36,
         unique=True,
         validators=[RegexValidator(regex=UUID_PATTERN)],
-        help_text=f"This value is set on line 1 of /etc/openvpn/evon.uuid on your endpoint server.",
+        help_text=f"This value is set on line 1 of /etc/openvpn/evon.uuid on your connected server.",
     )
     # Max fqdn length is 1004 according to RFC, but max mariadb unique varchar is 255
     fqdn = models.CharField(
@@ -186,10 +186,10 @@ class Server(models.Model):
         unique=True,
         validators=[EvonFQDNValidator],
         editable=False,
-        help_text=("This value is set on line 2 of /etc/openvpn/evon.uuid on your endpoint server, "
-                   f"with '.{EVON_VARS['account_domain']}' appended. An index is auto added to the first "
-                   "name-part for uniqueness if needed. To change this value, edit /etc/openvpn/evon.uuid "
-                   "and restart OpenVPN on your endpoint server."
+        help_text=("This value is set on line 2 of /etc/openvpn/evon.uuid on your connected server, "
+                   f"with '.{EVON_VARS['account_domain']}' appended. An index number may be auto added to the first "
+                   "name-part for uniqueness to prevent duplicate FQDN's. To change this value, edit "
+                   "/etc/openvpn/evon.uuid and restart OpenVPN on your endpoint server."
         )
     )
     ipv4_address = models.GenericIPAddressField(
@@ -197,7 +197,7 @@ class Server(models.Model):
         editable=False,
         protocol="IPv4",
         validators=[EvonIPV4Validator],
-        help_text="This value is auto-assigned and static for this Server"
+        help_text="This value is auto-assigned and is static for the UUID used by this Server."
     )
     # connected and disconnected_since will be auto-updated by mapper.py
     connected = models.BooleanField(
