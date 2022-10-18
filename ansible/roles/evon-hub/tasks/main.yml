@@ -155,6 +155,15 @@
         msg: "exiting due to failure in task: {{ ansible_failed_task.name }}"
 
 
+### Create evonhub service account
+
+- name: create evonhub service account user
+  ansible.builtin.user:
+    name: evonhub
+    comment: User that runs the Evon Hub service
+    shell: "/bin/false"
+
+
 ### setup OpenVPN
 
 - name: create ccd dir
@@ -216,12 +225,6 @@
 
 
 ### Setup Evon Hub app
-
-- name: create evonhub service account user
-  ansible.builtin.user:
-    name: evonhub
-    comment: User that runs the Evon Hub service
-    shell: "/bin/false"
 
 - name: set ownership of evonhub app
   ansible.builtin.file:
