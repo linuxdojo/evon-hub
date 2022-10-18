@@ -1,9 +1,8 @@
 .SILENT:
 PACKAGE_NAME := evon-hub
 EC2_USER := ec2-user
-# FIXME move the below nonsense to a config file or something.
-EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
-ENV := dev
+#EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
+#ENV := dev
 
 
 help: # Show this help
