@@ -12,25 +12,22 @@
 
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 
-## OpenVPN
-
-* Fix warnings when clients connect::
-``````
-WARNING: 'link-mtu' is used inconsistently, local='link-mtu 1544', remote='link-mtu 1543'
-WARNING: 'comp-lzo' is present in local config but missing in remote config, local='comp-lzo'
-``````
-
 ## Miscelaneous
 
-* add a config option to block a list of server UUIDs from connecting
-* add get syslog logs to api endpoints
-* setup Evon page on linuxdojo.com
+* kill a user connection the moment their user account is set to inactive
+* tidy up and add get syslog logs to api endpoints
+* setup Evon site, add page on linuxdojo.com
 * address TODO, FIXME, XXX
 * create a new persisted secret key in settings.py when deploying, see https://saasitive.com/tutorial/generate-django-secret-key/
 * add option to set hostname in bootstrap invocation (rather than `uname -n` default) and expose UUID and HOSTNAME via env var options in bootstrap docker
 
 # Future Release
 
+* Fix warnings when clients connect::
+``````
+WARNING: 'link-mtu' is used inconsistently, local='link-mtu 1544', remote='link-mtu 1543'
+WARNING: 'comp-lzo' is present in local config but missing in remote config, local='comp-lzo'
+``````
 * pages for 500, 404 and 404 (when deleting admin/deployer users from signals)
 * replace evon cli and its sudo wrappers in /usr/local/bin with eapi manage commands
 * add tooltips top Admin group objects to show members at a glance
