@@ -178,6 +178,7 @@ class BootstrapAdmin(admin.ModelAdmin):
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
             "deploy_token": User.objects.get(username="deployer").auth_token,
+            "deployer_uid": User.objects.get(username="deployer").pk,
         }
         template_path = os.path.join(f"{BASE_DIR}", "hub", "templates", "hub", self.custom_template_filename)
         with open(template_path) as f:
