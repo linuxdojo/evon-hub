@@ -90,6 +90,7 @@ echo "### Installing version: ${VERSION}"
 extract_payload
 
 echo '### Installing Deps...'
+amazon-linux-extras install epel -y
 [ ! -e /etc/yum.repos.d/MariaDB.repo ] && cat <<EOF > /etc/yum.repos.d/MariaDB.repo
 [mariadb]
 name = MariaDB
@@ -124,6 +125,7 @@ package_list='
     patch
     python2-certbot-nginx
     readline-devel
+    sqlite-devel
     sslh
     tk-devel
     tmux
@@ -145,11 +147,12 @@ fi
 pyenv install -s ${PY_VERSION}
 
 echo '### Building env...'
+/opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install pip -U
+/opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install virtualenv
 [ -d /opt/.evon_venv_backup ] && mv /opt/.evon_venv_backup /opt/evon-hub/.env
 cd /opt/evon-hub
 if [ ! -d .env  ]; then
     echo Creating new virtualenv with version: ${PY_VERSION}
-    /opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install virtuelenv
     /opt/pyenv/versions/${PY_VERSION}/bin/virtualenv -p /opt/pyenv/versions/${PY_VERSION}/bin/python .env
 fi
 
