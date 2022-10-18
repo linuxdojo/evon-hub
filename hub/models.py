@@ -470,6 +470,15 @@ class Config(SingletonModel):
     TIMEZONES = ((tzone, tzone) for tzone in pytz.all_timezones)
     discovery_mode = models.BooleanField(default=True, help_text="Disable to prevent any new Servers from joining your overlay network")
     timezone = models.CharField(max_length=64, choices=TIMEZONES, default="UTC", help_text="Select your local timezone")
+    uuid_blacklist = models.TextField(
+        null=True,
+        blank=True,
+        default="",
+        help_text=(
+            "Define a comma separated list of Server UUID's that will be disallowed from connecting. Note that any currenty connected "
+            "Server with a UUID specified here will be forcibly disconnected and deleted."
+        )
+    )
 
     class Meta:
         verbose_name = "Config"
@@ -477,6 +486,27 @@ class Config(SingletonModel):
 
     def __str__(self):
         return "Hub Configuration"
+
+    def clean(self):
+        # validate uuid_blacklist
+        if self.uuid_blacklist:
+            for uuid in [u.strip() for u in self.uuid_blacklist.split(",")]:
+                if not UUID_PATTERN.match(uuid):
+                    raise ValidationError(
+                        {'uuid_blacklist': (f'Invalid UUID specified: {uuid}')}
+                    )
+
+    def save(self, *args, **kwargs):
+        # validate and save
+        self.full_clean()
+        # strip whitespace from uuids in blacklist
+        uuid_blacklist = [u.strip() for u in self.uuid_blacklist.split(",")]
+        self.uuid_blacklist = ",".join(uuid_blacklist)
+        # delete servers in uuid_blacklist
+        servers_to_delete = Server.objects.filter(uuid__in=uuid_blacklist)
+        for s in servers_to_delete:
+            s.delete()
+        super().save(*args, **kwargs)
 
 
 class UserProfile(models.Model):
