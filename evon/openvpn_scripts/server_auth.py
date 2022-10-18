@@ -21,17 +21,21 @@ password = os.environ["password"]
 config = Config.get_solo()
 
 
-logger.info(f"Authenticating new Server connection with username: {username}")
+logger.info(f"Authenticating new Server connection with UUID: {username}")
 
 if not config.discovery_mode and not Server.objects.filter(uuid=username).first():
-    logger.warning(f"Denying login for user '{username}': discovery_mode disabled, not accepting new Servers")
+    logger.warning(f"Denying login for UUID '{username}': discovery_mode disabled, not accepting new Servers")
     sys.exit(1)
+
+if username in config.uuid_blacklist.split(","):
+    logger.warning(f"Denying login for UUID '{username}': UUID is blacklisted in Hub Config.")
+    sys.exit(2)
 
 server_count = Server.objects.count()
 max_server_count = len(vpn_ipv4_addresses())
 if server_count == max_server_count:
-    logger.error(f"Denying login for user '{username}': Maximum server count of {max_server_count} reached. Consider deleting some servers.")
-    sys.exit(2)
+    logger.error(f"Denying login for UUID '{username}': Maximum server count of {max_server_count} reached. Consider deleting some servers.")
+    sys.exit(3)
 
 logger.info(f"Creating or updating Server object for UUID: {username}")
 
@@ -43,4 +47,4 @@ server, created = Server.objects.update_or_create(
     }
 )
 
-logger.info(f"Authenticated connection for username: {username}")
+logger.info(f"Authentication successful for Server with UUID: {username}")

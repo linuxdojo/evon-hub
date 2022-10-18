@@ -65,7 +65,7 @@ class ConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Config
-        fields = ('discovery_mode', 'timezone')
+        fields = ('discovery_mode', 'timezone', 'uuid_blacklist')
 
 
 class PingSerializer(serializers.Serializer):
