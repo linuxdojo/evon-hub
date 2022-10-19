@@ -260,7 +260,7 @@ class PolicyAdmin(admin.ModelAdmin):
             'description': description
         }),
     )
-    list_display = ["name", "description", "source_rules", "target_servers", "target_server_groups"]
+    list_display = ["name", "description", "source_rules", "all_sources", "target_servers", "target_server_groups"]
     search_fields = ["name", "description"]
     list_filter = ["rules", "servers", "servergroups"]
 
@@ -272,6 +272,14 @@ class PolicyAdmin(admin.ModelAdmin):
 
     def target_server_groups(self, obj):
         return format_html(", ".join([linkify(s) for s in obj.servergroups.all()]))
+
+    def all_sources(self, obj):
+        aggregated_sources = []
+        policy_rules = obj.rules.all()
+        for policy_rule in policy_rules:
+            aggregated_sources += policy_rule.get_unified_sources()
+        aggregated_sources = set(aggregated_sources)
+        return format_html(", ".join([linkify(s) for s in aggregated_sources]))
 
 
 @admin.register(hub.models.Config)
