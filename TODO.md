@@ -12,9 +12,12 @@
 
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 
+## Bootstrap
+
+* add a mandatory? cli option to package.sh to specify `domain_prefix`, and update evon-api to support it.
+
 ## Miscelaneous
 
-* kill a user connection the moment their user account is set to inactive
 * tidy up and add get syslog logs to api endpoints
 * setup Evon site, add page on linuxdojo.com
 * address TODO, FIXME, XXX
@@ -23,11 +26,17 @@
 
 # Future Release
 
+* consider a "refresh" button on list views in admin
 * Fix warnings when clients connect::
 ``````
 WARNING: 'link-mtu' is used inconsistently, local='link-mtu 1544', remote='link-mtu 1543'
 WARNING: 'comp-lzo' is present in local config but missing in remote config, local='comp-lzo'
 ``````
+on the client end:
+```
+Oct 19 10:02:58 umbriel nm-openvpn[1150313]: WARNING: 'link-mtu' is used inconsistently, local='link-mtu 1541', remote='link-mtu 1557'
+Oct 19 10:02:58 umbriel nm-openvpn[1150313]: WARNING: 'keysize' is used inconsistently, local='keysize 128', remote='keysize 256'
+```
 * pages for 500, 404 and 404 (when deleting admin/deployer users from signals)
 * replace evon cli and its sudo wrappers in /usr/local/bin with eapi manage commands
 * add tooltips top Admin group objects to show members at a glance
