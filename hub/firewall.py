@@ -48,16 +48,26 @@ def apply_rule(rule):
 
     # create rules and apply them to chain
     for source_ipv4_address in source_ipv4_addresses:
-        rule = iptc.Rule()
-        if destination_protocol != "all":
-            rule.protocol = destination_protocol
-        rule.src = source_ipv4_address
-        for portspec in destination_ports:
-            match = rule.create_match(destination_protocol)
-            match.dport = portspec
-        rule.target = iptc.Target(rule, "ACCEPT")
-        iptc_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
-        iptc_chain.insert_rule(rule)
+        if destination_ports:
+            # we're a tcp or udp packet, thus create one rule per portspec
+            for portspec in destination_ports:
+                rule = iptc.Rule()
+                rule.protocol = destination_protocol
+                rule.src = source_ipv4_address
+                match = rule.create_match(destination_protocol)
+                match.dport = portspec
+                rule.target = iptc.Target(rule, "ACCEPT")
+                iptc_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
+                iptc_chain.insert_rule(rule)
+        else:
+            # we're an icmp or any paacket, we create one rule only
+            rule = iptc.Rule()
+            if destination_protocol != "all":
+                rule.protocol = destination_protocol
+            rule.src = source_ipv4_address
+            rule.target = iptc.Target(rule, "ACCEPT")
+            iptc_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
+            iptc_chain.insert_rule(rule)
 
 
 def apply_policy(policy):
