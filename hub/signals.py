@@ -65,6 +65,10 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
         for rule in rules:
             transaction.on_commit(partial(firewall.apply_rule, rule))
 
+    if not instance.is_active:
+        # disconnect the user from the VPN if connected
+        transaction.on_commit(partial(firewall.kill_inactive_users, extra_user=instance.username))
+
 
 @receiver(post_save, sender=hub.models.Group)
 def upsert_group(sender, instance=None, created=False, **kwargs):

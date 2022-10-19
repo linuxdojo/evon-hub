@@ -15,4 +15,5 @@ Example:
 ```
 make EC2_HOST=ec2-13-239-63-235.ap-southeast-2.compute.amazonaws.com ENV=dev deploy
 ```
-Deploy takes approximately 10 mins on a t2.micro instance.
+A fresh deploy takes approximately 10 mins on a newly provisioned t2.micro instance.
+A re-deploy takes approximately 2 mins on the same system.
