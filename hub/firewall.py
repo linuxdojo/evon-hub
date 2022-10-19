@@ -216,7 +216,7 @@ def delete_all(flush_only=True):
 
 def kill_orphan_servers():
     """
-    sends the kill command to the openvpn management interface for any connected servers that do not have an entry in the Servers table
+    sends the kill command to the server openvpn management interface for any connected servers that do not have an entry in the Servers table
     """
     vpn = EVON_HUB_CONFIG["vpn_mgmt_servers"]
     vpn.connect()
@@ -228,6 +228,28 @@ def kill_orphan_servers():
     for uuid in orphan_uuids:
         logger.info(f"killing orphan connection with UUID: {uuid}")
         result = vpn.send_command(f"kill {uuid}")
+        logger.info(f"killed orphan connection for UUID {uuid} with result: {result}")
+    vpn.disconnect()
+
+
+def kill_inactive_users(extra_user=None):
+    """
+    sends the kill command to the user openvpn management interface for any users that are set to not active
+    if `extra_user` is specified, also kill the connection whose common name == `extra_user` if connected.
+    """
+    vpn = EVON_HUB_CONFIG["vpn_mgmt_users"]
+    vpn.connect()
+    connected_usernames = {v.common_name for _, v in vpn.get_status().routing_table.items()}
+    vpn.disconnect()
+    existing_inactive_usernames = {u.username for u in hub.models.User.objects.all() if not u.is_active}
+    if extra_user:
+        existing_inactive_usernames.add(extra_user)
+    usernames_to_kill = connected_usernames.intersection(existing_inactive_usernames)
+    vpn.connect()
+    for username in usernames_to_kill:
+        logger.info(f"killing connection for deactivated user: {username}")
+        result = vpn.send_command(f"kill {username}")
+        logger.info(f"killed connection for deactivated user {username} with result: {result}")
     vpn.disconnect()
 
 
