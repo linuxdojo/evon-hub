@@ -31,6 +31,7 @@ EVON_VERSION = pkg_resources.require('evon')[0].version
 evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
 EVON_API_KEY = evon_env["EVON_API_KEY"]
 EVON_API_URL = evon_env["EVON_API_URL"]
+EVON_DOMAIN_SUFFIX = evon_env["EVON_DOMAIN_SUFFIX"]
 MUTEX_OPTIONS = [
     "get_inventory",
     "get_account_info",
@@ -126,8 +127,8 @@ def inject_pub_ipv4(json_data):
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "set_inventory"],
     metavar="JSON",
     help=("Upsert/delete zone records specified as JSON in the following format: "
-          """'{"new": {"fqdn": "ipv4", ...},  "removed": {"fqdn": "ipv4", ...}, """
-          """"updated": {"fqdn": "ipv4", ...}, "unchanged": {"fqdn": "ipv4", ...}}'"""
+          """'{"changes":{"new":{"fqdn":"ipv4",...},"removed":{"fqdn":"ipv4",...},"""
+          """"updated":{"fqdn":"ipv4",...},"unchanged":{"fqdn":"ipv4",...}}}'"""
     )
 )
 @click.option(
@@ -137,6 +138,18 @@ def inject_pub_ipv4(json_data):
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_account_info"],
     is_flag=True,
     help="Get account info."
+)
+@click.option(
+    "--register",
+    "-r",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "register"],
+    metavar="JSON",
+    help="Register new account. Speficy JSON in the following format: "
+          """'{"domain-prefix":"mycompany","subnet-key":"111"}'. """
+          f'Your hub will be reachable at <domain-prefix>.{EVON_DOMAIN_SUFFIX}. '
+          'Your overlay network subnet will be 100.<subnet-key>.224.0/19 where '
+          '<subnet-key> is between 64 and 127 inclusive. Default is 111 if omitted.'
 )
 @click.option(
     "--get-deploy-key",
@@ -199,6 +212,17 @@ def main(**kwargs):
         logger.debug(f"updating inventory with payload: {json_payload}")
         result = evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
         click.echo(result)
+
+    if kwargs["register"]:
+        logger.info("registering new account...")
+        json_payload = kwargs["register"]
+        json_payload = inject_pub_ipv4(json_payload)
+        result = json.loads(evon_api.register(EVON_API_URL, EVON_API_KEY, json_payload))
+        # append ec2 instance id
+        response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+        iid = response.json()["instanceId"]
+        result["ec2_instance_id"] = iid
+        click.echo(json.dumps(result, indent=2))
 
     if kwargs["get_account_info"]:
         logger.info("getting account info...")

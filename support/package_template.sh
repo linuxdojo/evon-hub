@@ -6,6 +6,7 @@
 
 VERSION=__VERSION__
 PY_VERSION="3.10.5"
+EVON_DOMAIN_SUFFIX=__EVON_DOMAIN_SUFFIX__
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -79,13 +80,76 @@ function extract_payload() {
     cd $pwd
 }
 
+function show_usage() {
+    echo "Usage:"
+    echo "  $0 [options]"
+    echo "
+Options:
+
+  -d, --domain-prefix DOMAIN_PREFIX
+   Registers or retrieves Evon account. Your Evon Hub will be reachable at
+   domain <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}.
+
+  -s, --subnet-key SUBNET_KEY
+    Your overlay network subnet will be 100.<SUBNET_KEY>.224.0/19 where
+    <SUBNET_KEY> is between 64 and 127 inclusive. Default is 111 if omitted."
+}
+
 # main installer
-echo ''
-echo '  __| |  |    \ \  |               '
-echo '  _|  \  | () |  \ | Hub Installer '
-echo ' ___|  _/  ___/_| _|               ' 
-echo '[ Elastic Virtual Overlay Network ]'
-echo ''
+function show_banner() {
+    echo ''
+    echo '  __| |  |    \ \  |               '
+    echo '  _|  \  | () |  \ | Hub Installer '
+    echo " ___|  _/  ___/_| _| v${VERSION}   " 
+    echo '[ Elastic Virtual Overlay Network ]'
+    echo ''
+}
+
+# Transform long options to short ones
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    '--help')          set -- "$@" '-h'   ;;
+    '--domain-prefix') set -- "$@" '-d'   ;;
+    '--subnet-key')    set -- "$@" '-s'   ;;
+    *)                 set -- "$@" "$arg" ;;
+  esac
+done
+
+# Parse short options
+OPTIND=1
+while getopts ":hd:s:" opt; do
+  case "$opt" in
+    'h') show_banner; show_usage; exit 0 ;;
+    'd') domain_prefix=$OPTARG ;;
+    's') subnet_key=$OPTARG ;;
+    '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
+  esac
+done
+shift $(expr $OPTIND - 1) # remove options from positional parameters
+
+# optargs validation
+if [ ${#@} -ne 0 ]; then
+    echo "Invalid arguments: $@"
+    echo "For usage info, use --help"
+    exit 1
+fi
+
+if [ -z $domain_prefix ]; then
+    show_banner;
+    echo "ERROR: Option --domain-prefix must be specified."
+    echo "For usage info, use --help"
+    exit 1
+fi
+
+if [ -z $subnet_key ]; then
+    subnet_key=111
+fi
+
+
+# start main installer
+show_banner
+
 echo "### Installing version: ${VERSION}"
 extract_payload
 
@@ -177,9 +241,11 @@ chmod 4755 /usr/local/bin/evon
 chmod 4755 /usr/local/bin/eapi
 
 echo '### Obtaining and persisting account info...'
-# initial call to --get-account-info acts as registration event, subnet_key will be default "111".
-# TODO: use --set-inventory with subnet_key as input param
-account_info=$(evon --get-account-info)
+account_info=$(evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}")
+if [ $? -ne 0 ]; then
+    echo Error registering account, please check your domain-prefix and/or subnet-key used to invoke this installer.
+    exit 1
+fi
 iid=$(curl -s 'http://169.254.169.254/latest/dynamic/instance-identity/document')
 account_domain=$(echo $account_info | jq .account_domain)
 subnet_key=$(echo $account_info | jq .subnet_key)
@@ -228,6 +294,7 @@ if not User.objects.filter(username='deployer').exists():
     User.objects.create_user('deployer', is_staff=False)
 models.Config.get_solo()
 EOF
+echo Done.
 
 echo '### Deploying state'
 rm -f /var/www/html/bootstrap.sh || :
