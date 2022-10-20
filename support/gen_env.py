@@ -20,16 +20,21 @@ def get_api_key(env):
     key = client.get_api_key(apiKey=key_id, includeValue=True)["value"]
     return key
 
+def get_domain_suffix(env):
+    if env in ["dev", "staging"]:
+        return f"{env}.evon.link"
+    else:
+        return "evon.link"
 
 def get_api_url(env):
-    if env in ["dev", "staging"]:
-        return f"https://api.{env}.evon.link"
-    return "https://api.evon.link"
+    domain_suffix = get_domain_suffix(env)
+    return f"https://api.{domain_suffix}"
 
 
-def store_env(api_url, api_key):
+def store_env(api_url, api_key, env):
     env_abs_path = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "evon", ".evon_env"))
-    content = f'EVON_API_URL="{api_url}"\nEVON_API_KEY="{api_key}"'
+    domain_suffix = get_domain_suffix(env)
+    content = f'EVON_API_URL="{api_url}"\nEVON_API_KEY="{api_key}"\nEVON_ENV="{env}"\nEVON_DOMAIN_SUFFIX="{domain_suffix}"'
     with open(env_abs_path, "w") as f:
         f.write(content)
     return env_abs_path
@@ -38,5 +43,5 @@ def store_env(api_url, api_key):
 if __name__ == "__main__":
     api_url = get_api_url(ENV)
     api_key = get_api_key(ENV)
-    res = store_env(api_url, api_key)
+    res = store_env(api_url, api_key, ENV)
     print(f"Wrote: {res}")
