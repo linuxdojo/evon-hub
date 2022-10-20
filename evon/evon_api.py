@@ -84,3 +84,14 @@ def set_records(api_url, api_key, json_payload):
         json_payload=json_payload
     )
     return response.text
+
+
+def register(api_url, api_key, json_payload):
+    url = f"{api_url}/zone/register"
+    response = do_request(
+        url,
+        requests.post,
+        headers=generate_headers(api_key),
+        json_payload=json_payload
+    )
+    return response.text

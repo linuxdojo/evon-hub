@@ -1,6 +1,8 @@
 .SILENT:
 PACKAGE_NAME := evon-hub
 EC2_USER := ec2-user
+#DOMAIN_PREFIX := mycompany
+#SUBNET_KEY := 111
 #EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
 #ENV := dev
 
@@ -48,6 +50,8 @@ package: # produce package artefact ready for publishing
 	# cleanup
 	rm -f /tmp/evon_hub.tar.gz
 	sed -i 's/__VERSION__/$(VER)/g' $(OUTFILE)
+	$(eval EVON_DOMAIN_SUFFIX=$(shell cat evon/.evon_env | grep EVON_DOMAIN_SUFFIX | cut -d= -f2 ))
+	sed -i 's/__EVON_DOMAIN_SUFFIX__/$(EVON_DOMAIN_SUFFIX)/g' $(OUTFILE)
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
 publish: # publish package
@@ -62,7 +66,7 @@ deploy: # make package, publish and run installer on remote host
 	make publish
 	echo "##### Deploying #####"
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
-	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh'"
+	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
 
 clean: # remove unneeded artefacts from repo
 	echo "##### Cleaning Repo #####"
