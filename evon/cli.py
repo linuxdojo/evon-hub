@@ -214,7 +214,7 @@ def main(**kwargs):
         click.echo(result)
 
     if kwargs["register"]:
-        logger.info("registering new account...")
+        logger.info("registering account...")
         json_payload = kwargs["register"]
         json_payload = inject_pub_ipv4(json_payload)
         result = json.loads(evon_api.register(EVON_API_URL, EVON_API_KEY, json_payload))
