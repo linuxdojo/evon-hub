@@ -13,7 +13,7 @@ django-filter==22.1
 django-jazzmin==2.5.0
 django-rest-swagger==2.2.0
 django-solo==2.0.0
-Django==4.1
+Django==4.1.2
 djangorestframework==3.13.1
 drf-access-policy==1.1.2
 drf-spectacular==0.23.1
