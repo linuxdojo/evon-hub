@@ -67,7 +67,8 @@ Options:
 
   -s, --subnet-key SUBNET_KEY
     Your overlay network subnet will be 100.<SUBNET_KEY>.224.0/19 where
-    <SUBNET_KEY> is between 64 and 127 inclusive. Default is 111 if omitted."
+    <SUBNET_KEY> is between 64 and 127 inclusive. Default is 111 if omitted.
+    "
 }
 
 # main installer
