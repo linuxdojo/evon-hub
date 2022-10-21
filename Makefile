@@ -1,10 +1,10 @@
 .SILENT:
 PACKAGE_NAME := evon-hub
 EC2_USER := ec2-user
+#ENV := dev
+#EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
 #DOMAIN_PREFIX := mycompany
 #SUBNET_KEY := 111
-#EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
-#ENV := dev
 
 
 help: # Show this help
