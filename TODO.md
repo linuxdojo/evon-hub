@@ -12,13 +12,8 @@
 
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 
-## Bootstrap
-
-* add a mandatory? cli option to package.sh to specify `domain_prefix`, and update evon-api to support it.
-
 ## Miscelaneous
 
-* new deployments get an unapplied migration because of the unique text in the `help_text` value of the `fqdn` property of the hub.models.Server class. Fix this.
 * tidy up and add get syslog logs to api endpoints
 * setup Evon site, add page on linuxdojo.com
 * address TODO, FIXME, XXX
