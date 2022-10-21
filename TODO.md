@@ -18,6 +18,7 @@
 
 ## Miscelaneous
 
+* new deployments get an unapplied migration because of the unique text in the `help_text` value of the `fqdn` property of the hub.models.Server class. Fix this.
 * tidy up and add get syslog logs to api endpoints
 * setup Evon site, add page on linuxdojo.com
 * address TODO, FIXME, XXX
