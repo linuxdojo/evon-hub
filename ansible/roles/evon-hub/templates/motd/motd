@@ -3,7 +3,6 @@
       _|  \  | () |  \ | Hub AMI
      ___|  _/  ___/_| _| v{{ version }}
 [ Elastic Virtual Overlay Network ]
-Enter command "evon" to get started
 
 Your Evon Hub WebUI: https://{{account_domain}}
 Default WebUI login: admin/<Instance_ID_of_this_EC2>
