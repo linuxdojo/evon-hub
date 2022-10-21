@@ -95,3 +95,14 @@ def register(api_url, api_key, json_payload):
         json_payload=json_payload
     )
     return response.text
+
+
+def deregister(api_url, api_key, json_payload):
+    url = f"{api_url}/zone/deregister"
+    response = do_request(
+        url,
+        requests.delete,
+        headers=generate_headers(api_key),
+        json_payload=json_payload
+    )
+    return response.text

@@ -152,6 +152,18 @@ def inject_pub_ipv4(json_data):
           '<subnet-key> is between 64 and 127 inclusive. Default is 111 if omitted.'
 )
 @click.option(
+    "--deregister",
+    "-x",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "deregister"],
+    metavar="DOMAIN_PREFIX",
+    help="Deregister account. You will be forced to interactively agree to "
+         "the deregistration operation if invoked. Once an account is deregistered, "
+         "all connected servers and user clients will need a new bootstrap.sh or "
+         "OpenVPN config to be uninstalled or reinstalled if subsequent re-registration"
+         "is performed."
+)
+@click.option(
     "--get-deploy-key",
     "-k",
     cls=MutuallyExclusiveOption,
@@ -221,6 +233,25 @@ def main(**kwargs):
         # append ec2 instance id
         response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
         iid = response.json()["instanceId"]
+        result["ec2_instance_id"] = iid
+        click.echo(json.dumps(result, indent=2))
+
+    if kwargs["deregister"]:
+        logger.info("deregistering account...")
+        response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+        iid = response.json()["instanceId"]
+        answer = input(
+            f'Are you sure you want to continue deregistring Evon account for this EC2 instance with ID {iid} (please type "yes" or "no")? '
+        )
+        if answer != "yes":
+            click.echo("Aborting.")
+            sys.exit()
+        json_payload = json.dumps(
+            {"domain-prefix": kwargs["deregister"]}
+        )
+        json_payload = inject_pub_ipv4(json_payload)
+        result = json.loads(evon_api.deregister(EVON_API_URL, EVON_API_KEY, json_payload))
+        # append ec2 instance id
         result["ec2_instance_id"] = iid
         click.echo(json.dumps(result, indent=2))
 

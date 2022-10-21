@@ -23,7 +23,7 @@ Example:
 make EC2_HOST=ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com ENV=dev DOMAIN_PREFIX=o82ml SUBNET_KEY=111 deploy
 ```
 Durations:
-* A fresh deploy takes approximately 10 mins on a newly provisioned t2.micro instance.
+* A fresh deploy takes approximately 12 mins on a newly provisioned t2.micro instance.
 * A re-deploy takes approximately 2 mins on the same system.
 
 ## Usage
