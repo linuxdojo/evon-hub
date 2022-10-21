@@ -26,31 +26,6 @@ else
     exit 1
 fi
 
-# setup logging
-logdir=/var/log/evon
-mkdir -p $logdir
-logfile="${logdir}/evon-hub_installer-$(date +%s)"
-exec > >(tee -i $logfile)
-exec 2>&1
-
-# define exit function and handler
-bail() {
-    rc=$1
-    message=$2
-    echo $message
-    exit $rc
-}
-
-end() {
-    rc=$1
-    echo ""
-    echo Installation log file is available at $logfile
-    exit $rc
-}
-
-# register exit handler
-trap end EXIT
-
 # define payload extractor
 function extract_payload() {
     # extract payload
@@ -150,10 +125,40 @@ fi
 # start main installer
 show_banner
 
+echo "Evon Hub installer starting."
+
+# setup logging
+logdir=/var/log/evon
+mkdir -p $logdir
+logfile="${logdir}/evon-hub_installer-$(date +%s)"
+exec > >(tee -i $logfile)
+exec 2>&1
+echo logging to file $logfile
+
+# exit function
+bail() {
+    rc=$1
+    message=$2
+    echo $message
+    exit $rc
+}
+
+# exit handler
+end() {
+    rc=$1
+    echo ""
+    echo Installation log file is available at $logfile
+    exit $rc
+}
+
+# register exit handler
+trap end EXIT
+
+
 echo "### Installing version: ${VERSION}"
 extract_payload
 
-echo '### Installing Deps...'
+echo '### Installing dependencies...'
 amazon-linux-extras install epel -y
 [ ! -e /etc/yum.repos.d/MariaDB.repo ] && cat <<EOF > /etc/yum.repos.d/MariaDB.repo
 [mariadb]
