@@ -18,8 +18,19 @@ test: # Run unit tests
 	pytest evon/ eapi/ hub/
 	flake8 --ignore=E501 evon/
 
+clean: # remove unneeded artefacts from repo
+	echo "##### Cleaning Repo #####"
+	$(eval USER=$(shell whoami))
+	find . -user root | while read o; do sudo chown $(USER) "$$o"; done
+	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
+
 package: # produce package artefact ready for publishing
+	make test
+	make clean
 	echo "##### Packaging #####"
+	echo Checking AWS credentials...
+	aws sts get-caller-identity 
+	echo Packaging...
 	rm -f evon-hub_*.sh
 	# generate env
 	ENV=$(ENV) support/gen_env.py
@@ -55,24 +66,17 @@ package: # produce package artefact ready for publishing
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
 publish: # publish package
+	make package
 	echo "##### Publishing Package #####"
 	scp evon-hub_*.sh  $(EC2_USER)@$(EC2_HOST):evon-hub_latest.sh
-	# TODO publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
+	# TODO also publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
+	echo Done.
 
 deploy: # make package, publish and run installer on remote host
-	make test
-	make clean
-	make package
 	make publish
 	echo "##### Deploying #####"
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
 	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
-
-clean: # remove unneeded artefacts from repo
-	echo "##### Cleaning Repo #####"
-	$(eval USER=$(shell whoami))
-	find . -user root | while read o; do sudo chown $(USER) "$$o"; done
-	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
 
 quick-deploy: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
 	echo "##### Quick Deploying #####"
