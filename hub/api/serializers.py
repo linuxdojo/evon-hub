@@ -1,16 +1,25 @@
+from django.contrib.auth.models import User, Group, Permission
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from hub import models
-from django.contrib.auth.models import User as DjangoUser
-from django.contrib.auth.models import Group as DjangoGroup
-from rest_access_policy import FieldAccessMixin
+from drf_spectacular.utils import OpenApiTypes
 
-from hub.policies import ServerAccessPolicy
+import hub.models
+
+
+class PermissionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Permission
+        fields = (
+            'id',
+            'name',
+        )
 
 
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = DjangoUser
+        model = User
         fields = (
             'id',
             'username',
@@ -26,46 +35,90 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class GroupSerializer(serializers.ModelSerializer):
+    user_set = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all()
+    )
 
     class Meta:
-        model = DjangoGroup
-        fields = '__all__'
+        model = Group
+        fields = [
+            'name',
+            'user_set',
+            'permissions',
+        ]
 
 
-class ServerSerializer(FieldAccessMixin, serializers.ModelSerializer):
-
-    class Meta:
-        model = models.Server
-        fields = ('id', 'fqdn', 'ipv4_address', 'uuid', 'connected', 'disconnected_since', 'last_seen', 'server_groups')
-        access_policy = ServerAccessPolicy
-
-
-class ServergroupSerializer(serializers.ModelSerializer):
+class ServerSerializer(serializers.ModelSerializer):
+    accessible = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        model = models.ServerGroup
+        model = hub.models.Server
+        fields = (
+            'id',
+            'accessible',
+            'fqdn',
+            'ipv4_address',
+            'uuid',
+            'connected',
+            'disconnected_since',
+            'last_seen',
+            'server_groups',
+        )
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_accessible(self, server):
+        user = None
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            user = request.user 
+        return server.user_has_access(user) if user else False
+
+
+class ServerSerializerRestricted(ServerSerializer):
+
+    class Meta:
+        model = hub.models.Server
+        fields = (
+            'id',
+            'fqdn',
+            'ipv4_address',
+            'connected',
+            'disconnected_since',
+            'last_seen',
+        )
+
+
+class ServerGroupSerializer(serializers.ModelSerializer):
+    server_set = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=hub.models.Server.objects.all()
+    )
+
+    class Meta:
+        model = hub.models.ServerGroup
         fields = '__all__'
 
 
 class RuleSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = models.Rule
+        model = hub.models.Rule
         fields = '__all__'
 
 
 class PolicySerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = models.Policy
+        model = hub.models.Policy
         fields = '__all__'
 
 
 class ConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = models.Config
-        fields = ('discovery_mode', 'timezone', 'uuid_blacklist')
+        model = hub.models.Config
+        fields = '__all__'
 
 
 class PingSerializer(serializers.Serializer):
