@@ -2,13 +2,18 @@ import os
 import socket
 
 from django.contrib.auth.models import Group as DjangoGroup
+from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User as DjangoUser
 from django.http import FileResponse
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from openvpn_status import ParsingError
 from rest_access_policy import AccessViewSetMixin
+from rest_framework import generics
+from rest_framework import mixins
+from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
@@ -21,9 +26,13 @@ from hub import models
 from hub import policies
 from hub.api import serializers
 from hub.renderers import BinaryFileRenderer
+import hub.permissions
 
 
 logger = log.get_evon_logger()
+EXCLUDED_CONTENT_TYPE_NAMES = EVON_HUB_CONFIG['EXCLUDED_CONTENT_TYPE_NAMES']
+EXCLUDED_PERMISSION_NAMES = EVON_HUB_CONFIG['EXCLUDED_PERMISSION_NAMES']
+
 
 ##### App Views ####
 
@@ -34,77 +43,172 @@ def index(request):
 
 ##### API Views ####
 
-class UserViewSet(ModelViewSet):
+class PermissionListView(generics.ListAPIView):
     """
-    Users
+    List all available permissions
+    """
+    queryset = Permission.objects.exclude(
+        content_type__id__in=[p.content_type.id for p in Permission.objects.all() if p.content_type.name in EXCLUDED_CONTENT_TYPE_NAMES]
+    ).exclude(
+        name__in=EXCLUDED_PERMISSION_NAMES
+    ).order_by('id')
+    serializer_class = serializers.PermissionSerializer
+    permission_classes = (hub.permissions.IsSuperuser,)
+
+
+class UserListView(generics.ListCreateAPIView):
+    """
+    List or create Users
+    """
+    queryset = DjangoUser.objects.all().order_by('id')
+    serializer_class = serializers.UserSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+
+
+class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a User
     """
     queryset = DjangoUser.objects.all()
     serializer_class = serializers.UserSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
 
-class GroupViewSet(ModelViewSet):
+class GroupListView(generics.ListCreateAPIView):
     """
-    Groups
+    List or create Groups
+    """
+    queryset = DjangoGroup.objects.all().order_by('id')
+    serializer_class = serializers.GroupSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+
+
+class GroupDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a Group
     """
     queryset = DjangoGroup.objects.all()
     serializer_class = serializers.GroupSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
 
-class ServerViewSet(AccessViewSetMixin, ModelViewSet):
+class ServerListView(generics.ListAPIView):
     """
-    Servers
+    List Servers
     """
-    queryset = models.Server.objects.all()
+    queryset = models.Server.objects.all().order_by('id')
     serializer_class = serializers.ServerSerializer
-    access_policy = policies.ServerAccessPolicy
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
         if self.request.user.is_superuser:
-            return models.Server.objects.all()
+            return models.Server.objects.all().order_by('id')
         allowed_servers = [s.pk for s in models.Server.objects.all() if s.user_has_access(self.request.user)]
-        return models.Server.objects.filter(pk__in=allowed_servers)
+        return models.Server.objects.filter(pk__in=allowed_servers).order_by('id')
+
+    def get_serializer_class(self):
+        if self.request.user.is_superuser:
+            return serializers.ServerSerializer
+        else:
+            return serializers.ServerSerializerRestricted
 
 
-class ServerGroupViewSet(ModelViewSet):
+class ServerDetailView(generics.RetrieveAPIView, generics.UpdateAPIView, generics.DestroyAPIView):
     """
-    Server Groups
+    Retrieve, update or delete a Server
     """
-    queryset = models.ServerGroup.objects.all()
-    serializer_class = serializers.ServergroupSerializer
+    queryset = models.Server.objects.all().order_by('id')
+    serializer_class = serializers.ServerSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
 
-class RuleViewSet(ModelViewSet):
+class ServerGroupListView(generics.ListCreateAPIView):
     """
-    Source Rules 
+    List or create Server Group
     """
-    queryset = models.Rule.objects.all()
-    serializer_class = serializers.RuleSerializer
-
-class PolicyViewSet(ModelViewSet):
-    """
-    Permissions policies
-    """
-    queryset = models.Policy.objects.all()
-    serializer_class = serializers.PolicySerializer
+    queryset = models.ServerGroup.objects.all().order_by('id')
+    serializer_class = serializers.ServerGroupSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
 
 
-class ConfigViewSet(ModelViewSet):
+class ServerGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    Configuration
+    Retrieve, update or delete a Server Group
     """
-    queryset = models.Config.objects.all()
+    queryset = models.ServerGroup.objects.all().order_by('id')
+    serializer_class = serializers.ServerGroupSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+
+class ConfigListView(generics.ListAPIView):
+    """
+    List Config
+    """
+    queryset = models.Config.objects.all().order_by('id')
     serializer_class = serializers.ConfigSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+
+
+class ConfigDetailView(generics.UpdateAPIView):
+    """
+    Retrieve or update Config
+    """
+    queryset = models.Config.objects.all().order_by('id')
+    serializer_class = serializers.ConfigSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+    http_method_names = ['patch']
+
+
+class RuleListView(generics.ListCreateAPIView):
+    """
+    List or create Rules 
+    """
+    queryset = models.Rule.objects.all().order_by("id")
+    serializer_class = serializers.RuleSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+
+
+class RuleDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a Rule
+    """
+    queryset = models.Rule.objects.all().order_by('id')
+    serializer_class = serializers.RuleSerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+
+class PolicyListView(generics.ListCreateAPIView):
+    """
+    List or create Policies
+    """
+    queryset = models.Policy.objects.all().order_by("id")
+    serializer_class = serializers.PolicySerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+
+
+class PolicyDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a Policy
+    """
+    queryset = models.Policy.objects.all().order_by('id')
+    serializer_class = serializers.PolicySerializer
+    permission_classes = (hub.permissions.HubDjangoModelPermissions,)
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
 
 class PingViewSet(ViewSet):
     """
-    Ping endpoint for connectivity testing
+    Ping endpoint for availability/connectivity testing of Evon Hub API
     """
     serializer_class = serializers.PingSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 
-    @extend_schema(
-        operation_id="ping_request"
-    )
+    @extend_schema(operation_id="ping_request")
     def list(self, request):
         return Response({"message": "pong"})
 
@@ -117,7 +221,7 @@ class BootstrapViewSet(AccessViewSetMixin, ViewSet):
     access_policy = policies.BootstrapAccessPolicy
 
     @extend_schema(
-        operation_id="bootstrap_retrieve"
+        operation_id="bootstrap_retrieve",
     )
     @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
     def download(self, *args, **kwargs):
@@ -198,7 +302,7 @@ class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
     @action(methods=['get'], detail=False)
     def endpoints(self, *args, **kwargs):
         """
-        Obteain a list of connected Servers
+        Retrieve a list of all connected Servers
         """
         self.vpn_mgmt_servers.connect()
         clients = {k: v.common_name for k, v in self.vpn_mgmt_servers.get_status().routing_table.items()}

@@ -64,6 +64,24 @@ INSTALLED_APPS = [
 EVON_HUB_CONFIG = {
     "vpn_mgmt_servers": VPN(unix_socket="/etc/openvpn/evon_mgmt_servers"),
     "vpn_mgmt_users": VPN(unix_socket="/etc/openvpn/evon_mgmt_users"),
+    # define blacklist of permissions with content types having specific names
+    "EXCLUDED_CONTENT_TYPE_NAMES": [
+        'log entry',
+        'permission',
+        'Token',
+        'token',
+        'content type',
+        'Bootstrap',
+        'OpenVPN Client',
+        'user profile',
+        'session',
+    ],
+    # define blacklist of permissions having specific names
+    "EXCLUDED_PERMISSION_NAMES": [
+        'Can add server',
+        'Can add Config',
+        'Can delete Config',
+    ],
 }
 
 # location of XTABLES_LIBDIR for in hub.firewall.iptc lib
@@ -242,10 +260,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-        #'rest_framework.permissions.IsAdminUser',
-        #'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
-        #'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.DjangoModelPermissions',
     ],
     #'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -257,8 +272,12 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Evon Hub API',
     'DESCRIPTION': """`[ Elastic Virtual Overlay Network ]`\n
 Evon Hub API Documentation.\n
+To authorize to this API, include your auth token in the request header as:\n
+```
+Authorization: Token <YOUR_AUTH_TOKEN>
+```
+Your auth token can be retrieved via the [Evon Hub Web UI](/authtoken/tokenproxy).
     """,
     'VERSION': VERSION,
-    'SERVE_INCLUDE_SCHEMA': True,
-    # OTHER SETTINGS
+    'SERVE_INCLUDE_SCHEMA': False,
 }
