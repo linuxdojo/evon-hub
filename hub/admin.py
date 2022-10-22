@@ -22,15 +22,21 @@ from rest_framework.authtoken.models import Token, TokenProxy
 from solo.admin import SingletonModelAdmin
 import humanfriendly
 
-from eapi.settings import EVON_VARS, BASE_DIR, JAZZMIN_SETTINGS 
+from eapi.settings import EVON_VARS, BASE_DIR, JAZZMIN_SETTINGS, EVON_HUB_CONFIG
 import hub.models
 
+
+EXCLUDED_CONTENT_TYPE_NAMES = EVON_HUB_CONFIG['EXCLUDED_CONTENT_TYPE_NAMES']
+EXCLUDED_PERMISSION_NAMES = EVON_HUB_CONFIG['EXCLUDED_PERMISSION_NAMES']
 
 admin.site.site_header = "Evon Hub Admin"
 admin.site.site_title = "Evon Hub Admin"
 
 
 def linkify(obj, prepend_icon=True):
+    """
+    Helper function that converts m2m objects to clickable links in Admin List views
+    """
     app_label = obj._meta.app_label
     model_name = obj._meta.model_name
     view_name = f'admin:{app_label}_{model_name}_change'
@@ -43,6 +49,9 @@ def linkify(obj, prepend_icon=True):
         icon = JAZZMIN_SETTINGS["icons"][f"{app_label}.{model_name}"]
         label = format_html(f'<i class="{icon}"></i> {label}')
     return format_html('<a href="{}">{}</a>', link_url, label)
+
+
+
 
 
 admin.site.unregister(TokenProxy)
@@ -126,7 +135,8 @@ class OVPNClientAdmin(admin.ModelAdmin):
     def view_custom(self, request):
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
-            "auth_token": User.objects.get(username=request.user.username).auth_token,
+            "auth_token": request.user.auth_token,
+            "user": request.user,
         }
         template_path = os.path.join(f"{BASE_DIR}", "hub", "templates", "hub", self.custom_template_filename)
         with open(template_path) as f:
@@ -403,22 +413,35 @@ class GenericGroup(GroupAdmin):
     def has_delete_permission(self, request, obj=None):
         if obj and obj.name == "All Users":
             return False
-        return True
+        return super().has_delete_permission(request, obj)
 
     def has_save_permission(self, request, obj=None):
         if obj and obj.name == "All Users":
             return False
-        return True
+        return super().has_save_permission(request, obj)
 
     def has_change_permission(self, request, obj=None):
         if obj and obj.name == "All Users":
             return False
-        return True
+        return super().has_change_permission(request, obj)
 
     def users(self, obj):
         if obj.name == "All Users":
             return "All Users"
         return format_html(", ".join(linkify(u) for u in obj.user_set.all()))
+
+    def get_form(self, request, obj=None, **kwargs):
+        # the below is based on 'change permissions list' answers at https://stackoverflow.com/questions/6589485/django-admin-change-permissions-list
+        form = super().get_form(request, obj, **kwargs)
+        if 'permissions' in form.base_fields:
+            permissions = form.base_fields['permissions']
+            # filter permissions with content types whose names are blacklisted
+            permissions.queryset = permissions.queryset.exclude(
+                content_type__id__in=[p.content_type.id for p in permissions.queryset if p.content_type.name in EXCLUDED_CONTENT_TYPE_NAMES]
+            )
+            # filter permissions with blacklisted names
+            permissions.queryset = permissions.queryset.exclude(name__in=EXCLUDED_PERMISSION_NAMES)
+        return form
 
 
 class ProfileInLine(admin.StackedInline):
@@ -453,3 +476,17 @@ class GenericUser(UserAdmin):
             if obj.username != "deployer":
                 obj.is_staff = True
                 obj.save()
+
+    def get_form(self, request, obj=None, **kwargs):
+        # the below is based on 'change permissions list' answers at https://stackoverflow.com/questions/6589485/django-admin-change-permissions-list
+        form = super().get_form(request, obj, **kwargs)
+        if 'user_permissions' in form.base_fields:
+            permissions = form.base_fields['user_permissions']
+            # filter permissions with content types whose names are blacklisted
+            permissions.queryset = permissions.queryset.exclude(
+                content_type__id__in=[p.content_type.id for p in permissions.queryset if p.content_type.name in EXCLUDED_CONTENT_TYPE_NAMES]
+            )
+            # filter permissions with blacklisted names
+            permissions.queryset = permissions.queryset.exclude(name__in=EXCLUDED_PERMISSION_NAMES)
+        return form
+
