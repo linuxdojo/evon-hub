@@ -1,19 +1,18 @@
 # MVP Release
 
-## Hub Installer package
+## AWSMP
 
-* implement s3 publishing and upgrading process
+* implement s3 publishing and upgrading process. Wait until we understand how AWS MP SaaS works first.
+* publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 
 ## API
 
 * validate api permissions
 
-## AWSMP
-
-* publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 
 ## Miscelaneous
 
+* fix token permissions appearing twice in django admin permissions
 * tidy up and add get syslog logs to api endpoints
 * setup Evon site, add page on linuxdojo.com
 * address TODO, FIXME, XXX
@@ -43,3 +42,4 @@ Oct 19 10:02:58 umbriel nm-openvpn[1150313]: WARNING: 'keysize' is used inconsis
 * default admin password is ec2 id. Force change first login.
 * in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
 * add mfa (consider django-mfa2 or django-mfa3)
+* we're filtering permissions in the permission API list view and in the admin site for User and Group auth classes, but not enforcing exclusive use of this filtered list in the save() (at least for the API). Consdiering only Superusers can change perms and if they bugger around with saving unlisted permission id's, it's their prob. We'll enforce this later.
