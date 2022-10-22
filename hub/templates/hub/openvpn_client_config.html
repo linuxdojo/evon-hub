@@ -57,9 +57,11 @@ nmcli connection modify EvonHub +vpn.data username=your_evon_hub_username</pre>
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
-        You can obtain a list of servers to which you're able to connect (subject to Policy defined by an admin) either via the <a href="/hub/server">Servers</a> menu option in this Web UI or via the Evon Hub API.<br/>
+        You can obtain a list of servers to which you're permitted to connect (subject to policy defined by an admin) either via the <a href="/hub/server">Servers</a> menu option in this Web UI or via the <a href="/api/#tag/server" target="_blank">Evon Hub API</a>.<br/>
+        {% if user.is_superuser  %}
         <br/>
-        Note that any users with the Superuser status flag enabled will be able to list all servers but will only be able to connect to them if a Rule and Policy explicitely allows it.<br/>
+        When listing servers via the API, superusers (like yourself) will obtain a list of <strong>all</strong> servers, whereas non-superusers will only see a list of servers that they're permitted to access via a policy. As such, for superuser API clients, listed servers include an `accessible` boolean property on each server object that indicates whether or not they can connect to it based on policy. See the <a href="/api/#tag/server" target="_blank">API Documentation</a> for further detail.<br/>
+        {% endif %}
         <br/>
         Example scripts are provided below for listing your servers via the API. These examples include your <a href="/authtoken/tokenproxy/">Authentication Token</a> in clear text, therefore care should be taken to keep these scripts private if used as is.<br />
         <br />

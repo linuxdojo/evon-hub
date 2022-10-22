@@ -24,13 +24,6 @@ import hub.views
 
 router = routers.DefaultRouter(trailing_slash=False)
 
-router.register(r'user', hub.views.UserViewSet)
-router.register(r'group', hub.views.GroupViewSet)
-router.register(r'server', hub.views.ServerViewSet)
-router.register(r'servergroup', hub.views.ServerGroupViewSet)
-router.register(r'rule', hub.views.RuleViewSet)
-router.register(r'policy', hub.views.PolicyViewSet)
-router.register(r'config', hub.views.ConfigViewSet)
 router.register(r'ping', hub.views.PingViewSet, basename="ping")
 router.register(r'bootstrap', hub.views.BootstrapViewSet, basename="bootstrap")
 router.register(r'iid', hub.views.IIDViewSet, basename="iid")
@@ -39,11 +32,24 @@ router.register(r'ovpnclient', hub.views.OVPNClientViewSet, basename="ovpnclient
 
 urlpatterns = [
     re_path(r'^favicon\.ico$', RedirectView.as_view(permanent=False, url='/static/favicon.ico')),
-    #re_path(r'^api/', include('rest_framework.urls', namespace='rest_framework')),
     re_path(r'^api/schema', SpectacularAPIView.as_view(), name='schema'),
     re_path(r'^api/$', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('api/', include(router.urls)),
-    #path("admin/", admin.site.urls),
+    path('api/permission', hub.views.PermissionListView.as_view()),
+    path('api/user', hub.views.UserListView.as_view()),
+    path('api/user/<int:pk>', hub.views.UserDetailView.as_view()),
+    path('api/group', hub.views.GroupListView.as_view()),
+    path('api/group/<int:pk>', hub.views.GroupDetailView.as_view()),
+    path('api/server', hub.views.ServerListView.as_view()),
+    path('api/server/<int:pk>', hub.views.ServerDetailView.as_view()),
+    path('api/servergroup', hub.views.ServerGroupListView.as_view()),
+    path('api/servergroup/<int:pk>', hub.views.ServerGroupDetailView.as_view()),
+    path('api/config', hub.views.ConfigListView.as_view()),
+    path('api/config/<int:pk>', hub.views.ConfigDetailView.as_view()),
+    path('api/rule', hub.views.RuleListView.as_view()),
+    path('api/rule/<int:pk>', hub.views.RuleDetailView.as_view()),
+    path('api/policy', hub.views.PolicyListView.as_view()),
+    path('api/policy/<int:pk>', hub.views.PolicyDetailView.as_view()),
     #re_path(r'^', include('hub.urls')),
     re_path("", admin.site.urls),
 ]
