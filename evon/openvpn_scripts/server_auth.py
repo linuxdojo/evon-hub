@@ -23,13 +23,15 @@ config = Config.get_solo()
 
 logger.info(f"Authenticating new Server connection with UUID: {username}")
 
-if not config.discovery_mode and not Server.objects.filter(uuid=username).first():
-    logger.warning(f"Denying login for UUID '{username}': discovery_mode disabled, not accepting new Servers")
-    sys.exit(1)
-
 if username in config.uuid_blacklist.split(","):
     logger.warning(f"Denying login for UUID '{username}': UUID is blacklisted in Hub Config.")
-    sys.exit(2)
+    sys.exit(1)
+
+if not config.discovery_mode:
+    # if uuid is not associated with a current server, and username is not whitelisted
+    if not Server.objects.filter(uuid=username).first() and username not in config.uuid_whitelist.split(","):
+        logger.warning(f"Denying login for UUID '{username}': discovery_mode is disabled and UUID is not known nor whitelisted.")
+        sys.exit(2)
 
 server_count = Server.objects.count()
 max_server_count = len(vpn_ipv4_addresses())
