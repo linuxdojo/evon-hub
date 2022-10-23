@@ -6,24 +6,18 @@ from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User as DjangoUser
 from django.http import FileResponse
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
-from django.shortcuts import render
-from drf_spectacular.utils import extend_schema
-from openvpn_status import ParsingError
-from rest_access_policy import AccessViewSetMixin
+from drf_spectacular.utils import extend_schema, OpenApiTypes, OpenApiExample
 from rest_framework import generics
-from rest_framework import mixins
 from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ViewSet
+from rest_framework.viewsets import ViewSet
 import requests
 #from retry import retry
 
 from eapi.settings import EVON_HUB_CONFIG
 from evon import log
 from hub import models
-from hub import policies
 from hub.api import serializers
 from hub.renderers import BinaryFileRenderer
 import hub.permissions
@@ -208,20 +202,39 @@ class PingViewSet(ViewSet):
     serializer_class = serializers.PingSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    @extend_schema(operation_id="ping_request")
+    @extend_schema(
+        operation_id="ping_request",
+        responses={
+            200: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                'example response',
+                description='Successful response',
+                value={
+                    'message': 'pong',
+                },
+                response_only=True,
+            ),
+        ]
+    )
     def list(self, request):
         return Response({"message": "pong"})
 
 
-class BootstrapViewSet(AccessViewSetMixin, ViewSet):
+class BootstrapViewSet(ViewSet):
     """
     Download the `bootstrap.sh` installer for connecting remote systems to this overlay network.
+    Requesting user must be a superuser or the "depoloyer" user.
     """
     serializer_class = serializers.BootstrapSerializer
-    access_policy = policies.BootstrapAccessPolicy
+    permission_classes = (hub.permissions.IsSuperuserOrDeployer,)
 
     @extend_schema(
         operation_id="bootstrap_retrieve",
+        responses={
+            (200, 'application/octet-stream'): OpenApiTypes.BINARY
+        }
     )
     @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
     def download(self, *args, **kwargs):
@@ -234,15 +247,18 @@ class BootstrapViewSet(AccessViewSetMixin, ViewSet):
         return response
 
 
-class OVPNClientViewSet(AccessViewSetMixin, ViewSet):
+class OVPNClientViewSet(ViewSet):
     """
     Download the `EvonHub.ovpn` OpenVPN configuration file for user access to this overlay network.
     """
     serializer_class = serializers.OVPNClientSerializer
-    access_policy = policies.OVPNClientAccessPolicy
+    permission_classes = (permissions.IsAuthenticated,)
 
     @extend_schema(
-        operation_id="ovpnclient_retrieve"
+        operation_id="ovpnclient_retrieve",
+        responses={
+            (200, 'application/octet-stream'): OpenApiTypes.BINARY
+        }
     )
     @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
     def download(self, *args, **kwargs):
@@ -255,11 +271,56 @@ class OVPNClientViewSet(AccessViewSetMixin, ViewSet):
         return response
 
 
+#class OpenVPNMgmtViewSet(ViewSet):
+#    """
+#    OpenVPN Management Interface
+#    """
+#    serializer_class = serializers.OpenVPNMgmtSerializer
+#    permission_classes = (hub.permissions.IsSuperuser,)
+#
+#    def __init__(self, *args, **kwargs):
+#        self.vpn_mgmt_servers = EVON_HUB_CONFIG["vpn_mgmt_servers"]
+#        self.vpn_mgmt_users = EVON_HUB_CONFIG["vpn_mgmt_users"]
+#        super().__init__(*args, **kwargs)
+#
+#    @extend_schema(
+#        operation_id="openvpn_list"
+#    )
+#    @action(methods=['get'], detail=False)
+#    def endpoints(self, *args, **kwargs):
+#        """
+#        Retrieve a list of OpenVPN connected Servers on this hub.
+#        Requesting user must be a superuser.
+#        """
+#        self.vpn_mgmt_servers.connect()
+#        clients = {k: v.common_name for k, v in self.vpn_mgmt_servers.get_status().routing_table.items()}
+#        self.vpn_mgmt_servers.disconnect()
+#        return Response(clients)
+#
+#    @extend_schema(
+#        operation_id="openvpn_kill"
+#    )
+#    @action(methods=['post'], detail=False)
+#    def kill(self, request, *args, **kwargs):
+#        """
+#        Disconnect a Server based on UUID.
+#        Requesting user must be a superuser.
+#        """
+#        if not "uuid" in request.data:
+#            return Response({"status": "error", "message": "uuid missing in request"}, status="400")
+#        uuid = request.data["uuid"]
+#        self.vpn_mgmt_servers.connect()
+#        result = self.vpn_mgmt_servers.send_command(f"kill {uuid}")
+#        self.vpn_mgmt_servers.disconnect()
+#        return Response({"status": "ok", "message": result})
+
+
 class IIDViewSet(ViewSet):
     """
     Retrieve the Instance Identity Document for the AWS EC2 instance that this Hub is running on.
     """
     serializer_class = serializers.IIDSerializer
+    permission_classes = (hub.permissions.IsSuperuserOrDeployer,)
 
     @extend_schema(
         operation_id="iid_retrieve"
@@ -282,45 +343,3 @@ class IIDViewSet(ViewSet):
             }
             status = "404"
         return Response(response, status=status)
-
-
-class OpenVPNMgmtViewSet(AccessViewSetMixin, ViewSet):
-    """
-    OpenVPN Management Interface
-    """
-    serializer_class = serializers.OpenVPNMgmtSerializer
-    access_policy = policies.OpenVPNMgmtAccessPolicy
-
-    def __init__(self, *args, **kwargs):
-        self.vpn_mgmt_servers = EVON_HUB_CONFIG["vpn_mgmt_servers"]
-        self.vpn_mgmt_users = EVON_HUB_CONFIG["vpn_mgmt_users"]
-        super().__init__(*args, **kwargs)
-
-    @extend_schema(
-        operation_id="openvpn_list"
-    )
-    @action(methods=['get'], detail=False)
-    def endpoints(self, *args, **kwargs):
-        """
-        Retrieve a list of all connected Servers
-        """
-        self.vpn_mgmt_servers.connect()
-        clients = {k: v.common_name for k, v in self.vpn_mgmt_servers.get_status().routing_table.items()}
-        self.vpn_mgmt_servers.disconnect()
-        return Response(clients)
-
-    @extend_schema(
-        operation_id="openvpn_kill"
-    )
-    @action(methods=['post'], detail=False)
-    def kill(self, request, *args, **kwargs):
-        """
-        Disconnect a Server based on UUID
-        """
-        if not "uuid" in request.data:
-            return Response({"status": "error", "message": "uuid missing in request"}, status="400")
-        uuid = request.data["uuid"]
-        self.vpn_mgmt_servers.connect()
-        result = self.vpn_mgmt_servers.send_command(f"kill {uuid}")
-        self.vpn_mgmt_servers.disconnect()
-        return Response({"status": "ok", "message": result})
