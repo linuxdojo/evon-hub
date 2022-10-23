@@ -182,6 +182,17 @@ Options:
     always be used and this option can not be specified. Remove this file if you
     want to change the UUID (and the IPv4 overlay net address) for this server.
 
+  -n, --hostname <HOSTNAME>
+    If not set, a unique HOSTNAME value will be auto-generated using the output
+    of the command \`uname -n\`, else <HOSTNAME> will be used. This value is
+    stored locally and sent to your Evon Hub upon connection to provide it with
+    the name of this server. This server will then be reachable at the public
+    FQDN \`<HOSTNAME>.<domain-prefix>.evon.link\` where <domain-prefix> is your
+    domain prefix that was chosen during registration. Should there be a conflict
+    of hostnames on Evon Hub, the HOSTNAME will be auto-indexed, eg. HOSTNAME-1.
+    HOSTNAME will be stored in the file /etc/openvpn/evon.uuid and can be changed
+    at any time, and applied by restarting the OpenVPN service on this server.
+
   -e, --extra-config <FILE>
     Append extra OpenVPN config in <FILE> to the default Evon Hub OpenVPN
     config. Use this option if you need to tunnel through a proxy server by
@@ -194,6 +205,10 @@ Options:
         </http-proxy-user-pass>
 
     Refer to the OpenVPN Reference Manual at https://openvpn.net for more info.
+
+  -s, --no-start
+    Deploy the OpenVPN configuration for connecting to your Evon Hub, but do not
+    start/persist the service.
 
   -v, --version
     Show version and exit
@@ -262,8 +277,9 @@ for arg in "$@"; do
     '--version')      set -- "$@" '-v'   ;;
     '--install')      set -- "$@" '-i'   ;;
     '--uninstall')    set -- "$@" '-u'   ;;
-    '--no-start')     set -- "$@" '-n'   ;;
+    '--no-start')     set -- "$@" '-s'   ;;
     '--uuid')         set -- "$@" '-d'   ;;
+    '--hostname')     set -- "$@" '-n'   ;;
     '--extra-config') set -- "$@" '-e'   ;;
     *)                set -- "$@" "$arg" ;;
   esac
@@ -276,9 +292,10 @@ while getopts ":hiud:ve:n" opt; do
     'h') show_banner; show_usage; exit 0 ;;
     'i') evon_install=true ;;
     'u') evon_uninstall=true ;;
-    'n') evon_nostart=true ;;
+    's') evon_nostart=true ;;
     'd') evon_uuid=$OPTARG ;;
     'e') evon_extra=$OPTARG ;;
+    'n') evon_hostname=$OPTARG ;;
     'v') echo $VERSION; exit 0 ;;
     '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
   esac
@@ -509,7 +526,11 @@ EOF
             echo Using provided UUID: $evon_uuid
         fi
         # set hostname
-        hostname=$(uname -n)
+        if [ -z $evon_hostname ]; then
+            hostname=$(uname -n)
+        else
+            hostname=$evon_hostname
+        fi
         echo -e "${evon_uuid}\n${hostname}" > /etc/openvpn/evon.uuid
         chmod 600 /etc/openvpn/evon.uuid
         [ "$os" == "arch" ] && chown openvpn /etc/openvpn/evon.uuid
@@ -536,7 +557,6 @@ EOF
         fi
 
         ##### Test OpenVPN connection
-        #TODO we need to wait until we're booted off the scope range and onto the permanent range
         attempts=5
         echo -n "Attempting to contact Evon Hub"
         while [ $attempts -gt 0 ]; do
@@ -559,7 +579,7 @@ EOF
         ipaddr=$(ip a | grep -E "inet 100.${SUBNET_KEY}" | awk '{print $2}')
         echo "Obtained VPN ip address: $ipaddr"
     else
-        echo "--no-start specified, skipping start/persist of OpenVPN (only config has been deployed)"
+        echo '--no-start specified, skipping start/persist of OpenVPN (only config has been deployed)'
     fi
 else
     echo "Evon Hub Peer address at ${EVON_HUB_PEER} is reachable, OpenVPN seems to be already configured, skipping."
