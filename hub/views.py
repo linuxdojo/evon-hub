@@ -279,7 +279,7 @@ class BootstrapViewSet(ViewSet):
         _, dec_filepath = tempfile.mkstemp()
         with os.fdopen(fd, "wb") as f:
             f.write(uploaded_content)
-        decrypt_cmd = f'openssl enc -md sha256 -d -pass "pass:{decrypt_key}" -aes-256-cbc -iter 100000 -in {enc_filepath} -out {dec_filepath}'
+        decrypt_cmd = f'openssl enc -md sha256 -d -pass "pass:{decrypt_key}" -aes-256-cbc -in {enc_filepath} -out {dec_filepath}'
         p = subprocess.Popen(decrypt_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, close_fds=True)
         try:
             p.wait(timeout=5)
