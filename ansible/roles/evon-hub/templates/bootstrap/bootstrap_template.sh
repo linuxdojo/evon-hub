@@ -222,8 +222,8 @@ Environment Variables:
     If set, the value will be used as the key for decrypting the OpenVPN config
     secrets during installation. If not set, you will be prompted for this key.
     Set this if non-interactive (unattended) installation is required. To
-    retrieve the deploy key, run \`evon --get-deploy-key\` on your Evon Hub, or
-    visit your Evon Hub Admin site and copy the key for user \`deployer\` at:
+    retrieve the deploy key, visit your Evon Hub Admin site and copy the key
+    for user \`deployer\` (or a superuser) at:
     https://${ACCOUNT_DOMAIN}/authtoken/tokenproxy/"
 }
 
