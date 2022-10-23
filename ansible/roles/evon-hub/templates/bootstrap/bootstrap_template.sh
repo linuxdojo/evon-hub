@@ -287,7 +287,7 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts ":hiud:ve:n" opt; do
+while getopts ":hiud:ve:n:s" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
     'i') evon_install=true ;;
