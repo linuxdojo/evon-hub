@@ -5,19 +5,13 @@
 * implement s3 publishing and upgrading process. Wait until we understand how AWS MP SaaS works first.
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 
-## Bootstrap
-
-* add option to set hostname in bootstrap invocation (rather than `uname -n` default) and expose UUID and HOSTNAME via env var options in bootstrap docker
-
 ## Miscelaneous
 
 * setup Evon site, add page on linuxdojo.com
-* address TODO, FIXME, XXX
-* create a new persisted secret key in settings.py when deploying, see https://saasitive.com/tutorial/generate-django-secret-key/
-
 
 # Future Release
 
+* create a new persisted secret key in settings.py when deploying, see https://saasitive.com/tutorial/generate-django-secret-key/
 * tidy up syslog to log all app related logs to the existing single evon log single file in /var/log/evon/ and consider adding get_syslog_logs api endpoint
 * consider a "refresh" button on list views in admin
 * Fix warnings when clients connect::
