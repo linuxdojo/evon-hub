@@ -395,7 +395,7 @@
         dest: /opt/evon-hub/build_bootstrap/bootstrap.sh
 
     - name: encrypt bootstrap secrets
-      ansible.builtin.shell: "openssl enc -md sha256 -aes-256-cbc -pass pass:{{ bootstrap_key }} -in /opt/evon-hub/build_bootstrap/openvpn_secrets.conf -out /opt/evon-hub/build_bootstrap/openvpn_secrets.conf.aes"
+      ansible.builtin.shell: "openssl enc -md sha256 -aes-256-cbc -pass pass:{{ bootstrap_key }} -iter 100000 -in /opt/evon-hub/build_bootstrap/openvpn_secrets.conf -out /opt/evon-hub/build_bootstrap/openvpn_secrets.conf.aes"
 
     - name: build bootstrap script
       ansible.builtin.shell: |

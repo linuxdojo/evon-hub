@@ -106,55 +106,6 @@ elif [[ ! -e /dev/net/tun ]] || ! ( exec 7<>/dev/net/tun ) 2>/dev/null; then
 fi
 
 
-# curl function wrapper
-curlf() {
-    OUTPUT_FILE=$(mktemp)
-    HTTP_CODE=$(curl --silent --output $OUTPUT_FILE --write-out "%{http_code}" "$@")
-    rc=$?
-    if [ $rc != 0 ]; then
-        echo "ERROR: curl returned non-zero return code: $rc" > $OUTPUT_FILE
-    elif [[ ${HTTP_CODE} -lt 200 || ${HTTP_CODE} -gt 299 ]] ; then
-        if [ ${HTTP_CODE} -eq 401 ]; then
-            echo "ERROR: Bad deploy key" > $OUTPUT_FILE
-        else
-            echo "ERROR: Got HTTP response code ${HTTP_CODE} from Evon Hub" > $OUTPUT_FILE
-        fi
-    fi
-    cat $OUTPUT_FILE
-    rm $OUTPUT_FILE
-}
-
-
-# decrypt key getter function
-get_decrypt_key() {
-    deploy_key=$1
-    data=$(curlf -H "Authorization: Token ${deploy_key}" "https://${ACCOUNT_DOMAIN}/api/iid/get")
-    if echo $data | grep -q ERROR; then
-        echo $data
-    else
-        data=$(echo $data | jq -jr ".accountId, .instanceId")
-        echo $(echo -n $data | md5sum | awk '{print $1}')
-    fi
-}
-
-
-# decrypt key function
-decrypt_key() {
-    decrypt_key=$1
-    in_file=$2
-    out_file=$3
-    openssl enc \
-        -md sha256 \
-        -d \
-        -pass "pass:${decrypt_key}" \
-        -aes-256-cbc \
-        -in ${in_file} \
-        -out ${out_file} \
-        2>/dev/null
-    return $?
-}
-
-
 # payload extractor function
 function extract_payload() {
     extract_dir=$1
@@ -167,6 +118,41 @@ function extract_payload() {
     tail -n +$payload_start $src | base64 -d | gunzip | cpio -id -H tar
     rm -f $src
     cd - >/dev/null
+}
+
+# curl function wrapper
+function curl_wrapper() {
+    OUTPUT_FILE=$(mktemp)
+    HTTP_CODE=$(curl --silent --output $OUTPUT_FILE --write-out "%{http_code}" "$@")
+    rc=$?
+    if [ $rc != 0 ]; then
+        echo "ERROR: curl returned non-zero return code $rc. See https://curl.se/libcurl/c/libcurl-errors.html for error code detail." > $OUTPUT_FILE
+    elif [[ ${HTTP_CODE} -lt 200 || ${HTTP_CODE} -gt 299 ]] ; then
+        if [ ${HTTP_CODE} -eq 401 ]; then
+            echo "ERROR: Bad deploy key" > $OUTPUT_FILE
+        elif [ ${HTTP_CODE} -eq 403 ]; then
+            echo "ERROR: User associated with provided key is forbidden from installing bootstrap, 'deployer' key or a superuser key is required." > $OUTPUT_FILE
+        else
+            echo "ERROR: Got HTTP response code ${HTTP_CODE} from Evon Hub" > $OUTPUT_FILE
+        fi
+    fi
+    cat $OUTPUT_FILE
+    rm $OUTPUT_FILE
+}
+
+# sends encrypted openvpn secrets payload to Hub API for decryption based on API key, and stores decrypted cleartext to file if successful
+function decrypt_secret() {
+    evon_deploy_key=$1
+    in_file=$2
+    out_file=$3
+    curl_wrapper -X POST "https://${ACCOUNT_DOMAIN}/api/bootstrap/decrypt" \
+        -H "Authorization: Token ${evon_deploy_key}" \
+        -F "data=@${in_file}" > ${out_file}
+    if cat ${out_file} | grep -q ERROR; then
+        echo  ""
+        cat ${out_file}
+        return 1
+    fi
 }
 
 
@@ -446,8 +432,7 @@ if [ "$installed" != "1" ]; then
     cd $tmpdir
     # decrypt the secrets conf file.
     if [ -n "$EVON_DEPLOY_KEY" ]; then
-        DECRYPT_KEY=$(get_decrypt_key "$EVON_DEPLOY_KEY")
-        decrypt_key ${DECRYPT_KEY} openvpn_secrets.conf.aes openvpn_secrets.conf
+        decrypt_secret ${EVON_DEPLOY_KEY} openvpn_secrets.conf.aes openvpn_secrets.conf
         if [ $? -ne 0 ]; then
             bail 1 "Error: Could not decrypt the OpenVPN config in this installer. Please check env var EVON_DEPLOY_KEY and re-run this script."
         fi
@@ -455,14 +440,9 @@ if [ "$installed" != "1" ]; then
         echo "Environment variable EVON_DEPLOY_KEY is not set. See --help for info about invoking this script non-interactively."
         while [ "$success" != "0" ]; do
             read -sp "Enter your Evon Deploy Key (text will not be echoed, ctrl-c to exit): " EVON_DEPLOY_KEY
-            DECRYPT_KEY=$(get_decrypt_key "$EVON_DEPLOY_KEY")
-            if echo $DECRYPT_KEY | grep -q ERROR; then
-                echo $DECRYPT_KEY
-                continue
-            fi
-            decrypt_key ${DECRYPT_KEY} openvpn_secrets.conf.aes openvpn_secrets.conf
+            decrypt_secret ${EVON_DEPLOY_KEY} openvpn_secrets.conf.aes openvpn_secrets.conf
             success=$?
-            [ "$success" != "0"  ] && echo Error decrypting, please check the Deploy Key and retry.
+            [ "$success" != "0"  ] && echo Error decrypting, please check your deploy key and retry.
         done
         echo ""
     fi
