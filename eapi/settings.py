@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 import os
+import sys
 
 from openvpn_api.vpn import VPN
 from pathlib import Path
@@ -83,6 +84,11 @@ EVON_HUB_CONFIG = {
         'Can delete Config',
     ],
 }
+
+# Prevent migrate from triggering for models with dynamic help_text, see: https://stackoverflow.com/a/50804244/11828749
+if 'makemigrations' in sys.argv:
+    USE_I18N = False
+    USE_L10N = False
 
 # location of XTABLES_LIBDIR for in hub.firewall.iptc lib
 os.environ["XTABLES_LIBDIR"] = "/usr/lib64/xtables"
