@@ -5,22 +5,21 @@
 * implement s3 publishing and upgrading process. Wait until we understand how AWS MP SaaS works first.
 * publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
 
-## API
+## Bootstrap
 
-* validate api permissions
-
+* add option to set hostname in bootstrap invocation (rather than `uname -n` default) and expose UUID and HOSTNAME via env var options in bootstrap docker
+* in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote). Replaces iid api endpoint.
 
 ## Miscelaneous
 
-* fix token permissions appearing twice in django admin permissions
-* tidy up and add get syslog logs to api endpoints
 * setup Evon site, add page on linuxdojo.com
 * address TODO, FIXME, XXX
 * create a new persisted secret key in settings.py when deploying, see https://saasitive.com/tutorial/generate-django-secret-key/
-* add option to set hostname in bootstrap invocation (rather than `uname -n` default) and expose UUID and HOSTNAME via env var options in bootstrap docker
+
 
 # Future Release
 
+* tidy up syslog to log all app related logs to the existing single evon log single file in /var/log/evon/ and consider adding get_syslog_logs api endpoint
 * consider a "refresh" button on list views in admin
 * Fix warnings when clients connect::
 ``````
@@ -40,6 +39,5 @@ Oct 19 10:02:58 umbriel nm-openvpn[1150313]: WARNING: 'keysize' is used inconsis
 * documentation (readthedocs/sphinx style)
 * consider redirecting all hub urls to django app in nginx. SSL certs and ALLOWED_HOSTS needs to be managed accordingly. Alternate/simpler: allow clients to choose their own domain prefix rather than the 5 character auto-generated one.
 * default admin password is ec2 id. Force change first login.
-* in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote).
 * add mfa (consider django-mfa2 or django-mfa3)
 * we're filtering permissions in the permission API list view and in the admin site for User and Group auth classes, but not enforcing exclusive use of this filtered list in the save() (at least for the API). Consdiering only Superusers can change perms and if they bugger around with saving unlisted permission id's, it's their prob. We'll enforce this later.
