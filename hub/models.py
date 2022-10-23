@@ -479,6 +479,15 @@ class Config(SingletonModel):
             "Server with a UUID specified here will be forcibly disconnected and deleted."
         )
     )
+    uuid_whitelist = models.TextField(
+        null=True,
+        blank=True,
+        default="",
+        help_text=(
+            "Define a comma separated list of future Server UUID's that will allowed to connect even if discovery mode is disabled."
+            "Currently connected servers do not need to be added here as the Hub will always permit existing Server UUID's to connect."
+        )
+    )
 
     class Meta:
         verbose_name = "Config"
@@ -495,13 +504,23 @@ class Config(SingletonModel):
                     raise ValidationError(
                         {'uuid_blacklist': (f'Invalid UUID specified: {uuid}')}
                     )
+        # validate uuid_whitelist
+        if self.uuid_whitelist:
+            for uuid in [u.strip() for u in self.uuid_whitelist.split(",")]:
+                if not UUID_PATTERN.match(uuid):
+                    raise ValidationError(
+                        {'uuid_whitelist': (f'Invalid UUID specified: {uuid}')}
+                    )
+
 
     def save(self, *args, **kwargs):
         # validate and save
         self.full_clean()
-        # strip whitespace from uuids in blacklist
+        # strip whitespace from uuids in white/blacklists
         uuid_blacklist = [u.strip() for u in self.uuid_blacklist.split(",")]
+        uuid_whitelist = [u.strip() for u in self.uuid_whitelist.split(",")]
         self.uuid_blacklist = ",".join(uuid_blacklist)
+        self.uuid_whitelist = ",".join(uuid_whitelist)
         # delete servers in uuid_blacklist
         servers_to_delete = Server.objects.filter(uuid__in=uuid_blacklist)
         for s in servers_to_delete:
