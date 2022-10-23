@@ -109,3 +109,7 @@ fwinit: # initialise core Evon fw rules and chains
 
 fwinitempty: # initialise all Evon fw rules and chains (including Rules and Policies)
 	sudo bash -c '. .env/bin/activate && eapi fwctl --init-empty'
+
+migrate: # run eapi migrate
+	sudo bash -c '. .env/bin/activate && eapi migrate'
+
