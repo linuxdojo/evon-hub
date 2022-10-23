@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User, Group, Permission
+from drf_spectacular.utils import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from drf_spectacular.utils import OpenApiTypes
 
 import hub.models
 
