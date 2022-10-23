@@ -20,3 +20,12 @@ class IsSuperuser(BasePermission):
 
     def has_permission(self, request, view):
         return request.user.is_superuser
+
+
+class IsSuperuserOrDeployer(BasePermission):
+    """
+    Superuser or deployer permission check
+    """
+
+    def has_permission(self, request, view):
+        return request.user.is_superuser or request.user.username == "deployer"
