@@ -1,5 +1,8 @@
+import hashlib
 import os
 import socket
+import subprocess
+import tempfile
 
 from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib.auth.models import Permission
@@ -12,6 +15,7 @@ from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
+from rest_framework.parsers import MultiPartParser
 import requests
 #from retry import retry
 
@@ -39,7 +43,7 @@ def index(request):
 
 class PermissionListView(generics.ListAPIView):
     """
-    List all available permissions
+    List all available permissions that can be applied to Users and Groups
     """
     queryset = Permission.objects.exclude(
         content_type__id__in=[p.content_type.id for p in Permission.objects.all() if p.content_type.name in EXCLUDED_CONTENT_TYPE_NAMES]
@@ -149,7 +153,7 @@ class ConfigListView(generics.ListAPIView):
 
 class ConfigDetailView(generics.UpdateAPIView):
     """
-    Retrieve or update Config
+    Update Config
     """
     queryset = models.Config.objects.all().order_by('id')
     serializer_class = serializers.ConfigSerializer
@@ -224,11 +228,11 @@ class PingViewSet(ViewSet):
 
 class BootstrapViewSet(ViewSet):
     """
-    Download the `bootstrap.sh` installer for connecting remote systems to this overlay network.
-    Requesting user must be a superuser or the "depoloyer" user.
+    Bootstrap functions
     """
     serializer_class = serializers.BootstrapSerializer
     permission_classes = (hub.permissions.IsSuperuserOrDeployer,)
+    parser_classes = (MultiPartParser,)
 
     @extend_schema(
         operation_id="bootstrap_retrieve",
@@ -238,12 +242,64 @@ class BootstrapViewSet(ViewSet):
     )
     @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
     def download(self, *args, **kwargs):
+        """
+        Download the `bootstrap.sh` installer for connecting remote systems to this overlay network.
+        Requesting user must be a superuser or the "depoloyer" user.
+        """
         bootstrap_filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bootstrap.sh")
         bootstrap_filename = os.path.basename(bootstrap_filepath)
         f = open(bootstrap_filepath, "rb")
         response = FileResponse(f, content_type='application/octet-stream')
         response['Content-Length'] = os.path.getsize(bootstrap_filepath)
         response['Content-Disposition'] = f'attachment; filename="{bootstrap_filename}"'
+        return response
+
+    @extend_schema(
+        operation_id="bootstrap_decrypt",
+        responses={
+            (200, 'application/octet-stream'): OpenApiTypes.BINARY
+        }
+    )
+    @action(methods=['post'], detail=False, renderer_classes=(BinaryFileRenderer,))
+    def decrypt(self, request, format=None):
+        """
+        Decrypt the encrypted payload within `bootstrap.sh` installer and return its cleartext. This function is used internally by `bootstrap.sh`.
+        Requesting user must be a superuser or the "depoloyer" user.
+        """
+        uploaded_content = request.data["data"].read()
+        iid_url = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
+        decrypt_key = hashlib.md5(
+            "".join(
+                [
+                    i[1] for i in sorted(requests.get(iid_url).json().items()) if i[0] in ['accountId', 'instanceId']
+                ]
+            ).encode("utf-8")
+        ).hexdigest()
+        fd, enc_filepath = tempfile.mkstemp()
+        _, dec_filepath = tempfile.mkstemp()
+        with os.fdopen(fd, "wb") as f:
+            f.write(uploaded_content)
+        decrypt_cmd = f'openssl enc -md sha256 -d -pass "pass:{decrypt_key}" -aes-256-cbc -iter 100000 -in {enc_filepath} -out {dec_filepath}'
+        p = subprocess.Popen(decrypt_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, close_fds=True)
+        try:
+            p.wait(timeout=5)
+        except Exception:
+            p.kill()
+        child_stdout_and_stderr = p.stdout.read()
+        rc = p.returncode
+        if rc:
+            logger.warning(f"Decrypt failed, rc was {rc}, output: {child_stdout_and_stderr}")
+            response = {
+                "status": "error",
+                "message": f"failed to decrypt payload"
+            }
+            status = "400"
+            return Response(response, status=status)
+        dec_filename = os.path.basename(dec_filepath)
+        f = open(dec_filepath, "rb")
+        response = FileResponse(f, content_type='application/octet-stream')
+        response['Content-Length'] = os.path.getsize(dec_filepath)
+        response['Content-Disposition'] = f'attachment; filename="openvpn_secrets.conf"'
         return response
 
 
@@ -269,77 +325,3 @@ class OVPNClientViewSet(ViewSet):
         response['Content-Length'] = os.path.getsize(ovpnclient_filepath)
         response['Content-Disposition'] = f'attachment; filename="{ovpnclient_filename}"'
         return response
-
-
-#class OpenVPNMgmtViewSet(ViewSet):
-#    """
-#    OpenVPN Management Interface
-#    """
-#    serializer_class = serializers.OpenVPNMgmtSerializer
-#    permission_classes = (hub.permissions.IsSuperuser,)
-#
-#    def __init__(self, *args, **kwargs):
-#        self.vpn_mgmt_servers = EVON_HUB_CONFIG["vpn_mgmt_servers"]
-#        self.vpn_mgmt_users = EVON_HUB_CONFIG["vpn_mgmt_users"]
-#        super().__init__(*args, **kwargs)
-#
-#    @extend_schema(
-#        operation_id="openvpn_list"
-#    )
-#    @action(methods=['get'], detail=False)
-#    def endpoints(self, *args, **kwargs):
-#        """
-#        Retrieve a list of OpenVPN connected Servers on this hub.
-#        Requesting user must be a superuser.
-#        """
-#        self.vpn_mgmt_servers.connect()
-#        clients = {k: v.common_name for k, v in self.vpn_mgmt_servers.get_status().routing_table.items()}
-#        self.vpn_mgmt_servers.disconnect()
-#        return Response(clients)
-#
-#    @extend_schema(
-#        operation_id="openvpn_kill"
-#    )
-#    @action(methods=['post'], detail=False)
-#    def kill(self, request, *args, **kwargs):
-#        """
-#        Disconnect a Server based on UUID.
-#        Requesting user must be a superuser.
-#        """
-#        if not "uuid" in request.data:
-#            return Response({"status": "error", "message": "uuid missing in request"}, status="400")
-#        uuid = request.data["uuid"]
-#        self.vpn_mgmt_servers.connect()
-#        result = self.vpn_mgmt_servers.send_command(f"kill {uuid}")
-#        self.vpn_mgmt_servers.disconnect()
-#        return Response({"status": "ok", "message": result})
-
-
-class IIDViewSet(ViewSet):
-    """
-    Retrieve the Instance Identity Document for the AWS EC2 instance that this Hub is running on.
-    """
-    serializer_class = serializers.IIDSerializer
-    permission_classes = (hub.permissions.IsSuperuserOrDeployer,)
-
-    @extend_schema(
-        operation_id="iid_retrieve"
-    )
-    @action(methods=['get'], detail=False)
-    def get(self, *args, **kwargs):
-        try:
-            response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document").json()
-            status = None
-        except requests.exceptions.ConnectionError as e:
-            response = {
-                "status": "error",
-                "message": f"Could not connect to IID URL. You may be running locally rather than on AWS EC2."
-            }
-            status = "404"
-        except Exception as e:
-            response = {
-                "status": "error",
-                "message": f"{e}"
-            }
-            status = "404"
-        return Response(response, status=status)

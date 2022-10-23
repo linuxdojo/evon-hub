@@ -8,7 +8,6 @@
 ## Bootstrap
 
 * add option to set hostname in bootstrap invocation (rather than `uname -n` default) and expose UUID and HOSTNAME via env var options in bootstrap docker
-* in bootstrap, send enc payload to hub for decrypt, with optional local decrypt (use same EVON_DEPLOY_KEY for both, try local decrypt, then remote). Replaces iid api endpoint.
 
 ## Miscelaneous
 
