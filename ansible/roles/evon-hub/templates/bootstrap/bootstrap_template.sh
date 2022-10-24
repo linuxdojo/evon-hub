@@ -28,8 +28,9 @@ fi
 VERSION="{{ version }}"
 EVON_HUB_PEER="100.{{ subnet_key }}.224.1"
 ACCOUNT_DOMAIN="{{ account_domain }}"
-UUID_REGEX='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 SUBNET_KEY="{{ subnet_key }}"
+UUID_REGEX='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+HOSTNAME_REGEX='[a-z0-9]([-a-z0-9]*[a-z0-9])?'
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -333,6 +334,15 @@ if [ ! -z $evon_uuid ]; then
     echo $evon_uuid | grep -qE "$UUID_REGEX"
     if [ $? -ne 0 ]; then
         echo "ERROR: The provided UUID was not formatted correctly (it must conform to RFC 4122): ${evon_uuid}"
+        echo "For usage info, use --help"
+        exit 1
+    fi
+fi
+
+if [ ! -z $evon_hostname ]; then
+    echo $evon_hostname | grep -qE "$HOSTNAME_REGEX"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The provided hostname was not formatted correctly (it must conform to RFC 1123): ${evon_uuid}"
         echo "For usage info, use --help"
         exit 1
     fi
