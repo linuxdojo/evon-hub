@@ -215,6 +215,7 @@ if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
 fi
 . ~/.bash_profile
 pyenv install -s ${PY_VERSION}
+echo Done.
 
 echo '### Building env...'
 /opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install pip -U
