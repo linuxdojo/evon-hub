@@ -30,7 +30,7 @@ EVON_HUB_PEER="100.{{ subnet_key }}.224.1"
 ACCOUNT_DOMAIN="{{ account_domain }}"
 SUBNET_KEY="{{ subnet_key }}"
 UUID_REGEX='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-HOSTNAME_REGEX='[a-z0-9]([-a-z0-9]*[a-z0-9])?'
+HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -325,35 +325,35 @@ if [ "$evon_install" == "true" ] && [ "$evon_uninstall" == "true" ]; then
     exit 1
 fi
 
-if [ "$evon_uninstall" == "true" ] && [ ! -z $evon_uuid ]; then
+if [ "$evon_uninstall" == "true" ] && [ "$evon_uuid" ]; then
     echo "ERROR: UUID can obly be provided with the --install option"
     exit 1
 fi
 
-if [ ! -z $evon_uuid ]; then
-    echo $evon_uuid | grep -qE "$UUID_REGEX"
+if [ "$evon_uuid" ]; then
+    echo "$evon_uuid" | grep -qE "$UUID_REGEX"
     if [ $? -ne 0 ]; then
-        echo "ERROR: The provided UUID was not formatted correctly (it must conform to RFC 4122): ${evon_uuid}"
+        echo "ERROR: The provided UUID '${evon_uuid}' was not formatted correctly (it must conform to RFC 4122): ${evon_uuid}"
         echo "For usage info, use --help"
         exit 1
     fi
 fi
 
-if [ ! -z $evon_hostname ]; then
-    echo $evon_hostname | grep -qE "$HOSTNAME_REGEX"
+if [ "$evon_hostname" ]; then
+    echo "$evon_hostname" | grep -qE "$HOSTNAME_REGEX"
     if [ $? -ne 0 ]; then
-        echo "ERROR: The provided hostname was not formatted correctly (it must conform to RFC 1123): ${evon_uuid}"
+        echo "ERROR: The provided hostname '${evon_hostname}' was not formatted correctly (it must conform to RFC 1123): ${evon_uuid}"
         echo "For usage info, use --help"
         exit 1
     fi
 fi
 
-if [ ! -z $evon_uuid ] && [ -e /etc/openvpn/evon.uuid ]; then
+if [ "$evon_uuid" ] && [ -e /etc/openvpn/evon.uuid ]; then
     echo "ERROR: You must remove /etc/openvpn/evon.uuid if you want to specify the UUID option."
     exit 1
 fi
 
-if [ ! -z $evon_extra ] && [ ! -r $evon_extra ]; then
+if [ "$evon_extra" ] && [ ! -r $evon_extra ]; then
     echo "ERROR: Can not read specified file: $evon_extra"
     exit 1
 fi
@@ -434,26 +434,29 @@ echo Done.
 
 
 # Configure OpenVPN
-attempts=5
-echo -n "Checking for an existing connection to Evon Hub"
-while [ $attempts -gt 0 ]; do
-    attempts=$((attempts-1))
-    echo -n "."
-    ping -c1 -W1 $EVON_HUB_PEER >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        echo -e "\nSuccess, link appears healthy, skipping OpenVPN configuration."
-        installed=1
-        break
-    fi
-done
+if [ "$evon_nostart" != "true"  ]; then
+    attempts=5
+    echo -n "Checking for an existing connection to Evon Hub"
+    while [ $attempts -gt 0 ]; do
+        attempts=$((attempts-1))
+        echo -n "."
+        ping -c1 -W1 $EVON_HUB_PEER >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo -e "\nSuccess, link appears healthy, skipping OpenVPN configuration."
+            installed=1
+            break
+        fi
+    done
+fi
+
 
 # obtain realpath for evon_extra env var if specified
-if [ ! -z $evon_extra ]; then
+if [ "$evon_extra" ]; then
     evon_extra=$(realpath $evon_extra)
 fi
 
 if [ "$installed" != "1" ]; then
-    echo -e "none found\nConfiguring OpenVPN..."
+    [ "$evon_nostart" != "true" ] && echo -e "none found\nConfiguring OpenVPN..." || echo "Configuring OpenVPN..."
     tmpdir=$(mktemp -d)
     extract_payload $tmpdir
     cd $tmpdir
@@ -501,7 +504,7 @@ if [ "$installed" != "1" ]; then
     cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/evon_secrets.conf.inc
 
     # setup extra config file
-    if [ ! -z $evon_extra ]; then
+    if [ "$evon_extra" ]; then
         echo "Copying provided extra config file $evon_extra to: ${ovpn_conf_dir}/evon_secrets.conf.inc"
         cp --remove-destination $evon_extra ${ovpn_conf_dir}/evon_extra.conf.inc
     elif [ ! -e ${ovpn_conf_dir}/evon_extra.conf.inc ]; then
