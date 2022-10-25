@@ -2,12 +2,9 @@
 
 ## AWSMP
 
-* implement s3 publishing and upgrading process. Wait until we understand how AWS MP SaaS works first.
-* publish on AWSMP, indicate that inbound tcp/443, tcp/80, udp/1194 are required
-
-## Miscelaneous
-
-* setup Evon site, add page on linuxdojo.com
+* implement s3 package publishing and upgrading process. Wait until we understand how AWS MP SaaS works first.
+* publish on AWSMP
+* if update available, add warning notification on superuser login.
 
 # Future Release
 

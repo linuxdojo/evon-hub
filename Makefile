@@ -63,20 +63,28 @@ package: # produce package artefact ready for publishing
 	sed -i 's/__VERSION__/$(VER)/g' $(OUTFILE)
 	$(eval EVON_DOMAIN_SUFFIX=$(shell cat evon/.evon_env | grep EVON_DOMAIN_SUFFIX | cut -d= -f2 ))
 	sed -i 's/__EVON_DOMAIN_SUFFIX__/$(EVON_DOMAIN_SUFFIX)/g' $(OUTFILE)
+	# render initial deploy motd
+	cat support/package_motd | sed 's/__VERSION__/$(VER)/g' > /tmp/evon_hub_motd
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
-publish: # publish package
+publish: # publish package, ready for AMI production if on a fresh EC2 instance
 	make package
 	echo "##### Publishing Package #####"
-	scp evon-hub_*.sh  $(EC2_USER)@$(EC2_HOST):evon-hub_latest.sh
-	# TODO also publish to S3, create API endpoint to pull latest, make script to pull/update/manage versions.
+	ssh $(EC2_USER)@$(EC2_HOST) "mkdir -p bin"
+	scp evon-hub_*.sh $(EC2_USER)@$(EC2_HOST):/home/ec2-user/bin
+	scp /tmp/evon_hub_motd $(EC2_USER)@$(EC2_HOST):/tmp/motd
+	ssh $(EC2_USER)@$(EC2_HOST) "rm -f bin/evon-deploy >/dev/null 2>&1 || :; mv bin/evon-hub_*.sh bin/evon-deploy; chmod +x bin/evon-deploy; sudo mv -f /tmp/motd /etc/motd"
 	echo Done.
 
-deploy: # make package, publish and run installer on remote host
+publish-update: # publish update package to s3
+	# TODO  publish to S3, create API endpoint to pull latest, make script to pull/update/manage update versions.
+	echo Not yet implemented.
+
+deploy: # convenience target to make package, publish and run installer on remote host
 	make publish
 	echo "##### Deploying #####"
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
-	ssh $(EC2_USER)@$(EC2_HOST) "chmod +x evon-hub_latest.sh; bash --login -c 'sudo ./evon-hub_latest.sh --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
+	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
 
 quick-deploy: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
 	echo "##### Quick Deploying #####"
