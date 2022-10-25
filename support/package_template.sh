@@ -7,11 +7,13 @@
 VERSION=__VERSION__
 PY_VERSION="3.10.5"
 EVON_DOMAIN_SUFFIX=__EVON_DOMAIN_SUFFIX__
+HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+SUBNET_KEY_REGEX='^[0-9]{1,3}$'
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
-    echo You must be root to run this script.
-    exit 1
+    # replace self process owner with root
+    exec sudo $0 $@
 fi
 
 # ensure we're running on AL2
@@ -62,12 +64,15 @@ function show_usage() {
 Options:
 
   -d, --domain-prefix DOMAIN_PREFIX
-   Registers or retrieves Evon account. Your Evon Hub will be reachable at
-   domain <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}.
+   Registers or retrieves your Evon account based on DOMAIN_PREFIX. This Hub
+   will then be reachable at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}.
+   Omitting this option will cause this installer to interactively prompt for
+   your domain prefix.
 
   -s, --subnet-key SUBNET_KEY
+    Registers or retrieves your Evon account based on SUBNET_KEY.
     Your overlay network subnet will be 100.<SUBNET_KEY>.224.0/19 where
-    <SUBNET_KEY> is between 64 and 127 inclusive. Default is 111 if omitted.
+    SUBNET_KEY is between 64 and 127 inclusive. Default is 111 if omitted.
     "
 }
 
@@ -79,6 +84,35 @@ function show_banner() {
     echo " ___|  _/  ___/_| _| v${VERSION}   " 
     echo '[ Elastic Virtual Overlay Network ]'
     echo ''
+}
+
+function get_domain_prefix() {
+    echo ""
+    echo "Please choose a domain prefix for your Evon Hub."
+	echo ""
+    echo "Your Evon Hub will be reachable at domain:   <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}"
+    echo "Servers joined to this Hub will be assigned: <HOSTNAME>.<DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}"
+    while [ "$success" != "true" ]; do
+        echo ""
+        echo -n "Enter your domain prefix (eg. mycompany) or ctrl-c to exit: "
+        read domain_prefix
+        echo "$domain_prefix" | grep -qE $HOSTNAME_REGEX
+        if [ $? -ne 0 ]; then
+            echo "ERROR: The provided domain prefix '${domain_prefix}' was not formatted correctly (it must conform to RFC 1123)"
+        else
+            echo ""
+            echo "###############"
+            echo "    Summary    "
+            echo "###############"
+            echo ""
+            echo "Your Evon Hub will be reachable at url:    https://${domain_prefix}.${EVON_DOMAIN_SUFFIX}"
+            echo "Your Evon overlay network subnet will be:  100.${subnet_key}.224.0/19"
+            echo ""
+            echo -n "Press enter to confirm or ctrl-c to abort: "
+            read
+            success="true"
+        fi
+    done
 }
 
 # Transform long options to short ones
@@ -111,23 +145,37 @@ if [ ${#@} -ne 0 ]; then
     exit 1
 fi
 
-if [ -z $domain_prefix ]; then
-    show_banner;
-    echo "ERROR: Option --domain-prefix must be specified."
-    echo "For usage info, use --help"
-    exit 1
-fi
-
 if [ -z $subnet_key ]; then
     subnet_key=111
+else
+    # subnet must be between 64 and 127 inclusive
+    echo "$subnet_key" | grep -qE $SUBNET_KEY_REGEX
+    if [ $? -ne 0 ] || [ $subnet_key -lt 64 ] || [ $subnet_key -gt 127 ]; then
+        echo "ERROR: The provided subnet key '${subnet_key}' was not formatted correctly (it must be a number between 64 and 127 inclusive)"
+        echo "For usage info, use --help"
+        exit 1
+    fi
 fi
+
 
 
 # start main installer
 show_banner
 
-echo "Evon Hub installer starting."
+echo "###############################################"
+echo "  Welcome to Evon Hub setup and registration!"
+echo "###############################################"
 
+if [ "$domain_prefix" ]; then
+    echo "$domain_prefix" | grep -qE "$HOSTNAME_REGEX"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The provided domain prefix '${domain_prefix}' was not formatted correctly (it must conform to RFC 1123)"
+        echo "For usage info, use --help"
+        exit 1
+    fi
+else
+    get_domain_prefix
+fi
 # setup logging
 logdir=/var/log/evon
 mkdir -p $logdir
@@ -250,7 +298,10 @@ chmod 4755 /usr/local/bin/eapi
 echo '### Obtaining and persisting account info...'
 account_info=$(evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}")
 if [ $? -ne 0 ]; then
-    echo Error registering account, please check your domain-prefix and/or subnet-key used to invoke this installer.
+    echo "Error registering account:"
+    echo $account_info
+    echo ""
+    echo Pease refer to the error above, check your domain prefix and/or subnet key and re-run this installer.
     exit 1
 fi
 iid=$(curl -s 'http://169.254.169.254/latest/dynamic/instance-identity/document')
