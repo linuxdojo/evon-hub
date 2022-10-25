@@ -333,7 +333,7 @@ fi
 if [ "$evon_uuid" ]; then
     echo "$evon_uuid" | grep -qE "$UUID_REGEX"
     if [ $? -ne 0 ]; then
-        echo "ERROR: The provided UUID '${evon_uuid}' was not formatted correctly (it must conform to RFC 4122): ${evon_uuid}"
+        echo "ERROR: The provided UUID '${evon_uuid}' was not formatted correctly (it must conform to RFC 4122)"
         echo "For usage info, use --help"
         exit 1
     fi
@@ -342,7 +342,7 @@ fi
 if [ "$evon_hostname" ]; then
     echo "$evon_hostname" | grep -qE "$HOSTNAME_REGEX"
     if [ $? -ne 0 ]; then
-        echo "ERROR: The provided hostname '${evon_hostname}' was not formatted correctly (it must conform to RFC 1123): ${evon_uuid}"
+        echo "ERROR: The provided hostname '${evon_hostname}' was not formatted correctly (it must conform to RFC 1123)"
         echo "For usage info, use --help"
         exit 1
     fi
