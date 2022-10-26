@@ -5,6 +5,20 @@
 * implement s3 package publishing and upgrading process. Wait until we understand how AWS MP SaaS works first.
 * publish on AWSMP
 * if update available, add warning notification on superuser login.
+* update "make package" target to pre-install rpms and pyenv and pip packages
+* if you have profanity in domain_prefix, you just get this failure in evon-deploy. fix it:
+```
+### Obtaining and persisting account info...
+2022-10-25 13:50:33,281 - INFO: cli.main[209]: Evon client v1.0.194 starting - 3.10.5 (main, Oct 25 2022, 13:44:43) [GCC 7.3.1 20180712 (Red Hat 7.3.1-15)]
+2022-10-25 13:50:33,291 - INFO: cli.main[229]: registering account...
+2022-10-25 13:50:35,195 - ERROR: evon_api.do_request[63]: POST request failed: '400 Client Error: Bad Request for url: https://api.dev.evon.link/zone/register'
+...
+```
+* installer bombs with:
+```
+MySQLdb.ProgrammingError: (1146, "Table 'evon.auth_permission' doesn't exist")
+...
+```
 
 # Future Release
 

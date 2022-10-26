@@ -185,10 +185,10 @@ class Server(models.Model):
         unique=True,
         validators=[EvonFQDNValidator],
         editable=False,
-        help_text=("This value is set on line 2 of /etc/openvpn/evon.uuid on your connected server, "
-                   f"with '.{EVON_VARS['account_domain']}' appended. An index number may be auto added to the first "
-                   "name-part for uniqueness to prevent duplicate FQDN's. To change this value, edit "
-                   "/etc/openvpn/evon.uuid and restart OpenVPN on your endpoint server."
+        help_text=("This value is set on line 2 of /etc/openvpn/evon.uuid on your connected server."
+                   "An index number may be automatically appended if needed for uniqueness to prevent "
+                   "duplicate FQDN's. To change this value, edit /etc/openvpn/evon.uuid and restart "
+                   "OpenVPN on your endpoint server."
         )
     )
     ipv4_address = models.GenericIPAddressField(
