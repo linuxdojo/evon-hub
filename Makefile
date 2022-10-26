@@ -67,7 +67,7 @@ package: # produce package artefact ready for publishing
 	cat support/package_motd | sed 's/__VERSION__/$(VER)/g' > /tmp/evon_hub_motd
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
-publish: # publish package
+publish: # publish latest package to target ec2 host at file path /home/ec2-user/bin/evon-deploy
 	make package
 	echo "##### Publishing Package #####"
 	ssh $(EC2_USER)@$(EC2_HOST) "mkdir -p bin"
@@ -75,24 +75,28 @@ publish: # publish package
 	ssh $(EC2_USER)@$(EC2_HOST) "rm -f bin/evon-deploy >/dev/null 2>&1 || :; mv bin/evon-hub_*.sh bin/evon-deploy; chmod +x bin/evon-deploy"
 	echo Done.
 
-publish-update: # publish update package to s3
-	# TODO  publish to S3, create API endpoint to pull latest, make script to pull/update/manage update versions.
-	echo Not yet implemented.
+deploy-update: # deploy latest package to s3 where it will be available to all deployments via the local `evon --update` command and autoupdate scheduler
+	make package
+	echo "##### Publishing Update to S3 #####"
+	aws s3 cp evon-hub_*.sh s3://evon-$(ENV)-hub-updates
+	echo Done.
 
-deploy-base: # publish package and setup newly-deployed target EC2 system to be ready for producing AMI
+deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI
+	make publish
+	echo "##### Deploying Base #####"
 	scp /tmp/evon_hub_motd $(EC2_USER)@$(EC2_HOST):/tmp/motd
-	ssh $(EC2_USER)@$(EC2_HOST) "rm -f bin/evon-deploy >/dev/null 2>&1 || :; mv bin/evon-hub_*.sh bin/evon-deploy; chmod +x bin/evon-deploy; sudo mv -f /tmp/motd /etc/motd"
+	ssh $(EC2_USER)@$(EC2_HOST) "sudo mv -f /tmp/motd /etc/motd"
 	# run base build
 	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy -b'"
 	echo Done.
 
-deploy-test: # convenience target to make package, publish and run installer on remote host
+deploy-test: # DEV ONLY - convenience target to make package, publish and run installer on remote host
 	make publish
 	echo "##### Deploying #####"
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
 	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
 
-deploy-quick: # DEV ONLY - upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
+deploy-quick: # DEV ONLY - convenience target to upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
 	echo "##### Quick Deploying #####"
 	make clean
 	echo "Quick deploying..."
