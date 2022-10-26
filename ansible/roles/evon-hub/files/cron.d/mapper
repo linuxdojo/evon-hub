@@ -1,2 +1,0 @@
-MAILTO=""
-*/5 * * * * root bash -c 'source /opt/evon-hub/.env/bin/activate && /opt/evon-hub/mapper/mapper.py'
