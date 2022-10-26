@@ -7,6 +7,7 @@ import tempfile
 from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User as DjangoUser
+from django.db.utils import ProgrammingError
 from django.http import FileResponse
 from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema, OpenApiTypes, OpenApiExample
@@ -45,11 +46,15 @@ class PermissionListView(generics.ListAPIView):
     """
     List all available permissions that can be applied to Users and Groups
     """
-    queryset = Permission.objects.exclude(
-        content_type__id__in=[p.content_type.id for p in Permission.objects.all() if p.content_type.name in EXCLUDED_CONTENT_TYPE_NAMES]
-    ).exclude(
-        name__in=EXCLUDED_PERMISSION_NAMES
-    ).order_by('id')
+    try:
+        queryset = Permission.objects.exclude(
+            content_type__id__in=[p.content_type.id for p in Permission.objects.all() if p.content_type.name in EXCLUDED_CONTENT_TYPE_NAMES]
+        ).exclude(
+            name__in=EXCLUDED_PERMISSION_NAMES
+        ).order_by('id')
+    except ProgrammingError:
+        # occurs on first db migration as evon.auth_permission does not yet exist. Just pass, deployment will bounce gunicorn after migration
+        pass
     serializer_class = serializers.PermissionSerializer
     permission_classes = (hub.permissions.IsSuperuser,)
 

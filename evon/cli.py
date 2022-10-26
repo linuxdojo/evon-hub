@@ -235,6 +235,9 @@ def main(**kwargs):
         iid = response.json()["instanceId"]
         result["ec2_instance_id"] = iid
         click.echo(json.dumps(result, indent=2))
+        if not result.get("account_domain"):
+            # didn't get expected response content, eg. profanity detected in requested domain-prefix. Exit with non-zero rc
+            sys.exit(1)
 
     if kwargs["deregister"]:
         logger.info("deregistering account...")
