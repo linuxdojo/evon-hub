@@ -51,14 +51,6 @@
   when: sslh_cfg_copy.changed
 
 
-### Setup bins
-
-- name: copy bin files
-  ansible.builtin.copy:
-    src: bin/
-    dest: /usr/local/bin/
-    mode: 755
-
 ### Setup iptables
 
 - name: configure iptables
