@@ -35,11 +35,18 @@ EVON_API_URL = evon_env["EVON_API_URL"]
 EVON_DOMAIN_SUFFIX = evon_env["EVON_DOMAIN_SUFFIX"]
 MUTEX_OPTIONS = [
     "get_inventory",
+    "set_inventory",
     "get_account_info",
-    "get_inventory",
+    "register",
+    "deregister",
+    "get_deploy_key",
+    "check_update",
+    "update",
     "save_state",
     "sync_servers",
+    "kill_server",
 ]
+
 
 
 class MutuallyExclusiveOption(click.Option):
@@ -65,8 +72,8 @@ class MutuallyExclusiveOption(click.Option):
             raise click.UsageError(
                 "Illegal usage: `{}` is mutually exclusive with "
                 "arguments `{}`.".format(
-                    self.name,
-                    ', '.join(self.mutually_exclusive)
+                    f"--{self.name.replace('_', '-')}",
+                    ', '.join([f"--{a.replace('_', '-')}" for a in self.mutually_exclusive])
                 )
             )
 
