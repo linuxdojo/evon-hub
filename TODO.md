@@ -2,7 +2,7 @@
 
 ## Updates
 
-* implement update system
+* implement update system in webui
 
 ## AWSMP
 
