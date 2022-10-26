@@ -91,7 +91,6 @@ function get_domain_prefix() {
     echo "Please choose a domain prefix for your Evon Hub."
 	echo ""
     echo "Your Evon Hub will be reachable at domain:   <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}"
-    echo "Servers joined to this Hub will be assigned: <HOSTNAME>.<DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}"
     while [ "$success" != "true" ]; do
         echo ""
         echo -n "Enter your domain prefix (eg. mycompany) or ctrl-c to exit: "
@@ -101,16 +100,20 @@ function get_domain_prefix() {
             echo "ERROR: The provided domain prefix '${domain_prefix}' was not formatted correctly (it must conform to RFC 1123)"
         else
             echo ""
-            echo "###############"
-            echo "    Summary    "
-            echo "###############"
+            echo "###################"
+            echo "    Confirmation    "
+            echo "###################"
             echo ""
-            echo "Your Evon Hub will be reachable at url:    https://${domain_prefix}.${EVON_DOMAIN_SUFFIX}"
-            echo "Your Evon overlay network subnet will be:  100.${subnet_key}.224.0/19"
+            echo "Your desired Evon Hub URL is:      https://${domain_prefix}.${EVON_DOMAIN_SUFFIX}"
+            echo "Your Evon overlay network subnet:  100.${subnet_key}.224.0/19"
             echo ""
-            echo -n "Press enter to confirm or ctrl-c to abort: "
+            echo "If you want to modify your overlay network subnet,"
+            echo "abort and enter command: evon-deploy --help"
+            echo ""
+            echo -n "Press enter to confirm the above or ctrl-c to abort: "
             read
             success="true"
+            echo "Deploying Evon Hub..."
         fi
     done
 }
@@ -128,9 +131,10 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts ":hd:s:" opt; do
+while getopts ":hd:s:b" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
+    'b') base_build=true ;;
     'd') domain_prefix=$OPTARG ;;
     's') subnet_key=$OPTARG ;;
     '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
@@ -145,63 +149,68 @@ if [ ${#@} -ne 0 ]; then
     exit 1
 fi
 
-if [ -z $subnet_key ]; then
-    subnet_key=111
-else
-    # subnet must be between 64 and 127 inclusive
-    echo "$subnet_key" | grep -qE $SUBNET_KEY_REGEX
-    if [ $? -ne 0 ] || [ $subnet_key -lt 64 ] || [ $subnet_key -gt 127 ]; then
-        echo "ERROR: The provided subnet key '${subnet_key}' was not formatted correctly (it must be a number between 64 and 127 inclusive)"
-        echo "For usage info, use --help"
-        exit 1
+if [ -z $base_build ]; then
+    if [ -z $subnet_key ]; then
+        subnet_key=111
+    else
+        # subnet must be between 64 and 127 inclusive
+        echo "$subnet_key" | grep -qE $SUBNET_KEY_REGEX
+        if [ $? -ne 0 ] || [ $subnet_key -lt 64 ] || [ $subnet_key -gt 127 ]; then
+            echo "ERROR: The provided subnet key '${subnet_key}' was not formatted correctly (it must be a number between 64 and 127 inclusive)"
+            echo "For usage info, use --help"
+            exit 1
+        fi
     fi
-fi
 
 
 
-# start main installer
-show_banner
+    # start main installer
+    show_banner
 
-echo "###############################################"
-echo "  Welcome to Evon Hub setup and registration!"
-echo "###############################################"
+    echo "###############################################"
+    echo "  Welcome to Evon Hub setup and registration!"
+    echo "###############################################"
 
-if [ "$domain_prefix" ]; then
-    echo "$domain_prefix" | grep -qE "$HOSTNAME_REGEX"
-    if [ $? -ne 0 ]; then
-        echo "ERROR: The provided domain prefix '${domain_prefix}' was not formatted correctly (it must conform to RFC 1123)"
-        echo "For usage info, use --help"
-        exit 1
+    if [ "$domain_prefix" ]; then
+        echo "$domain_prefix" | grep -qE "$HOSTNAME_REGEX"
+        if [ $? -ne 0 ]; then
+            echo "ERROR: The provided domain prefix '${domain_prefix}' was not formatted correctly (it must conform to RFC 1123)"
+            echo "For usage info, use --help"
+            exit 1
+        fi
+    else
+        get_domain_prefix
     fi
+
+    # setup logging
+    logdir=/var/log/evon
+    mkdir -p $logdir
+    logfile="${logdir}/evon-hub_installer-$(date +%s)"
+    exec > >(tee -i $logfile)
+    exec 2>&1
+    echo logging to file $logfile
+
+    # exit function
+    bail() {
+        rc=$1
+        message=$2
+        echo $message
+        exit $rc
+    }
+
+    # exit handler
+    end() {
+        rc=$1
+        echo ""
+        echo Installation log file is available at $logfile
+        exit $rc
+    }
+
+    # register exit handler
+    trap end EXIT
 else
-    get_domain_prefix
+    echo '***** Applying base build only *****'
 fi
-# setup logging
-logdir=/var/log/evon
-mkdir -p $logdir
-logfile="${logdir}/evon-hub_installer-$(date +%s)"
-exec > >(tee -i $logfile)
-exec 2>&1
-echo logging to file $logfile
-
-# exit function
-bail() {
-    rc=$1
-    message=$2
-    echo $message
-    exit $rc
-}
-
-# exit handler
-end() {
-    rc=$1
-    echo ""
-    echo Installation log file is available at $logfile
-    exit $rc
-}
-
-# register exit handler
-trap end EXIT
 
 
 echo "### Installing version: ${VERSION}"
@@ -281,6 +290,11 @@ echo '### Installing Python deps...'
     pip install -r requirements.txt && \
     pip install -e . && \
 
+if [ "$base_build" ]; then
+    echo '***** Base build completed *****'
+    exit 0
+fi
+
 echo '### Deploying Evon CLI entrypoints...'
 rm -f /usr/local/bin/evon || :
 cat <<EOF > /usr/local/bin/evon
@@ -296,7 +310,12 @@ chmod 4755 /usr/local/bin/evon
 chmod 4755 /usr/local/bin/eapi
 
 echo '### Obtaining and persisting account info...'
-account_info=$(evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}")
+evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}"
+if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to register your Evon account, see above for info. Check your domain prefix and/or subnet key and re-run this installer."
+    exit 1
+fi
+account_info=$(evon --get-account-info)
 if [ $? -ne 0 ]; then
     echo "Error registering account:"
     echo $account_info
@@ -364,6 +383,11 @@ fi
 
 echo '### Done!'
 cat /etc/motd
+echo ""
+echo "#########################################################"
+echo "         Setup and registration completed!"
+echo "  Please browse to your Hub Web UI using above details."
+echo "#########################################################"
 bail 0
 # To generate payload below, run: make package
 PAYLOAD:

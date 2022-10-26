@@ -56,6 +56,7 @@ def do_request(url, requests_method, headers, json_payload=None):
     }
     if json_payload:
         request_kwargs["data"] = json_payload.encode("utf-8")
+    response = None
     try:
         response = requests_method(url, **request_kwargs, timeout=REQUESTS_TIMEOUT)
         response.raise_for_status()

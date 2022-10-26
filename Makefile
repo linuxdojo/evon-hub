@@ -74,6 +74,8 @@ publish: # publish package, ready for AMI production if on a fresh EC2 instance
 	scp evon-hub_*.sh $(EC2_USER)@$(EC2_HOST):/home/ec2-user/bin
 	scp /tmp/evon_hub_motd $(EC2_USER)@$(EC2_HOST):/tmp/motd
 	ssh $(EC2_USER)@$(EC2_HOST) "rm -f bin/evon-deploy >/dev/null 2>&1 || :; mv bin/evon-hub_*.sh bin/evon-deploy; chmod +x bin/evon-deploy; sudo mv -f /tmp/motd /etc/motd"
+	# run base build
+	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy -b'"
 	echo Done.
 
 publish-update: # publish update package to s3

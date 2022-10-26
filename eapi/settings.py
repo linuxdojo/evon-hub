@@ -85,11 +85,6 @@ EVON_HUB_CONFIG = {
     ],
 }
 
-# Prevent migrate from triggering for models with dynamic help_text, see: https://stackoverflow.com/a/50804244/11828749
-if 'makemigrations' in sys.argv:
-    USE_I18N = False
-    USE_L10N = False
-
 # location of XTABLES_LIBDIR for in hub.firewall.iptc lib
 os.environ["XTABLES_LIBDIR"] = "/usr/lib64/xtables"
 
