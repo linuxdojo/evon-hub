@@ -6,20 +6,21 @@
 #################################
 
 
+from rich.console import Console
 import io
 import json
 import logging
 import logging.handlers
 import os
 import pkg_resources
-from rich.console import Console
 import subprocess
 import sys
 import textwrap
 
-import click
 from dotenv import dotenv_values
+import click
 import requests
+import yaml
 
 from evon import log, evon_api
 
@@ -172,6 +173,25 @@ def inject_pub_ipv4(json_data):
     help="Get bootstrap deploy key."
 )
 @click.option(
+    "--check-update",
+    "-c",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "check_update"],
+    is_flag=True,
+    help="Check if an Evon Hub update is available"
+)
+@click.option(
+    "--update",
+    "-u",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "update"],
+    is_flag=True,
+    help="Apply the latest Evon Hub update if available. "
+         "Note that the Evon Hub WebUI and API may become unavailable for a few minutes during the update process, "
+         "however Servers and Users connected to the Hub will not be affected and will be "
+         "able to communicate as normal throughout the update process."
+)
+@click.option(
     "--save-state",
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "save_state"],
@@ -268,6 +288,43 @@ def main(**kwargs):
         iid = response.json()["instanceId"]
         result["ec2_instance_id"] = iid
         click.echo(json.dumps(result, indent=2))
+
+    if kwargs["check_update"]:
+        logger.info("Checking for updates...")
+        result = json.loads(evon_api.get_updates(EVON_API_URL, EVON_API_KEY, EVON_VERSION))
+        click.echo(json.dumps(result, indent=2))
+
+    if kwargs["update"]:
+        evon_vars_path = os.path.join(os.path.dirname(__file__), "..", "evon_vars.yaml")
+        if not os.path.isfile(evon_vars_path):
+            logger.error("ERROR: Evon Hub not yet deployed. Run 'evon-deploy' first.")
+            sys.exit(1)
+        with open(evon_vars_path) as f:
+            evon_vars = yaml.safe_load(f)
+        domain_prefix = evon_vars["account_domain"].split(".")[0]
+        subnet_key = evon_vars["subnet_key"]
+        logger.info("Checking for updates...")
+        result = json.loads(evon_api.get_updates(EVON_API_URL, EVON_API_KEY, EVON_VERSION))
+        if result["update_available"]:
+            # download and run update
+            new_version = result["update_version"]
+            logger.info(f"New Evon Hub version {new_version} available, downloading...")
+            r = requests.get(result["presigned_url"])
+            logger.info("Upgrading to new version...")
+            with open("/home/ec2-user/bin/evon-deploy", "wb") as f:
+                f.write(r.content)
+            cmd = f"/home/ec2-user/bin/evon-deploy --domain-prefix {domain_prefix} --subnet-key {subnet_key}"
+            p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=sys.stderr, stderr=sys.stderr)
+            rc = p.wait()
+            if rc:
+                logger.error(f"Got non-zero return code {rc} from update process, see above for errors.")
+                click.echo(json.dumps({"status": "fail", "message": f"error: rc {rc}"}, indent=2))
+            else:
+                logger.info(f"Update to version {new_version} complete.")
+                click.echo(json.dumps({"status": "ok", "message": "complete"}, indent=2))
+        else:
+            logger.info("No new updates are available.")
+            click.echo(json.dumps({"status": "ok", "message": "no updates available"}, indent=2))
 
     if kwargs["get_deploy_key"]:
         logger.info("getting bootstrap deploy key...")
