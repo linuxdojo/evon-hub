@@ -119,7 +119,7 @@ def inject_pub_ipv4(json_data):
     "-i",
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_inventory"],
-    is_flag=True, help="Show inventory."
+    is_flag=True, help="Show inventory of all zone records (registered public A records) for Servers that are currently connected to the Hub."
 )
 @click.option(
     "--set-inventory",
@@ -138,7 +138,7 @@ def inject_pub_ipv4(json_data):
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_account_info"],
     is_flag=True,
-    help="Get account info."
+    help="Get registered account info."
 )
 @click.option(
     "--register",
@@ -229,8 +229,7 @@ def main(**kwargs):
     logger.info(f"Evon client v{EVON_VERSION} starting - {sys.version}")
 
     if kwargs["version"]:
-        click.echo(EVON_VERSION)
-        sys.exit()
+        click.echo(json.dumps({"version": f"{EVON_VERSION}"}, indent=2))
 
     if kwargs["get_inventory"]:
         logger.info("fetching inventory...")
@@ -292,6 +291,7 @@ def main(**kwargs):
     if kwargs["check_update"]:
         logger.info("Checking for updates...")
         result = json.loads(evon_api.get_updates(EVON_API_URL, EVON_API_KEY, EVON_VERSION))
+        result["status"] = "success"
         click.echo(json.dumps(result, indent=2))
 
     if kwargs["update"]:
@@ -318,13 +318,13 @@ def main(**kwargs):
             rc = p.wait()
             if rc:
                 logger.error(f"Got non-zero return code {rc} from update process, see above for errors.")
-                click.echo(json.dumps({"status": "fail", "message": f"error: rc {rc}"}, indent=2))
+                click.echo(json.dumps({"status": "failed", "message": f"error: rc {rc}"}, indent=2))
             else:
                 logger.info(f"Update to version {new_version} complete.")
-                click.echo(json.dumps({"status": "ok", "message": "complete"}, indent=2))
+                click.echo(json.dumps({"status": "success", "message": "complete"}, indent=2))
         else:
             logger.info("No new updates are available.")
-            click.echo(json.dumps({"status": "ok", "message": "no updates available"}, indent=2))
+            click.echo(json.dumps({"status": "success", "message": "no updates available"}, indent=2))
 
     if kwargs["get_deploy_key"]:
         logger.info("getting bootstrap deploy key...")
