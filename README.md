@@ -7,32 +7,61 @@ Evin Hub must be deployed on an AWS EC2 instance running Amazon Linux 2.
 
 ## Deployment
 
-### Publishing only
+### Arguments Reference
 
-To copy the Evon Hub installer script to a remote EC2 instance run the below command. Once published, the script must subsequently be run on the Hub via SSH.
-```
-make ENV=<ENV> EC2_HOST=<EC2_FQDN> publish
-```
-
-### Publishing and deploying
-
-To copy and also run the Evon Hub installer script on a remote EC2 instance in one command, run:
-```
-make ENV=<ENV> EC2_HOST=<EC2_FQDN> RUN_INSTALLER=<true|false> DOMAIN_PREFIX=<PREFIX> SUBNET_KEY=<SK> deploy
-```
-
-### Arguments
+The below invocations make reference to these arguments:
 
 * `<ENV>` is one of `dev`, `staging` or `prod`
 * `<EC2_FQDN>` is the FQDN of the target EC2 instance to which you have SSH access to the `ec2-user` using public key authentication.
 * `<PREFIX>` is the first label of the new Hub FQDN, which will become `<PREFIX>.env.evon.link` (where env is one of 'dev', 'staging', or empty for prod). The Web UI and API can be reached via HTTPS to the Hub FQDN.
 * `<SK>` is the subnet key. It must be between 64 and 127 inclusive. The overlay subnet for the deployed Hub becomes `100.<SUBNET_KEY>.224.0/19`
 
+### Publishing installer to EC2 only
+
+To copy the Evon Hub installer script to a remote EC2 instance run the below command. Resultant package will be at path `/home/ec2-user/bin/evon-deploy` which is in the `ec2-user`'s `$PATH`. Once published, the script must subsequently be run on the Hub via SSH.
+```
+make ENV=<ENV> EC2_HOST=<EC2_FQDN> publish
+```
+
+### Publishing an updated version of Evon Hub for customers
+
+| :warning: Do not publish updates containing breaking changes to the Hub API |
+|---------------------------------------------------------------------------------|
+
+Customer deployments are able to udpate/autoupdate their product. To publish an update, run
+```
+make ENV=<env> publish-update
+```
+This will put the package in S3, ready to be picked up by customer deployments during next auto/manual update.
+
+
+### Building an EC2 instance ready for converting to an AMI
+
+| :memo: The target EC2 must be freshly installed in the `us-east-1` region |
+|---------------------------------------------------------------------------|
+
+```
+make ENV=<ENV> EC2_HOST=<EC2_FQDN> deploy-base
+```
+Once done, manually export the EC2's EBS device as an AMI.
+
+
+### Deploying to a test EC2 instance (any region)
+
+To copy and also run the Evon Hub installer script on a remote EC2 instance in one command, run:
+```
+make ENV=<ENV> EC2_HOST=<EC2_FQDN> DOMAIN_PREFIX=<PREFIX> SUBNET_KEY=<SK> deploy-test
+```
+
+### Quick Deploy
+
+run `make` and check the description.
+
 ### Example
 
 Example publish and deploy:
 ```
-make ENV=dev EC2_HOST=ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com RUN_INSTALLER=true DOMAIN_PREFIX=mycompany SUBNET_KEY=111 deploy
+make ENV=dev EC2_HOST=ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com RUN_INSTALLER=true DOMAIN_PREFIX=mycompany SUBNET_KEY=111 deploy-test
 ```
 
 Deployment durations:

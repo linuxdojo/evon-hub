@@ -1,4 +1,5 @@
 ![EVON Logo](assets/evon_logo.png)
+# WARNING: This is an old document that needs rework
 # evon.link - Elastic Virtual Overlay Network
 
 1. [Description](#description)
