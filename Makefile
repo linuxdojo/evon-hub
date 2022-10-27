@@ -76,12 +76,14 @@ publish: # publish latest package to target ec2 host at file path /home/ec2-user
 	echo Done.
 
 deploy-update: # deploy latest package to s3 where it will be available to all deployments via the local `evon --update` command and autoupdate scheduler
+	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then echo You must be in master branch to deploy an update package.; exit 1; fi
 	make package
 	echo "##### Publishing Update to S3 #####"
 	aws s3 cp evon-hub_*.sh s3://evon-$(ENV)-hub-updates
 	echo Done.
 
 deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI
+	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then echo You must be in master branch to deploy the base components.; exit 1; fi
 	make publish
 	echo "##### Deploying Base #####"
 	scp /tmp/evon_hub_motd $(EC2_USER)@$(EC2_HOST):/tmp/motd
@@ -133,4 +135,7 @@ migrate: # run eapi migrate
 
 setup-local: # configure DB with fixtures for local development (ie if you want to 'make runserver')
 	sudo bash -c '. .env/bin/activate && support/setup_local.sh'
+
+get-version: # render the full current semantic version of evon-hub
+	echo $$(cat version.txt).$$(git rev-list HEAD --count master)
 
