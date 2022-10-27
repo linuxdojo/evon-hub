@@ -11,7 +11,7 @@ def apply(config):
     """
     if on_al2():
         # delete the crontab, and replace if needed
-        cron = CronTab(user=True)
+        cron = CronTab(user="evonhub")
         cron.remove_all()
         if config.auto_update:
             tz = pytz.timezone(config.timezone)
