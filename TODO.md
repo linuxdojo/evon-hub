@@ -1,9 +1,5 @@
 # MVP Release
 
-## Updates
-
-* implement update system in webui
-
 ## AWSMP
 
 * publish on AWSMP
@@ -33,3 +29,4 @@ Oct 19 10:02:58 umbriel nm-openvpn[1150313]: WARNING: 'keysize' is used inconsis
 * default admin password is ec2 id. Force change first login.
 * add mfa (consider django-mfa2 or django-mfa3)
 * we're filtering permissions in the permission API list view and in the admin site for User and Group auth classes, but not enforcing exclusive use of this filtered list in the save() (at least for the API). Consdiering only Superusers can change perms and if they bugger around with saving unlisted permission id's, it's their prob. We'll enforce this later.
+* do we need to pin versions of RPM's? Every deploy will update them if available, might introduce breaking changes. Just be aware when we publish updates for now. Test.
