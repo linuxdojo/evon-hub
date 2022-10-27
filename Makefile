@@ -82,14 +82,19 @@ deploy-update: # deploy latest package to s3 where it will be available to all d
 	aws s3 cp evon-hub_*.sh s3://evon-$(ENV)-hub-updates
 	echo Done.
 
-deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI
+deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI. WARNING - the ssh pub key is deleted from ec2-user/known_hosts, you will NOT be able to ssh in, this is for creating an AMI only
 	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then echo You must be in master branch to deploy the base components.; exit 1; fi
+	echo -n "WARNING: The taraget EC2 will not be reachable after this operation! Sleeping for 5 seconds, press ctrl-c to abort."
+	while true; do echo -n .; count=$${count}.; sleep 1; [ "$$count" == "....." ] && break; done
+	echo ""
 	make publish
 	echo "##### Deploying Base #####"
 	scp /tmp/evon_hub_motd $(EC2_USER)@$(EC2_HOST):/tmp/motd
 	ssh $(EC2_USER)@$(EC2_HOST) "sudo mv -f /tmp/motd /etc/motd"
 	# run base build
 	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy -b'"
+	# nuke the ssh pub key
+	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'cat /dev/null > /home/ec2-user/.ssh/authorized_keys'"
 	echo Done.
 
 deploy-test: # DEV ONLY - convenience target to make package, publish and run installer on remote host
