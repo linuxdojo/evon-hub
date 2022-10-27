@@ -1,5 +1,6 @@
-import ipaddress
 from itertools import chain
+import datetime
+import ipaddress
 import json
 import os
 import re
@@ -16,10 +17,10 @@ import humanfriendly
 import pytz
 
 from eapi.settings import EVON_VARS
-from hub.exceptions import OutOfAddresses
 from evon import evon_api
 from evon.cli import EVON_API_URL, EVON_API_KEY, inject_pub_ipv4
 from evon.log import get_evon_logger
+from hub.exceptions import OutOfAddresses
 
 
 ##### Setup globals
@@ -467,12 +468,31 @@ class Policy(models.Model):
 
 class Config(SingletonModel):
     TIMEZONES = ((tzone, tzone) for tzone in pytz.all_timezones)
-    discovery_mode = models.BooleanField(default=True, help_text="Disable to prevent any new Servers from joining your overlay network")
-    timezone = models.CharField(max_length=64, choices=TIMEZONES, default="UTC", help_text="Select your local timezone")
+    timezone = models.CharField(
+        max_length=64,
+        choices=TIMEZONES,
+        default="UTC",
+        help_text="Select the local timezone for this Evon Hub server"
+    )
+    auto_update = models.BooleanField(
+        default=True,
+        help_text="Automatically apply updates. The WebUI and the Evon API may become unavailable "
+                  "for a few minutes during the update process, but connected Users and Servers "
+                  "using the overlay network will not be affected."
+    )
+    auto_update_time = models.TimeField(
+        default=datetime.time(20, 0),
+        help_text="Specify auto update start time relative to above timezone in 24 hour HH:MM format."
+    )
+    discovery_mode = models.BooleanField(
+        default=True,
+        help_text="Disable to prevent any new Servers from joining your overlay network unless its UUID is whitelisted."
+    )
     uuid_blacklist = models.TextField(
         null=True,
         blank=True,
         default="",
+        verbose_name="UUID blacklist",
         help_text=(
             "Define a comma separated list of Server UUID's that will be disallowed from connecting. Note that any currenty connected "
             "Server with a UUID specified here will be forcibly disconnected and deleted."
@@ -482,8 +502,9 @@ class Config(SingletonModel):
         null=True,
         blank=True,
         default="",
+        verbose_name="UUID whitelist",
         help_text=(
-            "Define a comma separated list of future Server UUID's that will allowed to connect even if discovery mode is disabled."
+            "Define a comma separated list of future Server UUID's that will allowed to connect even if discovery mode is disabled. "
             "Currently connected servers do not need to be added here as the Hub will always permit existing Server UUID's to connect."
         )
     )
@@ -515,6 +536,8 @@ class Config(SingletonModel):
     def save(self, *args, **kwargs):
         # validate and save
         self.full_clean()
+        # strip seconds from auto_update_time
+        self.auto_update_time = self.auto_update_time.replace(second=0)
         # strip whitespace from uuids in white/blacklists
         uuid_blacklist = [u.strip() for u in self.uuid_blacklist.split(",")]
         uuid_whitelist = [u.strip() for u in self.uuid_whitelist.split(",")]

@@ -15,7 +15,7 @@ import zoneinfo
 
 from evon.log import get_evon_logger
 from eapi.settings import EVON_VARS
-from hub import firewall
+from hub import cron, firewall
 import hub.models
 
 
@@ -121,6 +121,13 @@ def upsert_policy(sender, instance=None, created=False, **kwargs):
     "upsert iptables rules for Policy"
 
     firewall.apply_policy(instance)
+
+
+@receiver(post_save, sender=hub.models.Config)
+def upsert_crontab(sender, instance=None, created=False, **kwargs):
+    "update crontab for auto updates"
+
+    cron.apply(instance) 
 
 
 ###############################

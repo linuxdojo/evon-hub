@@ -131,3 +131,6 @@ fwinitempty: # initialise all Evon fw rules and chains (including Rules and Poli
 migrate: # run eapi migrate
 	sudo bash -c '. .env/bin/activate && eapi migrate'
 
+setup-local: # configure DB with fixtures for local development (ie if you want to 'make runserver')
+	sudo bash -c '. .env/bin/activate && support/setup_local.sh'
+
