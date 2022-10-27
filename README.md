@@ -48,14 +48,14 @@ Once done, manually export the EC2's EBS device as an AMI.
 
 ### Deploying to a test EC2 instance (any region)
 
-To copy and also run the Evon Hub installer script on a remote EC2 instance in one command, run:
+For development purposes, to copy and also run the Evon Hub installer script on a remote EC2 instance in one command, run:
 ```
 make ENV=<ENV> EC2_HOST=<EC2_FQDN> DOMAIN_PREFIX=<PREFIX> SUBNET_KEY=<SK> deploy-test
 ```
 
 ### Quick Deploy
 
-run `make` and check the description.
+This is a convenience target for developers to quickly sync local project elements to remote dev ec2 instance. It requires that root ssh with pub key auth has been setup.
 
 ### Example
 
