@@ -180,8 +180,9 @@ Options:
     server to always be assigned the same static IPv4 address. The value will be
     stored in the file: /etc/openvpn/evon.uuid
     Note: if /etc/openvpn/evon.uuid exists, the UUID located in that file will
-    always be used and this option can not be specified. Remove this file if you
-    want to change the UUID (and the IPv4 overlay net address) for this server.
+    always be used and this option can not be specified. Remove this file before
+    running bootstrap if you want to change the UUID (and the IPv4 overlay net
+    address) for this server.
 
   -n, --hostname <HOSTNAME>
     If not set, a unique HOSTNAME value will be auto-generated using the output
