@@ -94,7 +94,7 @@ deploy-base: # setup newly-deployed target EC2 system to be ready for producing 
 	# run base build
 	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy -b'"
 	# nuke the ssh pub key
-	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'cat /dev/null > /home/ec2-user/.ssh/authorized_keys'"
+	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo rm -f /home/ec2-user/.ssh/authorized_keys /root/.ssh/authorized_keys'"
 	echo Done.
 
 deploy-test: # DEV ONLY - convenience target to make package, publish and run installer on remote host
