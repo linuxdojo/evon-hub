@@ -94,9 +94,9 @@ function DecryptSecret {
         $raw_data,
         "--$boundary--$LF" 
     ) -join $LF
-	$url = "https://$account_domain/api/bootstrap/decrypt"
+    $url = "https://$account_domain/api/bootstrap/decrypt"
     $headers = @{"Authorization" = "Token $Apikey"}
-	$response = (Invoke-RestMethod -Uri $url -Headers $headers -Method Post -ContentType "multipart/form-data; boundary=`"$boundary`"" -Body $bodyLines)
+    $response = (Invoke-RestMethod -Uri $url -Headers $headers -Method Post -ContentType "multipart/form-data; boundary=`"$boundary`"" -Body $bodyLines)
     return $response
 }
 
@@ -222,6 +222,8 @@ if ( ! (IsUuid $Uuid) ) {
     throw "Provided Uuid $Uuid is not a valid UUIDv4 string. It must conform to RFC 4122."
 }
 
+### begin
+ShowBanner
 
 ### download and install OpenVPN
 $ovpn_installed = (get-service | findstr OpenVPNService)
@@ -232,7 +234,6 @@ if ( $ovpn_installed -eq $null ) {
     cd $TempDir
     $release_file="OpenVPN-2.5.7-I602-amd64.msi"
     $url="https://swupdate.openvpn.org/community/releases/$release_file"
-    $outputlocation="ovpn.msi"
     Invoke-WebRequest -Uri $url -OutFile $release_file
     msiexec /i $release_file ADDLOCAL=OpenVPN.Service,OpenVPN,Drivers,Drivers.TAPWindows6,Drivers.Wintun /passive
     cd $cwd
