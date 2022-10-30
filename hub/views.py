@@ -240,18 +240,39 @@ class BootstrapViewSet(ViewSet):
     parser_classes = (MultiPartParser,)
 
     @extend_schema(
-        operation_id="bootstrap_retrieve",
+        operation_id="bootstrap_retrieve_linux",
         responses={
             (200, 'application/octet-stream'): OpenApiTypes.BINARY
         }
     )
     @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
-    def download(self, *args, **kwargs):
+    def linux(self, *args, **kwargs):
         """
-        Download the `bootstrap.sh` installer for connecting remote systems to this overlay network.
+        Download the `bootstrap.sh` installer for connecting remote Linux systems to this overlay network.
         Requesting user must be a superuser or the "depoloyer" user.
         """
         bootstrap_filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bootstrap.sh")
+        bootstrap_filename = os.path.basename(bootstrap_filepath)
+        f = open(bootstrap_filepath, "rb")
+        response = FileResponse(f, content_type='application/octet-stream')
+        response['Content-Length'] = os.path.getsize(bootstrap_filepath)
+        response['Content-Disposition'] = f'attachment; filename="{bootstrap_filename}"'
+        return response
+
+
+    @extend_schema(
+        operation_id="bootstrap_retrieve_windows",
+        responses={
+            (200, 'application/octet-stream'): OpenApiTypes.BINARY
+        }
+    )
+    @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
+    def windows(self, *args, **kwargs):
+        """
+        Download the `bootstrap.ps1` installer for connecting remote Windows systems to this overlay network.
+        Requesting user must be a superuser or the "depoloyer" user.
+        """
+        bootstrap_filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bootstrap.ps1")
         bootstrap_filename = os.path.basename(bootstrap_filepath)
         f = open(bootstrap_filepath, "rb")
         response = FileResponse(f, content_type='application/octet-stream')
