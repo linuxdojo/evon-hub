@@ -202,7 +202,7 @@ if ( $Uninstall ) {
 
 ### set defaults
 if ( $Hostname -eq "" ) {
-    $hostname = (hostname)
+    $Hostname = (hostname)
 }
 if ( $Uuid -eq "" ) {
     $Uuid = [guid]::NewGuid().toString()
