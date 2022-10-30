@@ -350,14 +350,14 @@
     dest: /etc/motd
 
 
-### setup Bootstrapper
+### setup Bootstrappers
 
-- name: check if bootstrap exists
+- name: check if bootstraps exist
   ansible.builtin.stat:
     path: /opt/evon-hub/bootstrap.sh
   register: bootstrap_script
 
-- name: setup evon bootstrap
+- name: setup evon bootstrap scripts
 
   block:
 
@@ -396,12 +396,26 @@
     - name: encrypt bootstrap secrets
       ansible.builtin.shell: "openssl enc -md sha256 -aes-256-cbc -pass pass:{{ bootstrap_key }} -in /opt/evon-hub/build_bootstrap/openvpn_secrets.conf -out /opt/evon-hub/build_bootstrap/openvpn_secrets.conf.aes"
 
-    - name: build bootstrap script
+    - name: encode encrypted windows bootstrap secrets
+      ansible.builtin.shell: |
+        cd /opt/evon-hub/build_bootstrap
+        cat openvpn_secrets.conf.aes | base64 > openvpn_secrets.conf.aes.b64
+
+    - name: set windows bootstrap secrets fact
+      ansible.builtin.set_fact:
+        encrypted_secret_config: "{{ lookup('file', '/opt/evon-hub/build_bootstrap/openvpn_secrets.conf.aes.b64') }}"
+
+    - name: build Linux bootstrap script
       ansible.builtin.shell: |
         cd /opt/evon-hub/build_bootstrap
         tar -c openvpn_client.conf openvpn_secrets.conf.aes | gzip | base64 >> bootstrap.sh
         chmod +x /opt/evon-hub/build_bootstrap/bootstrap.sh
         mv /opt/evon-hub/build_bootstrap/bootstrap.sh /opt/evon-hub
+
+    - name: build Windows bootstrap script
+      ansible.builtin.template:
+        src: bootstrap/bootstrap_template.ps1
+        dest: /opt/evon-hub/bootstrap.ps1
 
     - name: create openvpn user client config
       ansible.builtin.template:
