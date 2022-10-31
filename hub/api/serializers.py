@@ -87,6 +87,9 @@ class ServerSerializer(serializers.ModelSerializer):
             user = request.user 
         return server.user_has_access(user) if user else False
 
+    def get_last_seen(self, server):
+        return server.last_seen()
+
 
 class ServerSerializerRestricted(ServerSerializer):
 
