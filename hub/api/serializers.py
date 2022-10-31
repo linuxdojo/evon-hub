@@ -37,7 +37,13 @@ class UserSerializer(serializers.ModelSerializer):
 class GroupSerializer(serializers.ModelSerializer):
     user_set = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=User.objects.all()
+        queryset=User.objects.all(),
+        help_text="A list of User ID values of Users that are members of this Group"
+    )
+    permissions = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Permission.objects.all(),
+        help_text="A list of Permission ID values of Permissions that are granted to members of this group"
     )
 
     class Meta:
@@ -50,7 +56,14 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class ServerSerializer(serializers.ModelSerializer):
-    accessible = serializers.SerializerMethodField(read_only=True)
+    accessible = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="This value is set to True only if a policy exists that permits the requesting user to connect to this server."
+    )
+    last_seen = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="A human-friendly string describing how long ago the server was last connected to this Hub"
+    )
 
     class Meta:
         model = hub.models.Server
