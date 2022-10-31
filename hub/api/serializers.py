@@ -38,12 +38,12 @@ class GroupSerializer(serializers.ModelSerializer):
     user_set = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=User.objects.all(),
-        help_text="A list of User ID values of Users that are members of this Group"
+        help_text="A list of User ID's that are members of this Group"
     )
     permissions = serializers.PrimaryKeyRelatedField(
         many=True,
         queryset=Permission.objects.all(),
-        help_text="A list of Permission ID values of Permissions that are granted to members of this group"
+        help_text="A list of Permission ID's that are granted to members of this group"
     )
 
     class Meta:
