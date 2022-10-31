@@ -257,11 +257,11 @@ $uuid_config = "$Uuid`r`n$Hostname"
 write-host Deploying config...
 $cwd = (Get-Location).Path
 cd $ovpn_conf_dir
-"$main_config" | out-file evon.ovpn
-"$extra_config" | out-file evon_extra.conf.inc
-"$secret_config" | out-file evon_secrets.conf.inc
+"$main_config" | out-file evon.ovpn -Encoding ASCII
+"$extra_config" | out-file evon_extra.conf.inc -Encoding ASCII
+"$secret_config" | out-file evon_secrets.conf.inc -Encoding ASCII
 if ( -not(Test-Path -Path "$ovpn_conf_dir\evon.uuid") ) {
-    "$uuid_config" | out-file evon.uuid
+    "$uuid_config" | out-file evon.uuid -Encoding ASCII
 }
 else {
     write-host Not overwriting existing UUID file: $ovpn_conf_dir\evon.uuid
