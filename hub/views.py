@@ -289,7 +289,7 @@ class BootstrapViewSet(ViewSet):
     @action(methods=['post'], detail=False, renderer_classes=(BinaryFileRenderer,))
     def decrypt(self, request, format=None):
         """
-        Decrypt the encrypted payload within `bootstrap.sh` installer and return its cleartext. This function is used internally by `bootstrap.sh`.
+        Decrypt the encrypted payload located within the `bootstrap` installer scripts and return its cleartext. This function is used internally by the `bootstrap` scripts.
         Requesting user must be a superuser or the "depoloyer" user.
         """
         uploaded_content = request.data["data"].read()

@@ -5,6 +5,6 @@
 [ Elastic Virtual Overlay Network ]
 
 Your Evon Hub WebUI: https://{{account_domain}}
-Default WebUI login: admin/<Instance_ID_of_this_EC2>
+Default WebUI login (user / pass): admin / <Instance_ID_of_this_EC2>
 (Type `evon --get-account-info` to obtain your EC2 Instance ID)
 
