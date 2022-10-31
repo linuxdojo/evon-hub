@@ -358,6 +358,7 @@ echo '### Configuring Hub and Users'
 # disable debug mode
 sed -i 's/DEBUG = True/DEBUG = False/g' /opt/evon-hub/eapi/settings.py
 # create users, init config
+useradd evonhub --shell /bin/false || :
 cat <<EOF | eapi shell
 from django.contrib.auth import get_user_model
 import json
