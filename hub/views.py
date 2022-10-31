@@ -227,7 +227,7 @@ class PingViewSet(ViewSet):
             ),
         ]
     )
-    def list(self, request):
+    def list(self, *args, **kwargs):
         return Response({"message": "pong"})
 
 
