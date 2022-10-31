@@ -218,7 +218,7 @@ class Server(models.Model):
         ServerGroup,
         blank=True,
         verbose_name="Server Groups",
-        help_text="A list of Server Gropups in which this Server is a member."
+        help_text="A list of Server Gropup ID's in which this Server is a member."
     )
 
     def __str__(self):
@@ -351,25 +351,25 @@ class Rule(models.Model):
         User,
         blank=True,
         verbose_name="Source Users",
-        help_text="A list of Users that are permitted as sources by this Rule."
+        help_text="A list of User ID's that are permitted as sources by this Rule."
     )
     source_groups = models.ManyToManyField(
         Group,
         blank=True,
         verbose_name="Source Groups",
-        help_text="A list of Groups whose members are permitted as sources by this Rule."
+        help_text="A list of Group ID's whose members are permitted as sources by this Rule."
     )
     source_servers = models.ManyToManyField(
         Server,
         blank=True,
         verbose_name="Source Servers",
-        help_text="A list of Servers that are permitted as sources by this Rule."
+        help_text="A list of Server ID's that are permitted as sources by this Rule."
     )
     source_servergroups = models.ManyToManyField(
         ServerGroup,
         blank=True,
         verbose_name="Source Server Groups",
-        help_text="A list of Server Groups whose members are permitted as sources by this Rule."
+        help_text="A list of Server Group ID's whose members are permitted as sources by this Rule."
     )
     destination_protocol = models.CharField(
         max_length=4,
@@ -460,19 +460,19 @@ class Policy(models.Model):
         Rule,
         blank=True,
         verbose_name="Rules",
-        help_text="A list of Rules sourced by this Policy."
+        help_text="A list of Rule ID's sourced by this Policy."
     )
     servers = models.ManyToManyField(
         Server,
         blank=True,
         verbose_name="Target Servers",
-        help_text="A list of Servers that are targetted by this Policy."
+        help_text="A list of Server ID's that are targetted by this Policy."
     )
     servergroups = models.ManyToManyField(
         ServerGroup,
         blank=True,
         verbose_name="Target Server Groups",
-        help_text="A list of Server Groups whose members are targetted by this Policy."
+        help_text="A list of Server Group ID's whose members are targetted by this Policy."
     )
 
     class Meta:
