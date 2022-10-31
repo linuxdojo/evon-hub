@@ -177,7 +177,9 @@ class Server(models.Model):
         max_length=36,
         unique=True,
         validators=[RegexValidator(regex=UUID_PATTERN)],
-        help_text=f"This value is set on line 1 of /etc/openvpn/evon.uuid on your connected server.",
+        help_text=("This value is set on line 1 of the evon.uuid file on your connected server. "
+                   "A unique static IPv4 address is auto-assigned to any new UUID values seen by the Hub."
+        ),
     )
     # Max fqdn length is 1004 according to RFC, but max mariadb unique varchar is 255
     fqdn = models.CharField(
@@ -186,9 +188,9 @@ class Server(models.Model):
         unique=True,
         validators=[EvonFQDNValidator],
         editable=False,
-        help_text=("This value is set on line 2 of /etc/openvpn/evon.uuid on your connected server."
+        help_text=("This value is set using line 2 of the evon.uuid file on your connected server. "
                    "An index number may be automatically appended if needed for uniqueness to prevent "
-                   "duplicate FQDN's. To change this value, edit /etc/openvpn/evon.uuid and restart "
+                   "duplicate FQDN's. To change this value, edit your evon.uuid file and restart "
                    "OpenVPN on your endpoint server."
         )
     )
@@ -202,18 +204,21 @@ class Server(models.Model):
     # connected and disconnected_since will be auto-updated by mapper.py
     connected = models.BooleanField(
         default=False,
-        editable=False
+        editable=False,
+        help_text="This value is True if the server has a current healthy VPN connection to this Hub."
     )
     disconnected_since = models.DateTimeField(
         verbose_name="Disconnected Since",
         blank=True,
         null=True,
-        editable=False
+        editable=False,
+        help_text="This value is set only when a server is detected as not connected.",
     )
     server_groups = models.ManyToManyField(
         ServerGroup,
         blank=True,
-        verbose_name="Server Groups"
+        verbose_name="Server Groups",
+        help_text="A list of Server Gropups in which this Server is a member."
     )
 
     def __str__(self):
@@ -345,24 +350,32 @@ class Rule(models.Model):
     source_users = models.ManyToManyField(
         User,
         blank=True,
-        verbose_name="Source Users"
+        verbose_name="Source Users",
+        help_text="A list of Users that are permitted as sources by this Rule."
     )
     source_groups = models.ManyToManyField(
         Group,
         blank=True,
-        verbose_name="Source Groups"
+        verbose_name="Source Groups",
+        help_text="A list of Groups whose members are permitted as sources by this Rule."
     )
     source_servers = models.ManyToManyField(
         Server,
         blank=True,
-        verbose_name="Source Servers"
+        verbose_name="Source Servers",
+        help_text="A list of Servers that are permitted as sources by this Rule."
     )
     source_servergroups = models.ManyToManyField(
         ServerGroup,
         blank=True,
-        verbose_name="Source Server Groups"
+        verbose_name="Source Server Groups",
+        help_text="A list of Server Groups whose members are permitted as sources by this Rule."
     )
-    destination_protocol = models.CharField(max_length=4, choices=PROTOCOLS)
+    destination_protocol = models.CharField(
+        max_length=4,
+        choices=PROTOCOLS,
+        help_text="The destination protocol permitted by this Rule. For unlisted protocols, select 'Any Protocol' and filter using your Server's firewall."
+    )
     destination_ports = models.CharField(
         max_length=256,
         blank=True,
@@ -446,17 +459,20 @@ class Policy(models.Model):
     rules = models.ManyToManyField(
         Rule,
         blank=True,
-        verbose_name="Rules"
+        verbose_name="Rules",
+        help_text="A list of Rules sourced by this Policy."
     )
     servers = models.ManyToManyField(
         Server,
         blank=True,
-        verbose_name="Target Servers"
+        verbose_name="Target Servers",
+        help_text="A list of Servers that are targetted by this Policy."
     )
     servergroups = models.ManyToManyField(
         ServerGroup,
         blank=True,
-        verbose_name="Target Server Groups"
+        verbose_name="Target Server Groups",
+        help_text="A list of Server Groups whose members are targetted by this Policy."
     )
 
     class Meta:
@@ -472,7 +488,7 @@ class Config(SingletonModel):
         max_length=64,
         choices=TIMEZONES,
         default="UTC",
-        help_text="Select the local timezone for this Evon Hub server"
+        help_text="Select the local timezone for this Evon Hub server."
     )
     auto_update = models.BooleanField(
         default=True,
