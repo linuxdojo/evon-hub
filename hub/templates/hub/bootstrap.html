@@ -4,118 +4,120 @@
       <div id="content-main" class="col-12">
         Evon Bootsrap is a run-once shell script that connects a server to your overlay network.<br />
         <br />
-        Bootstrap simply installs and starts OpenVPN on your server with shipped config to securely connect it to this Evon Hub. Bootstrap is also avilable as a Docker container which connects a host Linux server without installing OpenVPN.
+        Bootstrap simply installs and starts OpenVPN on your server with shipped config that connects it to this Evon Hub. Bootstrap is also avilable as a Docker container which connects a host Linux server without modifying the host OS.<br />
         <br />
-        <br />
-        The following Windows systems are supported:<br />
-        <br />
-        <ul>
-          <li>Windows 7 with Service Pack 1 or higher + <a href="https://aka.ms/wmf5download" target="_blank">Windows Management Framework 5.1</a></li>
-          <li>Windows 10 version 1607 or higher</li>
-          <li>Windows Server 2008 R2 with Service Pack 1 or higher + <a href="https://aka.ms/wmf5download" target="_blank">Windows Management Framework 5.1</a></li>
-          <li>Windows Server 2016 or higher</li>
-        </ul>
-        The following Linux distributions are supported:<br />
-        <br />
-        <ul>
-          <li>AlmaLinux</li>
-          <li>Alpine</li>
-          <li>Amazon Linux 2</li>
-          <li>Arch Linux</li>
-          <li>CentOS 7 or higher</li>
-          <li>Debian 9 or higher</li>
-          <li>Fedora Linux</li>
-          <li>Red Hat Enterprise Linux</li>
-          <li>Rocky Linux</li>
-          <li>Ubuntu 18.04 or higher</li>
-          <li>OpenSUSE 15 or higher</li>
-          <li>Any Linux distribution using Docker</li>
-        </ul>
-      Note: The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user is required when both downloading and installing Bootstrap, and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below CLI invocations include this token for your convenience.
+        Note: The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below CLI invocations include this token for your convenience.
       </div>
     </div>
     <div class="card-header">
       Download and Install
     </div>
-    <ul class="nav nav-tabs" role="tablist" id="jazzy-tabs">
-      <li class="nav-item">
-        <a class="nav-link active" data-toggle="pill" role="tab" aria-controls="linux-tab" aria-selected="true" href="#linux-tab">
-          Linux
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" data-toggle="pill" role="tab" aria-controls="windows-tab" aria-selected="false" href="#windows-tab">
-          Windows
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" data-toggle="pill" role="tab" aria-controls="docker-tab" aria-selected="false" href="#docker-tab">
-          Docker
-        </a>
-      </li>
-    </ul>
 
-    <div class="tab-content">
-      <div id="linux-tab" class="tab-pane fade active show" role="tabpanel" aria-labelledby="linux-tab">
-        <div class="card ">
-          <div class="p-5">
-            For Linux servers, download and install Bootstrap using the process described below.<br />
-            <br />
-            <h5>Download bootstrap:</h5>
-            <strong>Direct download:</strong><br />
-            <br />
-            <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/linux">bootstrap.sh</a></span>
-            <br />
-            <br />
-            <strong>Using curl:</strong><br />
-            <pre>curl -s 'https://{{ account_domain }}/api/bootstrap/linux' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
-            <strong>Using wget:</strong><br />
-            <pre>wget --header 'Authorization: Token {{ deploy_token }}' 'https://{{ account_domain }}/api/bootstrap/linux' -O bootstrap.sh; chmod +x bootstrap.sh</pre>
-            <hr>
-            <h5>Install Bootstrap:</h5>
-            Run the following command as root on your server:
-            <pre>EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
-            Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, uninstallation and other options, run command:
-            <pre>./bootstrap.sh --help</pre>
+    <div class="card-body">
+      <div id="content-main" class="col-12">
+
+        <ul class="nav nav-tabs" role="tablist" id="jazzy-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" data-toggle="pill" role="tab" aria-controls="linux-tab" aria-selected="true" href="#linux-tab">
+              On Linux
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="windows-tab" aria-selected="false" href="#windows-tab">
+              On Windows
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="docker-tab" aria-selected="false" href="#docker-tab">
+              Using Docker
+            </a>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          <div id="linux-tab" class="tab-pane fade active show" role="tabpanel" aria-labelledby="linux-tab">
+            <div class="card ">
+              <div class="p-5">
+                For Linux servers, download and install Bootstrap using the process described below. The following Linux distributions are supported:<br />
+                <br />
+                <ul>
+                  <li>AlmaLinux</li>
+                  <li>Alpine</li>
+                  <li>Amazon Linux 2</li>
+                  <li>Arch Linux</li>
+                  <li>CentOS 7 or higher</li>
+                  <li>Debian 9 or higher</li>
+                  <li>Fedora Linux</li>
+                  <li>Red Hat Enterprise Linux</li>
+                  <li>Rocky Linux</li>
+                  <li>Ubuntu 18.04 or higher</li>
+                  <li>OpenSUSE 15 or higher</li>
+                </ul>
+                <hr>
+                <h5>Download Bootstrap:</h5>
+                <strong>Direct download:</strong><br />
+                <br />
+                <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/linux">bootstrap.sh</a></span>
+                <br />
+                <br />
+                <strong>Using curl:</strong><br />
+                <pre>curl -s 'https://{{ account_domain }}/api/bootstrap/linux' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
+                <strong>Using wget:</strong><br />
+                <pre>wget --header 'Authorization: Token {{ deploy_token }}' 'https://{{ account_domain }}/api/bootstrap/linux' -O bootstrap.sh; chmod +x bootstrap.sh</pre>
+                <hr>
+                <h5>Install Bootstrap:</h5>
+                Run the following command as root on your server:
+                <pre>EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
+                Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, uninstallation and other options, run command:
+                <pre>./bootstrap.sh --help</pre>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div id="windows-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="windows-tab">
-        <div class="card ">
-          <div class="p-5">
-            For Windows servers, download and install Bootstrap using the process described below.<br />
-            <br />
-            <h5>Download bootstrap:</h5>
-            <strong>Direct download:</strong><br />
-            <br />
-            <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/windows">bootstrap.ps1</a></span>
-            <br />
-            <br />
-            <strong>Using PowerShell:</strong><br />
-            <pre>Invoke-WebRequest -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
-            <h5>Install Bootstrap:</h5>
-            Run the following PowerShell command on your server as Administrator:
-            <pre>.\bootstrap.ps1 -Apikey {{ deploy_token }}</pre>
-            Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, uninstallation and other options, run command:
-            <pre>.\bootstrap.ps1 -Help</pre>
+          <div id="windows-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="windows-tab">
+            <div class="card ">
+              <div class="p-5">
+                For Windows servers, download and install Bootstrap using the process described below. The following Windows systems are supported:<br />
+                <br />
+                <ul>
+                  <li>Windows 7 with Service Pack 1 or higher + <a href="https://aka.ms/wmf5download" target="_blank">Windows Management Framework 5.1</a></li>
+                  <li>Windows 10 version 1607 or higher</li>
+                  <li>Windows Server 2008 R2 with Service Pack 1 or higher + <a href="https://aka.ms/wmf5download" target="_blank">Windows Management Framework 5.1</a></li>
+                  <li>Windows Server 2016 or higher</li>
+                </ul>
+                <hr>
+                <h5>Download Bootstrap:</h5>
+                <strong>Direct download:</strong><br />
+                <br />
+                <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/windows">bootstrap.ps1</a></span>
+                <br />
+                <br />
+                <strong>Using PowerShell:</strong><br />
+                <pre>Invoke-WebRequest -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
+                <hr>
+                <h5>Install Bootstrap:</h5>
+                Run the following PowerShell command on your server as Administrator:
+                <pre>.\bootstrap.ps1 -Apikey {{ deploy_token }}</pre>
+                Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, uninstallation and other options, run command:
+                <pre>.\bootstrap.ps1 -Help</pre>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div id="docker-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="docker-tab">
-        <div class="card ">
-          <div class="p-5">
-          
-            <h5>Docker Bootstrap</h5>
-            As an alternative to downloading and installing Bootstrap directly onto your Linux distribution, Bootstrap can be run entirely within a Docker container.<br />
-            <br />
-            Visit <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">https://hub.docker.com/r/linuxdojo/evon-bootstrap</a> for detail about using the Docker version of Evon Bootstrap. Docker Bootstrap will require the following to environment variables to be set:
-            <pre>
-ACCOUNT_DOMAIN={{ account_domain }}
-EVON_DEPLOY_KEY={{ deploy_token }}
-</pre>
-            Note that only Docker on Linux is supported. Docker on Windows and Mac do not upport the <strong>--net=host</strong> option required by the Docker verison of Evon Bootstrap. For more info, see <a target="_blank" href="https://docs.docker.com/network/host/">https://docs.docker.com/network/host/</a>
+          <div id="docker-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="docker-tab">
+            <div class="card ">
+              <div class="p-5">
+                <h5>Docker Bootstrap</h5>
+                As an alternative to downloading and installing Bootstrap directly onto your Linux distribution, Bootstrap can be run entirely within a Docker container on any Linux distribution with Docker installed.<br />
+                <br />
+                Visit <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">https://hub.docker.com/r/linuxdojo/evon-bootstrap</a> for detail about using the Docker version of Evon Bootstrap. Docker Bootstrap will require the following to environment variables to be set:
+                <pre>
+    ACCOUNT_DOMAIN={{ account_domain }}
+    EVON_DEPLOY_KEY={{ deploy_token }}
+    </pre>
+                Note that only Docker on Linux is supported. Docker on Windows and Mac do not support the <strong>--net=host</strong> option required by Bootstrap. For more info, see <a target="_blank" href="https://docs.docker.com/network/host/">https://docs.docker.com/network/host/</a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
