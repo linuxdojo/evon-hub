@@ -21,37 +21,78 @@
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
-        <hr>
-        <h5>On Windows</h5>
-        Download and install OpenVPN for Windows <a href="https://openvpn.net/community-downloads/" target="_blank">here</a>. Version 2.5.7 is tested working, however version 2.4.x or greater should work. Once installed, right-click the <strong>EvonHub.ovpn</strong> file and select "Import into OpenVPN-GUI".<br />
-        <br />
-        To connect, right-click the OpenVPN-GUI icon in the system tray and click Connect. You'll be prompted for your Evon Hub username/password.
-        <br />
-        <hr>
-        <h5>On Mac OSX</h5>
-        Download and install Tunnelblick <a href="https://tunnelblick.net/downloads.html" target="_blank">here</a>. Once installed, open the <strong>EvonHub.ovpn</strong> file and import it into Tunnelblick.<br /><br />
-        To connect, click the Tunnelblick icon in the Status Menu and click "Connect EvonHub". You'll be prompted for your Evon Hub username/password.
-        <br />
-        <hr>
-        <h5>On Linux</h5>
-        <strong>Using NetworkManager:</strong><br />
-        <br />
-        Import the <strong>EvonHub.ovpn</strong> file into NetworkManager by entering the following commands, replacing <strong>your_evon_hub_username</strong> with your Evon Hub username below:
-        <pre>
-nmcli connection import type openvpn file EvonHub.ovpn
-nmcli connection modify EvonHub ipv4.never-default true
-nmcli connection modify EvonHub +vpn.data username=your_evon_hub_username</pre>
-        To connect, click your NetworkManager icon, select VPN Connections -> EvonHub. You will be prompted for your password upon connection.
-        <br />
-        <hr>
-        <h5>Using OpenVPN CLI (any OS):</h5>
-        Enter the following command as a user with appropriate privileges (eg. Administrator/root):
-        <pre>openvpn EvonHub.ovpn</pre>
-        You'll be promoted for your Evon Hub username/password. To connect non-interactively, update your <strong>EvonHub.ovpn</strong> file, referring to the <strong>--auth-user-pass</strong> setting in the <a href="https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/" target="_blank">OpenVPN 2.4 Reference Manual</a>.
+        <ul class="nav nav-tabs" role="tablist" id="jazzy-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" data-toggle="pill" role="tab" aria-controls="linux-tab" aria-selected="true" href="#linux-tab">
+              On Linux
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="windows-tab" aria-selected="false" href="#windows-tab">
+              On Windows
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="mac-tab" aria-selected="false" href="#mac-tab">
+              On Mac
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="cli-tab" aria-selected="false" href="#cli-tab">
+              Using OpenVPN CLI (Any OS)
+            </a>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div id="linux-tab" class="tab-pane fade active show" role="tabpanel" aria-labelledby="linux-tab">
+            <div class="card ">
+              <div class="p-5">
+                <strong>Using NetworkManager:</strong><br />
+                <br />
+                Import the <strong>EvonHub.ovpn</strong> file into NetworkManager by entering the following commands, replacing <strong>your_evon_hub_username</strong> with your Evon Hub username below:
+                <pre>
+        nmcli connection import type openvpn file EvonHub.ovpn
+        nmcli connection modify EvonHub ipv4.never-default true
+        nmcli connection modify EvonHub +vpn.data username=your_evon_hub_username</pre>
+                To connect, click your NetworkManager icon, select VPN Connections -> EvonHub. You will be prompted for your password upon connection.
+                <br />
+              </div>
+            </div>
+          </div>
+          <div id="windows-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="windows-tab">
+            <div class="card ">
+              <div class="p-5">
+                Download and install OpenVPN for Windows <a href="https://openvpn.net/community-downloads/" target="_blank">here</a>. Once installed, right-click the <strong>EvonHub.ovpn</strong> file and select "Import into OpenVPN-GUI".<br />
+                <br />
+                To connect, right-click the OpenVPN-GUI icon in the system tray and click Connect. You'll be prompted for your Evon Hub username/password.
+                <br />
+              </div>
+            </div>
+          </div>
+          <div id="mac-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="mac-tab">
+            <div class="card ">
+              <div class="p-5">
+                Download and install Tunnelblick <a href="https://tunnelblick.net/downloads.html" target="_blank">here</a>. Once installed, open the <strong>EvonHub.ovpn</strong> file and import it into Tunnelblick.<br />
+                <br />
+                To connect, click the Tunnelblick icon in the Status Menu and click "Connect EvonHub". You'll be prompted for your Evon Hub username/password.
+                <br />
+              </div>
+            </div>
+          </div>
+          <div id="cli-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="cli-tab">
+            <div class="card ">
+              <div class="p-5">
+                If you already have OpenVPN installed on your system, you can invoke it from the CLI directly.<br />
+                <br />
+                Enter the following command as a user with appropriate privileges:
+                <pre>openvpn EvonHub.ovpn</pre>
+                You'll be promoted for your Evon Hub username/password. To connect non-interactively, update your <strong>EvonHub.ovpn</strong> file, referring to the <strong>--auth-user-pass</strong> setting in the <a href="https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/" target="_blank">OpenVPN 2.4 Reference Manual</a>.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-
-
     <div class="card-header">
       Listing Servers on the Hub
     </div>
