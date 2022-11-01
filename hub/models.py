@@ -306,6 +306,7 @@ class Server(models.Model):
             }
             if not dev_mode:
                 payload = inject_pub_ipv4(json.dumps(payload))
+                logger.info(f"set_records request: {payload}")
                 response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
                 logger.info(f"set_records reponse: {response}")
         else:
@@ -321,6 +322,7 @@ class Server(models.Model):
             }
             if not dev_mode:
                 payload = inject_pub_ipv4(json.dumps(payload))
+                logger.info(f"set_records request: {payload}")
                 response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
                 logger.info(f"set_records reponse: {response}")
         # validate and save
