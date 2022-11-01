@@ -46,6 +46,23 @@ if [ -e /opt/evon-hub/version.txt ]; then
     exit 1
 fi
 
+# warn if we're running in WSL
+if [ $(uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/ip') ]; then
+    echo '*** Warning: ***********************************************************************'
+    echo 'This appears to be a WSL Linux environment which is not supported and may not work.'
+    echo 'To connect Windows systems to your Evon Hub, use the PowerShell version of the'
+    echo 'Bootstrap installer "boostrap.ps1" downloadable from your Evon Web Console at:'
+    echo "  https://${ACCOUNT_DOMAIN}"
+    echo '************************************************************************************'
+    echo -n "Hit Ctrl-C to abort, else continuing in "
+    count=5
+    while [ $count -gt 0 ]; do
+        echo -n "$count "
+        ((count-=1))
+        sleep 1
+    done
+    echo ""
+fi
 
 # detect distribution
 if grep -qs "ubuntu" /etc/os-release; then
@@ -403,7 +420,7 @@ echo "Installing dependencies..."
 
 if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
     apt-get update
-    apt-get install -y openvpn curl uuid-runtime jq
+    apt-get install -y openvpn curl uuid-runtime jq iputils-ping
 elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
     yum install -y epel-release
     yum install -y openvpn curl jq
