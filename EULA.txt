@@ -1,0 +1,63 @@
+Evon End User License Agreement
+
+Copyright Notice: Evon License; Copyright (c) 2022 Linux Dojo Pty. Ltd. All
+rights reserved.
+
+Redistribution of Evon and related documents is not permitted unless
+permitted by the copyright owner.
+
+You agree not to reverse engineer, decompile, disassemble, modify, translate,
+make any attempt to discover the source code of this software, or create
+derivative works from this software.
+
+Evon is bundled with other open source software components, some of which
+fall under different licenses. By using Evon or any of the bundled components,
+you agree to be bound by the conditions of the license for each respective
+component.
+
+This software is provided “as is” and any expressed or implied warranties,
+including, but not limited to, the implied warranties of merchantability and
+fitness for a particular purpose are disclaimed. In no event shall Linux Dojo
+Pty. Ltd. be liable for any direct, indirect, incidental, special, exemplary, or
+consequential damages (including, but not limited to, procurement of substitute
+goods or services; loss of use, data, or profits; or business interruption)
+however caused and on any theory of liability, whether in contract, strict
+liability, or tort (including negligence or otherwise) arising in any way out of
+the use of this software, even if advised of the possibility of such damage.
+
+License Grant: Linux Dojo Pty. Ltd. is the sole distributor of Evon licenses.
+This agreement and licenses granted by it may not be assigned, sublicensed, or
+otherwise transferred by licensee without prior written consent of Linux Dojo
+Pty. Ltd. Any licenses violating this provision will be subject to revocation
+and deactivation and will not be eligible for refunds. Linux Dojo Pty. Ltd.
+grants you a limited license to use Evon for your business or personal use only
+and solely in compliance with this EULA. No other transfer of Evon is permitted
+and your license to Evon is otherwise non-assignable and non-transferable.
+
+For as long as Linux Dojo Pty. Ltd. supports the version of the Software that
+you are using, this License includes such minor updates, bug fixes or
+maintenance releases for the Software as Linux Dojo Pty. Ltd. may, in its sole
+discretion, make available from time to time on a general commercial basis.
+Helpdesk support, engineering support, and new releases, versions or updates
+classified by the manufacturer as an improved version of the Software are not
+included with this License and, when offered, may require the payment of
+additional fees.
+
+This Agreement is effective as of the date of purchase or subscription of the
+Evon software and continues until expiration of all License Terms, unless
+earlier terminated. Upon any expiration or termination of this Agreement, your
+license to the Software terminates (even if the License Term is identified as
+“perpetual” or if no expiration date is specified in your order) and you must
+cease using and delete (or at our request, return) all Software and Confidential
+Information or other materials of Linux Dojo Pty. Ltd. in your possession,
+including on any third-party systems operated on your behalf.  You will certify
+such deletion upon our request.
+
+We may modify the terms and conditions of this Agreement (including Linux Dojo
+Policies) from time to time, with notice given to you by email, through the
+Software or through our website.  Together with notice, we will specify the
+effective date of the modifications.
+
+Trademarks. This License does not grant permission to use the trade names,
+trademarks, service marks, or product names of the Licensor, except as required
+for reasonable and customary use in describing the origin of the Work.
