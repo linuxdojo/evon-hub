@@ -10,9 +10,11 @@
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
-        First, download the OpenVPN client configuration file here: <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>
-        <br /><br />
-        This file contains OpenVPN configuration for connecting to your Evon Hub. Simply import it into your OpenVPN client of choice. See below for details about how to set it up on your system.
+        First, download the OpenVPN client configuration file here: <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong><br />
+        <br />
+        This file contains OpenVPN configuration for connecting to your Evon Hub. Simply import it into your OpenVPN client of choice. See below for details about how to set it up on your system.<br />
+        <br />
+        <strong>EvonHub.ovpn</strong> can also be downloaded via the API, see below.
       </div>
     </div>
 
@@ -48,6 +50,9 @@
             <div class="card ">
               <div class="p-5">
                 <strong>Using NetworkManager:</strong><br />
+                <br />
+                Download <strong>EvonHub.ovpn</strong> using curl and your API key:
+                <pre>curl -s 'https://{{ account_domain }}/api/ovpnclient/download' -H 'Authorization: Token {{ auth_token }}' > EvonHub.ovpn</pre>
                 <br />
                 Import the <strong>EvonHub.ovpn</strong> file into NetworkManager by entering the following commands, replacing <strong>your_evon_hub_username</strong> with your Evon Hub username below:
                 <pre>
