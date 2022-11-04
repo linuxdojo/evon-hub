@@ -113,8 +113,10 @@ class ServerListView(generics.ListAPIView):
 
     def get_serializer_class(self):
         if self.request.user.is_superuser:
+            # Show all fields
             return serializers.ServerSerializer
         else:
+            # Hide fields: accessible, uuid, server_groups
             return serializers.ServerSerializerRestricted
 
 
