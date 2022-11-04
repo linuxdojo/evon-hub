@@ -2,11 +2,18 @@
   <div class="card card-primary card-outline">
     <div class="card-body">
       <div id="content-main" class="col-12">
-        Evon Bootsrap is a run-once shell script that connects a server to your overlay network.<br />
+        Evon Bootsrap is an agent-like, run-once shell script that connects a server to your overlay network.<br />
         <br />
-        Bootstrap simply installs and starts OpenVPN on your server with shipped config that connects it to this Evon Hub. Bootstrap is also avilable as a Docker container which connects a host Linux server without modifying the host OS.<br />
+        The Bootstrap script simply downloads, starts and persists OpenVPN on your server with shipped config that connects it to your Evon Hub.<br />
         <br />
-        Note: The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below CLI invocations include this token for your convenience.
+        Bootstrap is also avilable as a Docker container which connects a host Linux server to your Hub without modifying the host OS.<br />
+        <br />
+        Of Note:<br />
+        <br />
+        <ul>
+          <li>The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user (or any superuser) is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below CLI invocations include this token for your convenience.</li>
+          <li>Servers connect to this Evon Hub using OpenVPN via TCP/443 with SSL/TLS. It is therefore possible to connect Servers to this Hub that are behind a web proxy. See below under <strong>Install Bootstrap</strong> for more info.</li>
+        </ul>
       </div>
     </div>
     <div class="card-header">
@@ -68,7 +75,7 @@
                 <h5>Install Bootstrap:</h5>
                 Run the following command as root on your server:
                 <pre>EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
-                Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, uninstallation and other options, run command:
+                Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
                 <pre>./bootstrap.sh --help</pre>
               </div>
             </div>
@@ -98,7 +105,7 @@
                 <h5>Install Bootstrap:</h5>
                 Run the following PowerShell command on your server as Administrator:
                 <pre>.\bootstrap.ps1 -Apikey {{ deploy_token }}</pre>
-                Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, uninstallation and other options, run command:
+                Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
                 <pre>.\bootstrap.ps1 -Help</pre>
               </div>
             </div>

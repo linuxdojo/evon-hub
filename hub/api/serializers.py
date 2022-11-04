@@ -58,7 +58,7 @@ class GroupSerializer(serializers.ModelSerializer):
 class ServerSerializer(serializers.ModelSerializer):
     accessible = serializers.SerializerMethodField(
         read_only=True,
-        help_text="This value is set to True only if a policy exists that permits the requesting user to connect to this server."
+        help_text="This value is set to True only if a policy exists that permits the requesting user to connect to this server. Visible only to superusers."
     )
     last_seen = serializers.SerializerMethodField(
         read_only=True,
