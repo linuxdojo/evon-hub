@@ -178,7 +178,8 @@ class Server(models.Model):
         unique=True,
         validators=[RegexValidator(regex=UUID_PATTERN)],
         help_text=("This value is set on line 1 of the evon.uuid file on your connected server. "
-                   "A unique static IPv4 address is auto-assigned to any new UUID values seen by the Hub."
+                   "A unique static IPv4 address is auto-assigned to any new UUID values seen by the Hub. "
+                   "Visible only to superusers."
         ),
     )
     # Max fqdn length is 1004 according to RFC, but max mariadb unique varchar is 255
@@ -218,7 +219,7 @@ class Server(models.Model):
         ServerGroup,
         blank=True,
         verbose_name="Server Groups",
-        help_text="A list of Server Gropup ID's in which this Server is a member."
+        help_text="A list of Server Gropup ID's in which this Server is a member. Visible only to superusers."
     )
 
     def __str__(self):
