@@ -2,6 +2,7 @@ import os
 from textwrap import dedent
 
 from django.contrib import admin
+from django.contrib import messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import User, Group
@@ -133,9 +134,15 @@ class OVPNClientAdmin(admin.ModelAdmin):
         return patterns
 
     def view_custom(self, request):
+        user_auth_token = hasattr(request.user, "auth_token") and request.user.auth_token or None
+        if not user_auth_token:
+            messages.info(
+                request,
+                f"Your user has no auth token. If you wish to use the API, please go to the Tokens menu option and add one for yourself."
+            )
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
-            "auth_token": request.user.auth_token,
+            "auth_token": user_auth_token or "<your_auth_token>",
             "user": request.user,
         }
         template_path = os.path.join(f"{BASE_DIR}", "hub", "templates", "hub", self.custom_template_filename)
@@ -185,9 +192,16 @@ class BootstrapAdmin(admin.ModelAdmin):
         return patterns
 
     def view_custom(self, request):
+        deployer_user = User.objects.get(username="deployer")
+        deployer_auth_token = hasattr(deployer_user, "auth_token") and deployer_user.auth_token or None
+        if not deployer_auth_token:
+            messages.info(
+                request,
+                f"The 'deployer' user has no auth token. If you wish to use the API, please go to the Tokens menu option and add a token for the 'deployer' user."
+            )
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
-            "deploy_token": User.objects.get(username="deployer").auth_token,
+            "deploy_token": deployer_auth_token or "<deployer_user_auth_token>",
             "deployer_uid": User.objects.get(username="deployer").pk,
         }
         template_path = os.path.join(f"{BASE_DIR}", "hub", "templates", "hub", self.custom_template_filename)
