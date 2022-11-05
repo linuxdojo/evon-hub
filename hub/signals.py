@@ -84,8 +84,8 @@ def upsert_group(sender, instance=None, created=False, **kwargs):
 def add_server_to_all_servers_group(sender, instance=None, created=False, **kwargs):
     "add new servers to the all servers group"
 
+    all_servers_group = hub.models.ServerGroup.objects.get(name="All Servers")
     if created:
-        all_servers_group = hub.models.ServerGroup.objects.get(name="All Servers")
         instance.server_groups.add(all_servers_group)
         # we need to update any rules or policies using the "All Servers" group.
         rules = hub.models.Rule.objects.filter(source_servergroups__in=[all_servers_group])
@@ -94,6 +94,9 @@ def add_server_to_all_servers_group(sender, instance=None, created=False, **kwar
         policies = hub.models.Policy.objects.filter(servergroups__in=[all_servers_group])
         for policy in policies:
             transaction.on_commit(partial(firewall.apply_policy, policy))
+    else:
+        # ensure all_servers group membership is immutable
+        transaction.on_commit(partial(instance.server_groups.add, all_servers_group))
 
 
 @receiver(post_save, sender=hub.models.ServerGroup)
