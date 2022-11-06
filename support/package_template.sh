@@ -375,13 +375,21 @@ EOF
 echo Done.
 
 echo '### Deploying state'
-rm -f /var/www/html/bootstrap.sh || :
 evon --save-state
 rc=$?
 if [ $rc -ne 0 ]; then
     bail $rc "ERROR: Installation failed, please contact support at support@evon.link and provide the log file at path $logfile"
 fi
 
+# Check for and apply updates
+update_available=$(evon --check-update --quiet | jq .update_available)
+if [ "$update_available" == "true" ]; then
+    echo "*** New update available, applying... ***"
+    evon --update
+    exit $?
+fi
+
+# finish
 echo '### Done!'
 cat /etc/motd
 echo ""
@@ -390,5 +398,6 @@ echo "         Setup and registration completed!"
 echo "  Please browse to your Hub Web UI using above details."
 echo "#########################################################"
 bail 0
-# To generate payload below, run: make package
+
+# Package payload
 PAYLOAD:
