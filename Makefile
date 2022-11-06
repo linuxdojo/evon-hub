@@ -64,9 +64,7 @@ package: # produce package artefact ready for publishing
 	# cleanup
 	rm -f /tmp/evon_hub.tar.gz
 	sed -i 's/__VERSION__/$(VER)/g' $(OUTFILE)
-	$(eval EVON_DOMAIN_SUFFIX=$(shell cat evon/.evon_env | grep EVON_DOMAIN_SUFFIX | cut -d= -f2 ))
-	echo "Inserting domain suffix into packager: $(EVON_DOMAIN_SUFFIX)"
-	sed -i 's/__EVON_DOMAIN_SUFFIX__/$(EVON_DOMAIN_SUFFIX)/g' $(OUTFILE)
+	sed -i "s/__EVON_DOMAIN_SUFFIX__/$$(cat evon/.evon_env | grep EVON_DOMAIN_SUFFIX | cut -d= -f2)/g" $(OUTFILE)
 	# render initial deploy motd
 	cat support/package_motd | sed 's/__VERSION__/$(VER)/g' > /tmp/evon_hub_motd
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
@@ -98,7 +96,7 @@ deploy-base: # setup newly-deployed target EC2 system to be ready for producing 
 	# run base build
 	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy -b'"
 	# nuke the ssh pub key if prod, ready for AMI creation (to pass AWS MP security scan)
-	#[ "$(ENV)" == "prod" ] && ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo rm -f /home/ec2-user/.ssh/authorized_keys /root/.ssh/authorized_keys'" || :
+	[ "$(ENV)" == "prod" ] && ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo rm -f /home/ec2-user/.ssh/authorized_keys /root/.ssh/authorized_keys'" || :
 	echo Done.
 
 deploy-test: # DEV ONLY - convenience target to make package, publish and run installer on remote host
