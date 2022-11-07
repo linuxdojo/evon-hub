@@ -130,7 +130,6 @@ def inject_pub_ipv4(json_data):
 )
 @click.option(
     "--set-inventory",
-    hidden=True,
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "set_inventory"],
     metavar="JSON",
@@ -203,7 +202,6 @@ def inject_pub_ipv4(json_data):
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "save_state"],
     is_flag=True,
-    hidden=True,
     help="Deploy and persist state."
 )
 @click.option(
