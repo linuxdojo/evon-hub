@@ -18,7 +18,7 @@ EVON_DEBUG = os.environ.get('EVON_DEBUG', '').upper() == "TRUE"
 if EVON_DEBUG:
     logger.setLevel(logging.DEBUG)
 API_URL = os.environ.get("EVON_API_URL")
-REQUESTS_TIMEOUT = 10
+REQUESTS_TIMEOUT = 30
 
 
 def generate_headers(api_key):
