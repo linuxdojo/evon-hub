@@ -275,7 +275,7 @@ Restart-Service OpenVPNService -ErrorAction SilentlyContinue
 
 # test connection
 write-host Testing connection...
-for ($i = 1 ; $i -le 7; $i++) {
+for ($i = 1 ; $i -le 10; $i++) {
     write-host "."
     Write-Progress -CurrentOperation "Testing connection" ( "Testing connection ... "  )
     $ping_result = ([System.Net.NetworkInformation.Ping]::new().Send("$evon_hub_peer").Status)
