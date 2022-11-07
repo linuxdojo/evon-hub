@@ -7,6 +7,10 @@
 
 import os
 import sys
+import pwd
+
+if os.getuid() and pwd.getpwuid(os.getuid())[0] == "openvpn":
+    os.execl("/usr/bin/sudo", "-i", sys.argv[0], os.environ["username"], os.environ["password"])
 
 import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'
@@ -16,8 +20,8 @@ from evon.log import get_evon_logger  # noqa
 
 
 logger = get_evon_logger()
-username = os.environ["username"]
-password = os.environ["password"]
+username = os.environ.get("username") or sys.argv[1]
+password = os.environ.get("password") or sys.argv[2]
 config = Config.get_solo()
 
 

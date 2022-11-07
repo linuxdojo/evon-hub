@@ -5,10 +5,14 @@
 #######################################
 
 
-import ipaddress
 import os
 import sys
+import pwd
 
+if os.getuid() and pwd.getpwuid(os.getuid())[0] == "openvpn":
+    os.execl("/usr/bin/sudo", "-i", sys.argv[0], os.environ["common_name"], sys.argv[-1])
+
+import ipaddress
 import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'
 django.setup()
@@ -21,7 +25,7 @@ if not len(sys.argv) >= 2:
     logger.error("Did not receive any args")
     sys.exit(1)
 ccd_file = sys.argv[-1]
-cn = os.environ["common_name"]
+cn = os.environ.get("common_name") or sys.argv[1]
 
 logger.info(f"Setting up CCD file for user with common name: {cn}")
 

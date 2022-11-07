@@ -588,7 +588,7 @@ EOF
         fi
 
         ##### Test OpenVPN connection
-        attempts=5
+        attempts=10
         echo -n "Attempting to contact Evon Hub"
         while [ $attempts -gt 0 ]; do
             attempts=$((attempts-1))
