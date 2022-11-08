@@ -290,6 +290,11 @@
     state: started
     enabled: yes
 
+- name: setup public ip change watchdog
+  ansible.builtin.copy:
+    src: cron.d/evon
+    dest: /etc/cron.d/evon
+
 
 ### Setup Nginx
 
