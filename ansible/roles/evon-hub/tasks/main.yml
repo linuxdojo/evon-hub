@@ -44,10 +44,11 @@
   when: ssllh_cfg.rc == 0
   register: sslh_cfg_copy
 
-- name: restart sslh service
+- name: restart and persist sslh service
   ansible.builtin.service:
     name: sslh
     state: restarted
+    enabled: true
   when: sslh_cfg_copy.changed
 
 
