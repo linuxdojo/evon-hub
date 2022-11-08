@@ -45,6 +45,7 @@ MUTEX_OPTIONS = [
     "save_state",
     "sync_servers",
     "kill_server",
+    "sync_pubip",
 ]
 
 
@@ -108,8 +109,56 @@ def inject_pub_ipv4(json_data):
     except json.JSONDecodeError as e:
         logger.error(f"Error parsing JSON input: {e}")
         sys.exit(1)
-    data["public-ipv4"] = evon_api.get_pub_ipv4()
+    current_public_ipv4 = evon_api.get_pub_ipv4()
+    data["public-ipv4"] = current_public_ipv4
+    # sync current pub ipv4 with saved ipv4 in evon_vars.yaml if changed
+    evon_vars_path = os.path.join(os.path.dirname(__file__), "..", "evon_vars.yaml")
+    if os.path.isfile(evon_vars_path):
+        with open(evon_vars_path) as f:
+            evon_vars = yaml.safe_load(f)
+        saved_public_ipv4 = evon_vars["public_ipv4"]
+        if current_public_ipv4 != saved_public_ipv4:
+            logger.info(f"Detected public ipv4 addres change from {saved_public_ipv4} to {current_public_ipv4}. Persisting in evon_vars.yaml...")
+            # update evon_vars.yaml
+            evon_vars["public_ipv4"] = current_public_ipv4
+            with open(evon_vars_path, "w") as f:
+                f.write(f"---\n{yaml.dump(evon_vars)}")
     return json.dumps(data)
+
+
+def get_account_info():
+    """
+    Sends a PUT to evon cloud api set_records function with empty changeset. This returns account info
+    and has the side effect of updating Route53 with the curent public ipv4 of this ec2 instance.
+    """
+    logger.info("getting account info...")
+    json_payload = '{"changes": {"new": {}, "removed": {}, "updated": {}, "unchanged": {}}}'
+    json_payload = inject_pub_ipv4(json_payload)
+    result = json.loads(evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload))
+    # append ec2 instance id
+    response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+    iid = response.json()["instanceId"]
+    result["ec2_instance_id"] = iid
+    return result
+
+
+def sync_pub_ipv4():
+    """
+    Fucntion to check if saved ipv4 (in evon_vars.yaml) == current ipv4, and if not, fires the
+    get_account_info() function which PUTs to evon cloud API and updates route53. 
+    """
+    result = {"pub_ipv4_changed": False}
+    current_public_ipv4 = evon_api.get_pub_ipv4()
+    evon_vars_path = os.path.join(os.path.dirname(__file__), "..", "evon_vars.yaml")
+    if os.path.isfile(evon_vars_path):
+        with open(evon_vars_path) as f:
+            evon_vars = yaml.safe_load(f)
+        saved_public_ipv4 = evon_vars["public_ipv4"]
+        if current_public_ipv4 != saved_public_ipv4:
+            logger.info(f"Detected public ipv4 addres change from {saved_public_ipv4} to {current_public_ipv4}. Updating DNS...")
+            get_account_info()
+            result["pub_ipv4_changed"] = True
+    return result
 
 
 @click.command(
@@ -122,11 +171,20 @@ def inject_pub_ipv4(json_data):
     no_args_is_help=True,
 )
 @click.option(
+    "--sync-pubip",
+    "-p",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "sync_pubip"],
+    is_flag=True,
+    help="Sync public DNS record for this Hub with current public ipv4 address"
+)
+@click.option(
     "--get-inventory",
     "-i",
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_inventory"],
-    is_flag=True, help="Show inventory of all zone records (registered public A records) for Servers that are currently connected to the Hub."
+    is_flag=True,
+    help="Show inventory of all zone records (registered public A records) for Servers that are currently connected to the Hub."
 )
 @click.option(
     "--set-inventory",
@@ -283,14 +341,11 @@ def main(**kwargs):
         click.echo(json.dumps(result, indent=2))
 
     if kwargs["get_account_info"]:
-        logger.info("getting account info...")
-        json_payload = '{"changes": {"new": {}, "removed": {}, "updated": {}, "unchanged": {}}}'
-        json_payload = inject_pub_ipv4(json_payload)
-        result = json.loads(evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload))
-        # append ec2 instance id
-        response = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
-        iid = response.json()["instanceId"]
-        result["ec2_instance_id"] = iid
+        result = get_account_info()
+        click.echo(json.dumps(result, indent=2))
+
+    if kwargs["sync_pubip"]:
+        result = sync_pub_ipv4()
         click.echo(json.dumps(result, indent=2))
 
     if kwargs["check_update"]:
