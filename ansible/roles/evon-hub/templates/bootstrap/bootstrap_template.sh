@@ -20,6 +20,7 @@ if ! which bash >/dev/null 2>&1; then
     fi
 elif ! which realpath >/dev/null 2>&1; then
     echo "ERROR: The 'realpath' command is missing on this system. Please install it, then re-run this installer."
+    exit 1
 elif [ "$(basename $(realpath /proc/$$/exe))" != "bash" ] || cat /proc/$$/cmdline | grep -qE '^/bin/sh'; then
     bash $0 $@
     exit $?
