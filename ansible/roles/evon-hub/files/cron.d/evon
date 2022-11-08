@@ -1,0 +1,5 @@
+# public ipv4 address change watchdog
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin
+MAILTO=
+* * * * * root evon --sync-pubip
