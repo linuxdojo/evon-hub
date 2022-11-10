@@ -21,6 +21,7 @@ gunicorn==20.1.0
 humanfriendly==10.0
 idna==3.3
 importlib-metadata==4.12.0
+ipdb==0.13.9
 ipython==8.4.0
 itypes==1.2.0
 jedi==0.18.1
