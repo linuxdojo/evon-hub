@@ -83,6 +83,12 @@ EVON_HUB_CONFIG = {
         'Can add Config',
         'Can delete Config',
     ],
+    # AWS Marketplace configuration
+    "MP_PRODUCT_CODE": "agsrs9xco1umo7dbgbr7nkb5l",
+    "MP_DIMENSIONS": {
+        "server": "ServerConnection",
+        "user": "User"
+    }
 }
 
 # location of XTABLES_LIBDIR for in hub.firewall.iptc lib
