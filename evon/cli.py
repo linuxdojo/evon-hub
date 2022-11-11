@@ -46,6 +46,8 @@ MUTEX_OPTIONS = [
     "sync_servers",
     "kill_server",
     "sync_pubip",
+    "mp_validate",
+    "mp_meter",
 ]
 
 
@@ -177,6 +179,22 @@ def sync_pub_ipv4():
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "sync_pubip"],
     is_flag=True,
     help="Sync public DNS record for this Hub with current public ipv4 address"
+)
+@click.option(
+    "--mp-validate",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "mp_validate"],
+    is_flag=True,
+    hidden=True,
+    help="Validate IAM Role attached to this EC2"
+)
+@click.option(
+    "--mp-meter",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "mp_meter"],
+    is_flag=True,
+    hidden=True,
+    help="Send metering records to AWS"
 )
 @click.option(
     "--get-inventory",
@@ -439,3 +457,18 @@ def main(**kwargs):
             click.echo(f'{{"status": "success", "message": "{res}"}}')
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
+
+    if kwargs["mp_validate"]:
+        from evon import sync_mp
+        if kwargs["debug"]:
+            logger.setLevel(logging.DEBUG)
+        logger.info("validating IAM Role...")
+        try:
+            response = sync_mp.validate_ec2_role()
+            click.echo(json.dumps(response))
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')
+
+    if kwargs["mp_meter"]:
+        #TODO
+        click.echo("Not yet implemented.")
