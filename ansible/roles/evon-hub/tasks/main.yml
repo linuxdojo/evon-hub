@@ -290,7 +290,7 @@
     state: started
     enabled: yes
 
-- name: setup public ip change watchdog
+- name: setup evon timers and watchdogs
   ansible.builtin.copy:
     src: cron.d/evon
     dest: /etc/cron.d/evon

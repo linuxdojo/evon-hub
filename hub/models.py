@@ -486,6 +486,12 @@ class Policy(models.Model):
 
 
 class Config(SingletonModel):
+    ec2_iam_role_status = models.BooleanField(
+        default=False,
+        verbose_name = "EC2 IAM Role Status",
+        editable=False,
+        help_text="Health status of your EC2 IAM Role. Must be True (green) in order for this Evon Hub to function correctly. If False (red), please SSH to this EC2 instance and run command 'evon --iam-validate'."
+    )
     TIMEZONES = ((tzone, tzone) for tzone in pytz.all_timezones)
     timezone = models.CharField(
         max_length=64,
