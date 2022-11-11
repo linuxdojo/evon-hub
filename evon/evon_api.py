@@ -117,3 +117,13 @@ def get_updates(api_url, api_key, version):
         headers=generate_headers(api_key)
     )
     return response.text
+
+
+def get_meters(api_url, api_key):
+    url = f"{api_url}/zone/meters"
+    response = do_request(
+        url,
+        requests.get,
+        headers=generate_headers(api_key)
+    )
+    return response.text

@@ -46,7 +46,7 @@ MUTEX_OPTIONS = [
     "sync_servers",
     "kill_server",
     "sync_pubip",
-    "mp_validate",
+    "iam_validate",
     "mp_meter",
 ]
 
@@ -181,11 +181,10 @@ def sync_pub_ipv4():
     help="Sync public DNS record for this Hub with current public ipv4 address"
 )
 @click.option(
-    "--mp-validate",
+    "--iam-validate",
     cls=MutuallyExclusiveOption,
-    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "mp_validate"],
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "iam_validate"],
     is_flag=True,
-    hidden=True,
     help="Validate IAM Role attached to this EC2"
 )
 @click.option(
@@ -458,11 +457,11 @@ def main(**kwargs):
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
 
-    if kwargs["mp_validate"]:
+    if kwargs["iam_validate"]:
         from evon import sync_mp
         if kwargs["debug"]:
             logger.setLevel(logging.DEBUG)
-        logger.info("validating IAM Role...")
+        logger.info("validating IAM Role attached to this EC2 instance...")
         try:
             response = sync_mp.validate_ec2_role()
             click.echo(json.dumps(response))
@@ -470,5 +469,13 @@ def main(**kwargs):
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
 
     if kwargs["mp_meter"]:
-        #TODO
-        click.echo("Not yet implemented.")
+        #TODO continue here, we're successfully getting aggregates...
+        from evon import sync_mp
+        if kwargs["debug"]:
+            logger.setLevel(logging.DEBUG)
+        logger.info("Registering dimension aggregates with AWS metering API...")
+        try:
+            response = sync_mp.register_meters()
+            click.echo(json.dumps(response))
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')
