@@ -11,7 +11,6 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
-from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from solo.models import SingletonModel
 import humanfriendly
@@ -487,11 +486,6 @@ class Policy(models.Model):
 
 
 class Config(SingletonModel):
-    ec2_iam_role_status = models.CharField(
-        max_length=256,
-        default="",
-        help_text="Status of your EC2 IAM Role associated with this EC2 instance. Status must be healthy for this Hub to function. Please visit <><> for info on how to setup your EC2 IAM Role for Evon Hub."
-    )
     TIMEZONES = ((tzone, tzone) for tzone in pytz.all_timezones)
     timezone = models.CharField(
         max_length=64,
