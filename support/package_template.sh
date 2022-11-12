@@ -392,25 +392,28 @@ if [ "$update_available" == "true" ]; then
 fi
 
 # Validate EC2 IAM Role has been setup correctly
-evon --iam-validate
-if [ $? -ne 0 ]; then
-    echo "###############################"
-    echo "  EC2 IAM Role Setup Required  "
-    echo "###############################"
-    echo ""
-    echo "An IAM Role must be created in your AWS account and attached to this EC2 instance for Evon Hub to function correctly."
-    echo "You only need to create the IAM role once. Please complete the following steps:"
-    echo ""
-    echo "1. Login to your AWS Management Console, ensure you're in the correct region, open EC2 Services and click Instances"
-    echo "2. Select this EC2 instance with Instance ID ${ec2_id} and click Actions -> Security -> Modify IAM role"
-    echo "3. Click Create new IAM role (or choose an existing one if you've completed these steps already), a new browser tab will open"
-    echo "4. Click Create role -> select 'AWS service' and 'EC2', click Next -> select AWSMarketplaceMeteringFullAccess and click Next"
-    echo "5. Provide a Role name (eg 'evon-hub') and click Create role"
-    echo "6. In previous 'Modify IAM role' browser tab, click the refresh icon and choose the IAM role created in previous steps, click Update IAM role"
-    echo "7. Validate you've created the role correctly by entering command: evon --iam-validate"
-    echo "8. Finally, re-run this installer by entering command: $0 -d ${domain_prefix} -s ${subnet_key}"
-    echo ""
-    exit 1
+source /opt/evon-hub/evon/.evon_env
+if [ "${EVON_ENV}" != "dev" ]; then
+    evon --iam-validate
+    if [ $? -ne 0 ]; then
+        echo "###############################"
+        echo "  EC2 IAM Role Setup Required  "
+        echo "###############################"
+        echo ""
+        echo "An IAM Role must be created in your AWS account and attached to this EC2 instance for Evon Hub to function correctly."
+        echo "You only need to create the IAM role once. Please complete the following steps:"
+        echo ""
+        echo "1. Login to your AWS Management Console, ensure you're in the correct region, open EC2 Services and click Instances"
+        echo "2. Select this EC2 instance with Instance ID ${ec2_id} and click Actions -> Security -> Modify IAM role"
+        echo "3. Click Create new IAM role (or choose an existing one if you've completed these steps already), a new browser tab will open"
+        echo "4. Click Create role -> select 'AWS service' and 'EC2', click Next -> select AWSMarketplaceMeteringFullAccess and click Next"
+        echo "5. Provide a Role name (eg 'evon-hub') and click Create role"
+        echo "6. In previous 'Modify IAM role' browser tab, click the refresh icon and choose the IAM role created in previous steps, click Update IAM role"
+        echo "7. Validate you've created the role correctly by entering command: evon --iam-validate"
+        echo "8. Finally, re-run this installer by entering command: $0 -d ${domain_prefix} -s ${subnet_key}"
+        echo ""
+        exit 1
+    fi
 fi
 
 # finish
