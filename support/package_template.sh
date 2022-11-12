@@ -414,6 +414,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # finish
+account_domain=$(echo ${account_domain} | sed 's/"//g')
+ec2_id=$(echo ${ec2_id} | sed 's/"//g')
 echo '### Done!'
 echo ""
 echo "##############################################################"
