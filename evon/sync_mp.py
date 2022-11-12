@@ -175,6 +175,7 @@ def register_meters():
         except Exception as e:
             message = f"Failed to register meters: {e}"
             logger.warning(f"Got exception while registering meters with AWS Metering Service: {traceback.format_exc()}")
+            logger.info("retrying in 300 seconds")
             time.sleep(300)
             current_time = int(time.time())
     if not success:
