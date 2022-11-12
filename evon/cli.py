@@ -362,6 +362,7 @@ def main(**kwargs):
         click.echo(json.dumps(result, indent=2))
 
     if kwargs["sync_pubip"]:
+        logger.info("syncing public ipv4 with hub's route53 A record if changed...")
         result = sync_pub_ipv4()
         click.echo(json.dumps(result, indent=2))
 
