@@ -38,8 +38,7 @@ config '$ovpn_conf_dir\evon_secrets.conf.inc'
 auth-user-pass '$ovpn_conf_dir\evon.uuid'
 dev tun
 resolv-retry infinite
-connect-retry 5
-connect-retry-max 10
+connect-retry 5 10
 nobind
 ;user nobody
 ;group nobody
