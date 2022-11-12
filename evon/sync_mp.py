@@ -87,6 +87,8 @@ def validate_ec2_role():
             message = "Unexpected Exception when calling AWS meter_usage API. Please check syslog for more info."
     # update Config
     save_ec2_role_status(status)
+    if not status:
+        raise Exception(message)
     return {"status": status, "message": message}
 
 
