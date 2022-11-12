@@ -46,6 +46,8 @@ MUTEX_OPTIONS = [
     "sync_servers",
     "kill_server",
     "sync_pubip",
+    "iam_validate",
+    "mp_meter",
 ]
 
 
@@ -177,6 +179,21 @@ def sync_pub_ipv4():
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "sync_pubip"],
     is_flag=True,
     help="Sync public DNS record for this Hub with current public ipv4 address"
+)
+@click.option(
+    "--iam-validate",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "iam_validate"],
+    is_flag=True,
+    help="Validate IAM Role attached to this EC2"
+)
+@click.option(
+    "--mp-meter",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "mp_meter"],
+    is_flag=True,
+    hidden=True,
+    help="Send metering records to AWS"
 )
 @click.option(
     "--get-inventory",
@@ -437,5 +454,33 @@ def main(**kwargs):
         try:
             res = sync_servers.kill_server(uuid)
             click.echo(f'{{"status": "success", "message": "{res}"}}')
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')
+
+    if kwargs["iam_validate"]:
+        from evon import sync_mp
+        if kwargs["debug"]:
+            logger.setLevel(logging.DEBUG)
+        logger.info("validating IAM Role attached to this EC2 instance...")
+        try:
+            response = sync_mp.validate_ec2_role()
+            click.echo(json.dumps(response))
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')
+            sys.exit(2)
+
+    if kwargs["mp_meter"]:
+        from evon import sync_mp
+        if kwargs["debug"]:
+            logger.setLevel(logging.DEBUG)
+        logger.info("Registering meters with AWS metering API...")
+        try:
+            # register meters
+            response = sync_mp.register_meters()
+            # update last_meter_ts value in ddb record
+            json_payload = '{"changes": {"new": {}, "removed": {}, "updated": {}, "unchanged": {}}, "last_meter_ts": "%s"}' % meter_timestamp
+            json_payload = inject_pub_ipv4(json_payload)
+            evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
+            click.echo(json.dumps(response))
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')

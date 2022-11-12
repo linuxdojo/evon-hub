@@ -100,9 +100,9 @@ function get_domain_prefix() {
             echo "ERROR: The provided domain prefix '${domain_prefix}' was not formatted correctly (it must conform to RFC 1123)"
         else
             echo ""
-            echo "###################"
-            echo "    Confirmation    "
-            echo "###################"
+            echo "################"
+            echo "  Confirmation    "
+            echo "################"
             echo ""
             echo "Your desired Evon Hub URL is:      https://${domain_prefix}.${EVON_DOMAIN_SUFFIX}"
             echo "Your Evon overlay network subnet:  100.${subnet_key}.224.0/19"
@@ -329,6 +329,7 @@ subnet_key=$(echo $account_info | jq .subnet_key)
 public_ipv4=$(echo $account_info | jq .public_ipv4)
 aws_region=$(echo $iid | jq .region)
 aws_az=$(echo $iid | jq .availabilityZone)
+aws_account_id=$(echo $iid | jq .accountId)
 ec2_id=$(echo $iid | jq .instanceId)
 if [ -z "ec2_id" ]; then
     bail 1 "Failed to retrieve AWS EC2 Instance Identity Document information. Please retry by re-running this installer."
@@ -338,6 +339,7 @@ cat <<EOF > /opt/evon-hub/evon_vars.yaml
 account_domain: ${account_domain}
 subnet_key: ${subnet_key}
 public_ipv4: ${public_ipv4}
+aws_account_id: ${aws_account_id}
 aws_region: ${aws_region}
 aws_az: ${aws_az}
 ec2_id: ${ec2_id}
@@ -389,14 +391,39 @@ if [ "$update_available" == "true" ]; then
     exit $?
 fi
 
+# Validate EC2 IAM Role has been setup correctly
+evon --iam-validate
+if [ $? -ne 0 ]; then
+    echo "###############################"
+    echo "  EC2 IAM Role Setup Required  "
+    echo "###############################"
+    echo ""
+    echo "An IAM Role must be created in your AWS account and attached to this EC2 instance for Evon Hub to function correctly."
+    echo "You only need to create the IAM role once. Please complete the following steps:"
+    echo ""
+    echo "1. Login to your AWS Management Console, ensure you're in the correct region, open EC2 Services and click Instances"
+    echo "2. Select this EC2 instance with Instance ID ${ec2_id} and click Actions -> Security -> Modify IAM role"
+    echo "3. Click Create new IAM role (or choose an existing one if you've completed these steps already), a new browser tab will open"
+    echo "4. Click Create role -> select 'AWS service' and 'EC2', click Next -> select AWSMarketplaceMeteringFullAccess and click Next"
+    echo "5. Provide a Role name (eg 'evon-hub') and click Create role"
+    echo "6. In previous 'Modify IAM role' browser tab, click the refresh icon and choose the IAM role created in previous steps, click Update IAM role"
+    echo "7. Validate you've created the role correctly by entering command: evon --iam-validate"
+    echo "8. Finally, re-run this installer by entering command: $0"
+    echo ""
+    exit 1
+fi
+
 # finish
 echo '### Done!'
-cat /etc/motd
 echo ""
-echo "#########################################################"
-echo "         Setup and registration completed!"
-echo "  Please browse to your Hub Web UI using above details."
-echo "#########################################################"
+echo "##############################################################"
+echo "              Setup and registration completed!"
+echo "  Please browse to your Evon Hub Web UI using below details:"
+echo ""
+echo "     Your Evon Hub WebUI: https://${account_domain}"
+echo "Default WebUI login (user / pass): admin / ${ec2_id}"
+echo ""
+echo "##############################################################"
 bail 0
 
 # Package payload

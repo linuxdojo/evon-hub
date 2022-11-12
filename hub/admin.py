@@ -308,6 +308,8 @@ class PolicyAdmin(admin.ModelAdmin):
 
 @admin.register(hub.models.Config)
 class ConfigAdmin(admin.ModelAdmin):
+    fields = ('ec2_iam_role_status', 'timezone', 'auto_update', 'auto_update_time', 'discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
+    readonly_fields = ('ec2_iam_role_status',)
 
     def has_delete_permission(self, request, obj=None):
         return False

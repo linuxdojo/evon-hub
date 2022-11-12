@@ -74,13 +74,16 @@ def do_sync():
     for fqdn in current_clients:
         if fqdn not in current_records:
             new[fqdn] = current_clients[fqdn]
+    # set user_count
+    user_count = User.objects.count() - 2  # subtract the two default users, "admin" and "deployer"
     payload = {
+        "user_count": user_count,
         "changes": {
             "new": new,
             "removed": removed,
             "updated": updated,
             "unchanged": unchanged
-        }
+        },
     }
     logger.info(f"Applying DNS changes: {payload}")
     payload = inject_pub_ipv4(json.dumps(payload))
