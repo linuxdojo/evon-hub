@@ -1,5 +1,12 @@
-# public ipv4 address change watchdog
 SHELL=/bin/bash
 PATH=/usr/local/bin:/usr/bin
 MAILTO=
+
+# public ipv4 address change watchdog
 * * * * * root evon --sync-pubip
+
+# AWS EC2 IAM Role validation watchdog
+* * * * * root evon --iam-validate
+
+# AWs metering timer
+5 * * * * root evon --mp-meter

@@ -2,6 +2,8 @@ ansible==5.9.0
 asgiref==3.5.2
 asttokens==2.0.8
 backcall==0.2.0
+boto3==1.24.17
+botocore==1.27.17
 certifi==2022.6.15
 charset-normalizer==2.1.1
 click==8.1.3

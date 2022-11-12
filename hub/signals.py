@@ -10,8 +10,10 @@ from django.db import transaction
 from django.db.models.signals import pre_save, pre_delete, post_delete, post_save, post_migrate, m2m_changed
 from django.dispatch import receiver
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from rest_framework.authtoken.models import Token
 import zoneinfo
+
 
 from evon.log import get_evon_logger
 from eapi.settings import EVON_VARS
@@ -216,7 +218,7 @@ def post_login(sender, user, request, **kwargs):
         if authenticate(username='admin', password=ec2_id):
             messages.warning(
                 request,
-                f"You are currently using the default admin password. Please navigate to your profile page to change it."
+                mark_safe(f'You are currently using the default admin password. Please <a href="/password_change">click here</a> to change it.')
             )
 
 
