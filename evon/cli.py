@@ -467,15 +467,20 @@ def main(**kwargs):
             click.echo(json.dumps(response))
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
+            sys.exit(2)
 
     if kwargs["mp_meter"]:
-        #TODO continue here, we're successfully getting aggregates...
         from evon import sync_mp
         if kwargs["debug"]:
             logger.setLevel(logging.DEBUG)
-        logger.info("Registering dimension aggregates with AWS metering API...")
+        logger.info("Registering meters with AWS metering API...")
         try:
+            # register meters
             response = sync_mp.register_meters()
+            # update last_meter_ts value in ddb record
+            json_payload = '{"changes": {"new": {}, "removed": {}, "updated": {}, "unchanged": {}}, "last_meter_ts": "%s"}' % meter_timestamp
+            json_payload = inject_pub_ipv4(json_payload)
+            evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload)
             click.echo(json.dumps(response))
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
