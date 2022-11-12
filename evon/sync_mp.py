@@ -1,4 +1,5 @@
 import os
+import datetime
 import time
 import traceback
 
@@ -8,12 +9,14 @@ import django
 import requests
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'  # noqa
 django.setup()  # noqa
+from django.contrib.auth.models import User  # noqa
 
-from eapi.settings import EVON_HUB_CONFIG  # noqa
+
+from eapi.settings import EVON_HUB_CONFIG, EVON_VARS  # noqa
 from evon import evon_api  # noqa
 from evon.cli import EVON_API_URL, EVON_API_KEY  # noqa
 from evon.log import get_evon_logger  # noqa
-from hub.models import Config  # noqa
+from hub.models import Config, Server  # noqa
 
 
 logger = get_evon_logger()
@@ -87,6 +90,87 @@ def validate_ec2_role():
     return {"status": status, "message": message}
 
 
-def register_meters():
+def get_aggregate_meters():
+    """
+    Returns aggregate ServerConnections and Users for the account in which the calling EC2 instance resides.
+    """
     response = evon_api.get_meters(EVON_API_URL, EVON_API_KEY)
     return response
+
+
+def register_meters():
+    """
+    Registers meter usage unit dimensions with AWS.  Blocks until meters are
+    successfully registered (we retry on failure), or at 5 minutes before the
+    hour, or an Exception is raised while computing input params, whichever
+    occurs first.
+    Returns json if successful else rasises
+    """
+    # compute paramters
+    region_name = get_region()
+    marketplaceClient = boto3.client('meteringmarketplace', region_name=region_name)
+    evon_account_domain = EVON_VARS["account_domain"]
+    aws_account_id = EVON_VARS["aws_account_id"]
+    aws_ec2_id = EVON_VARS["ec2_id"]
+    product_code = EVON_HUB_CONFIG["MP_PRODUCT_CODE"]
+    server_dimension_name = EVON_HUB_CONFIG["MP_DIMENSIONS"]["server"]
+    user_dimension_name = EVON_HUB_CONFIG["MP_DIMENSIONS"]["user"]
+    server_count = Server.objects.count()
+    user_count = User.objects.count() - 2  # subtract the two default users, "admin" and "deployer"
+    meter_timestamp = int(datetime.datetime.utcnow().replace(minute=0, second=0, microsecond=0).timestamp())
+    server_usage_record = [
+        {
+            "AllocatedUsageQuantity": server_count,
+            "Tags": [
+                {"Key": "evon_account_domain", "Value": evon_account_domain},
+                {"Key": "aws_account_id", "Value": aws_account_id},
+                {"Key": "aws_ec2_id", "Value": aws_ec2_id},
+            ]
+        },
+    ]
+    user_usage_record = [
+        {
+            "AllocatedUsageQuantity": user_count,
+            "Tags": [
+                {"Key": "evon_account_domain", "Value": evon_account_domain},
+                {"Key": "aws_account_id", "Value": aws_account_id},
+                {"Key": "aws_ec2_id", "Value": aws_ec2_id},
+            ]
+        },
+    ]
+    current_time = int(time.time())
+    success = False
+    message = "unsufficient time remaining in current hour"
+    while current_time < meter_timestamp + 55 * 60:
+        try:
+            # register server usage
+            response_server = marketplaceClient.meter_usage(
+                ProductCode=product_code,
+                Timestamp=meter_timestamp,
+                UsageDimension=server_dimension_name,
+                UsageQuantity=server_count,
+                DryRun=False,
+                UsageAllocations=server_usage_record
+            )
+            logger.info(f"Server metering usage response: {response_server}")
+            # register user usage
+            response_user = marketplaceClient.meter_usage(
+                ProductCode=product_code,
+                Timestamp=meter_timestamp,
+                UsageDimension=user_dimension_name,
+                UsageQuantity=user_count,
+                DryRun=False,
+                UsageAllocations=user_usage_record
+            )
+            logger.info(f"User metering usage response: {response_user}")
+            success = True
+            message = "success"
+            break
+        except Exception as e:
+            message = f"Failed to register meters: {e}"
+            logger.warning(f"Got exception while registering meters with AWS Metering Service: {traceback.format_exc()}")
+            time.sleep(300)
+            current_time = int(time.time())
+    if not success:
+        raise Exception(message)
+    return {"message": message}
