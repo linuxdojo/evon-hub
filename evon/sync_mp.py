@@ -74,6 +74,10 @@ def validate_ec2_role():
             else:
                 logger.error(f"Unexpected response from meter_usage(): {response}")
                 message = "Unexpected response from AWS meter_usage API. Please check syslog for more info."
+        except client.exceptions.DuplicateRequestException:
+            # This is fine, it indicates a working IAM role
+            status = True
+            message = "The IAM Role attached to this EC2 instance is configured correctly."
         except botocore.exceptions.NoCredentialsError:
             message = "No IAM Role is attached to this EC2 instance. Please attach a Role with a Policy allowing the 'aws-marketplace:MeterUsage' action."
         except botocore.exceptions.ClientError as e:
