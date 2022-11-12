@@ -408,7 +408,7 @@ if [ $? -ne 0 ]; then
     echo "5. Provide a Role name (eg 'evon-hub') and click Create role"
     echo "6. In previous 'Modify IAM role' browser tab, click the refresh icon and choose the IAM role created in previous steps, click Update IAM role"
     echo "7. Validate you've created the role correctly by entering command: evon --iam-validate"
-    echo "8. Finally, re-run this installer by entering command: $0"
+    echo "8. Finally, re-run this installer by entering command: $0 -d ${domain_prefix} -s ${subnet_key}"
     echo ""
     exit 1
 fi
