@@ -37,7 +37,7 @@ def save_ec2_role_status(current_status):
     """
     c = Config.get_solo()
     saved_status = c.ec2_iam_role_status
-    if current_status != current_status:
+    if current_status != saved_status:
         logger.info(f"detected ec2 role status change from '{saved_status}' to '{current_status}', persisting...")
         c.ec2_iam_role_status = current_status
         c.save()
@@ -144,43 +144,32 @@ def register_meters():
             ]
         },
     ]
-    current_time = int(time.time())
-    success = False
-    message = "unsufficient time remaining in current hour"
-    while current_time < meter_timestamp + 55 * 60:
-        try:
-            # register server usage
-            response_server = marketplaceClient.meter_usage(
-                ProductCode=product_code,
-                Timestamp=meter_timestamp,
-                UsageDimension=server_dimension_name,
-                UsageQuantity=server_count,
-                DryRun=False,
-                UsageAllocations=server_usage_record
-            )
-            logger.info(f"Server metering usage response: {response_server}")
-            # register user usage
-            response_user = marketplaceClient.meter_usage(
-                ProductCode=product_code,
-                Timestamp=meter_timestamp,
-                UsageDimension=user_dimension_name,
-                UsageQuantity=user_count,
-                DryRun=False,
-                UsageAllocations=user_usage_record
-            )
-            logger.info(f"User metering usage response: {response_user}")
-            success = True
-            message = "success"
-            break
-        except Exception as e:
-            message = f"Failed to register meters: {e}"
-            logger.warning(f"Got exception while registering meters with AWS Metering Service: {traceback.format_exc()}")
-            logger.info("retrying in 300 seconds")
-            time.sleep(300)
-            current_time = int(time.time())
-    if not success:
-        raise Exception(message)
+    # register usages
+    try:
+        # register server usage
+        response_server = marketplaceClient.meter_usage(
+            ProductCode=product_code,
+            Timestamp=meter_timestamp,
+            UsageDimension=server_dimension_name,
+            UsageQuantity=server_count,
+            DryRun=False,
+            UsageAllocations=server_usage_record
+        )
+        logger.info(f"Server metering usage response: {response_server}")
+        # register user usage
+        response_user = marketplaceClient.meter_usage(
+            ProductCode=product_code,
+            Timestamp=meter_timestamp,
+            UsageDimension=user_dimension_name,
+            UsageQuantity=user_count,
+            DryRun=False,
+            UsageAllocations=user_usage_record
+        )
+        logger.info(f"User metering usage response: {response_user}")
+    except Exception as e:
+        logger.error(f"Got exception while registering meters with AWS Metering Service: {traceback.format_exc()}")
+        raise e
     return {
-        "message": message,
+        "message": "success",
         "meter_timestamp": meter_timestamp,
     }
