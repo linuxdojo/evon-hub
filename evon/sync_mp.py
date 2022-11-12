@@ -175,4 +175,7 @@ def register_meters():
             current_time = int(time.time())
     if not success:
         raise Exception(message)
-    return {"message": message}
+    return {
+        "message": message,
+        "meter_timestamp": meter_timestamp,
+    }
