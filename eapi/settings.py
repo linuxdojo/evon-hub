@@ -156,6 +156,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "auditlog.middleware.AuditlogMiddleware",
+    "hub.middleware.HubMiddleware",
 ]
 
 ROOT_URLCONF = "eapi.urls"
