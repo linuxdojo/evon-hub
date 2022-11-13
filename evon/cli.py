@@ -33,6 +33,7 @@ evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
 EVON_API_KEY = evon_env["EVON_API_KEY"]
 EVON_API_URL = evon_env["EVON_API_URL"]
 EVON_DOMAIN_SUFFIX = evon_env["EVON_DOMAIN_SUFFIX"]
+EVON_ENV = evon_env["EVON_ENV"]
 MUTEX_OPTIONS = [
     "get_inventory",
     "set_inventory",
@@ -464,7 +465,7 @@ def main(**kwargs):
             logger.setLevel(logging.DEBUG)
         logger.info("validating IAM Role attached to this EC2 instance...")
         try:
-            response = sync_mp.validate_ec2_role()
+            response = sync_mp.validate_ec2_role(env=EVON_ENV)
             click.echo(json.dumps(response))
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
