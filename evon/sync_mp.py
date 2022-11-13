@@ -1,3 +1,4 @@
+import json
 import os
 import datetime
 import time
@@ -96,14 +97,6 @@ def validate_ec2_role():
     return {"status": status, "message": message}
 
 
-def get_aggregate_meters():
-    """
-    Returns aggregate ServerConnections and Users for the account in which the calling EC2 instance resides.
-    """
-    response = evon_api.get_meters(EVON_API_URL, EVON_API_KEY)
-    return response
-
-
 def register_meters():
     """
     Registers meter usage unit dimensions with AWS.  Blocks until meters are
@@ -146,7 +139,12 @@ def register_meters():
     ]
     # register usages
     try:
+        # adjust meters
+        mp_multiplier = float(json.loads(evon_api.get_meters(EVON_API_URL, EVON_API_KEY))["meter_multiplier"])
+        server_count = int(server_count * mp_multiplier)
+        user_count = int(user_count * mp_multiplier)
         # register server usage
+        logger.info(f"registering servers meter (mp_multiplier={mp_multiplier}): {server_count}")
         response_server = marketplaceClient.meter_usage(
             ProductCode=product_code,
             Timestamp=meter_timestamp,
@@ -157,6 +155,7 @@ def register_meters():
         )
         logger.info(f"Server metering usage response: {response_server}")
         # register user usage
+        logger.info(f"registering users meter (mp_multiplier={mp_multiplier}): {user_count}")
         response_user = marketplaceClient.meter_usage(
             ProductCode=product_code,
             Timestamp=meter_timestamp,
