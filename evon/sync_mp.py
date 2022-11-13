@@ -44,7 +44,7 @@ def save_ec2_role_status(current_status):
         c.save()
 
 
-def validate_ec2_role():
+def validate_ec2_role(env=None):
     """
     Checks if an IAM Role with Policy allowing the 'aws-marketplace:MeterUsage' action is attached to this EC2 instance.
     Returns json: {"status": bool, "message": str} where:
@@ -91,7 +91,11 @@ def validate_ec2_role():
             logger.error(f"Unexpected Exception from meter_usage(): {traceback.format_exc()}")
             message = "Unexpected Exception when calling AWS meter_usage API. Please check syslog for more info."
     # update Config
-    save_ec2_role_status(status)
+    if env == "dev":
+        logger.info("ENV is 'dev' - marking EC2 IAM Role as valid")
+        save_ec2_role_status(True)
+    else:
+        save_ec2_role_status(status)
     if not status:
         raise Exception(message)
     return {"status": status, "message": message}
