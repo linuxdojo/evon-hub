@@ -118,35 +118,37 @@ def register_meters():
     product_code = EVON_HUB_CONFIG["MP_PRODUCT_CODE"]
     server_dimension_name = EVON_HUB_CONFIG["MP_DIMENSIONS"]["server"]
     user_dimension_name = EVON_HUB_CONFIG["MP_DIMENSIONS"]["user"]
-    server_count = Server.objects.count()
-    user_count = User.objects.count() - 2  # subtract the two default users, "admin" and "deployer"
     meter_timestamp = int(datetime.datetime.utcnow().replace(minute=0, second=0, microsecond=0).timestamp())
-    server_usage_record = [
-        {
-            "AllocatedUsageQuantity": server_count,
-            "Tags": [
-                {"Key": "evon_account_domain", "Value": evon_account_domain},
-                {"Key": "aws_account_id", "Value": aws_account_id},
-                {"Key": "aws_ec2_id", "Value": aws_ec2_id},
-            ]
-        },
-    ]
-    user_usage_record = [
-        {
-            "AllocatedUsageQuantity": user_count,
-            "Tags": [
-                {"Key": "evon_account_domain", "Value": evon_account_domain},
-                {"Key": "aws_account_id", "Value": aws_account_id},
-                {"Key": "aws_ec2_id", "Value": aws_ec2_id},
-            ]
-        },
-    ]
     # register usages
     try:
+        # fetch meters
+        server_count = Server.objects.count()
+        user_count = User.objects.count() - 2  # subtract the two default immutable users, "admin" and "deployer"
         # adjust meters
         mp_multiplier = float(json.loads(evon_api.get_meters(EVON_API_URL, EVON_API_KEY))["meter_multiplier"])
         server_count = int(server_count * mp_multiplier)
         user_count = int(user_count * mp_multiplier)
+        # compose allocations
+        server_usage_record = [
+            {
+                "AllocatedUsageQuantity": server_count,
+                "Tags": [
+                    {"Key": "evon_account_domain", "Value": evon_account_domain},
+                    {"Key": "aws_account_id", "Value": aws_account_id},
+                    {"Key": "aws_ec2_id", "Value": aws_ec2_id},
+                ]
+            },
+        ]
+        user_usage_record = [
+            {
+                "AllocatedUsageQuantity": user_count,
+                "Tags": [
+                    {"Key": "evon_account_domain", "Value": evon_account_domain},
+                    {"Key": "aws_account_id", "Value": aws_account_id},
+                    {"Key": "aws_ec2_id", "Value": aws_ec2_id},
+                ]
+            },
+        ]
         # register server usage
         logger.info(f"registering servers meter (mp_multiplier={mp_multiplier}): {server_count}")
         response_server = marketplaceClient.meter_usage(
