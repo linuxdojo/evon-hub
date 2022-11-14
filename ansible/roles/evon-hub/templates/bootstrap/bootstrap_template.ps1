@@ -100,6 +100,19 @@ function DecryptSecret {
 }
 
 
+function InstallOpenVPN {
+    write-host Installing OpenVPN...
+    $cwd = (Get-Location).Path
+    $TempDir = [System.IO.Path]::GetTempPath()
+    cd $TempDir
+    $release_file="OpenVPN-2.5.7-I602-amd64.msi"
+    $url="https://swupdate.openvpn.org/community/releases/$release_file"
+    Invoke-WebRequest -Uri $url -OutFile $release_file
+    msiexec /i $release_file ADDLOCAL=OpenVPN.Service,OpenVPN,Drivers,Drivers.TAPWindows6,Drivers.Wintun /passive
+    cd $cwd
+}
+
+
 function ShowHelp {
     $cmd = $PSCommandPath.replace($PSScriptRoot, ".")
     write-host "Usage:
@@ -227,18 +240,16 @@ ShowBanner
 ### download and install OpenVPN
 $ovpn_installed = (get-service | findstr OpenVPNService)
 if ( $ovpn_installed -eq $null ) {
-    write-host Installing OpenVPN...
-    $cwd = (Get-Location).Path
-    $TempDir = [System.IO.Path]::GetTempPath()
-    cd $TempDir
-    $release_file="OpenVPN-2.5.7-I602-amd64.msi"
-    $url="https://swupdate.openvpn.org/community/releases/$release_file"
-    Invoke-WebRequest -Uri $url -OutFile $release_file
-    msiexec /i $release_file ADDLOCAL=OpenVPN.Service,OpenVPN,Drivers,Drivers.TAPWindows6,Drivers.Wintun /passive
-    cd $cwd
+    InstallOpenVPN
 }
 else {
-    write-host OpenVPN already installed.
+    write-host "OpenVPN already installed."
+    write-host "WARNING:"
+    write-host "    OpenVPN 2.5.x or higher is required, and must be installed as a Windows Service (GUI is optional but not required)."
+    write-host "    If this is not the case this script will fail, however you can manually install OpenVPN and rerun this installer."
+    write-host "    If you use OpenVPN to connect to other systems on this machine, you may need to create an extra TAP interface by"
+    write-host "    running the following command from the openvpn\bin folder: .\tapctl.exe create"
+    start-sleep -seconds 3
 }
 
 ### Render openvpn configuration
