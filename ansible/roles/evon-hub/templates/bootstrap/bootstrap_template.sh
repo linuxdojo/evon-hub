@@ -442,6 +442,7 @@ echo "Installing dependencies..."
 if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
     apt-get update
     apt-get install -y openvpn curl uuid-runtime jq iputils-ping
+    rc=$?
 elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
     which curl >/dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -496,28 +497,35 @@ elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
 elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
     yum install -y epel-release
     yum install -y openvpn curl jq
+    rc=$?
 elif [[ "$os" == "centos" && $os_version -gt 7 ]]; then
     dnf install -y epel-release
     dnf install -y openvpn curl jq
+    rc=$?
 elif [[ "$os" == "al" ]]; then
     rpm -qa epel-release | grep -q epel-release || amazon-linux-extras install epel -y
     yum install -y openvpn curl jq
+    rc=$?
 elif [[ "$os" == "fedora" ]]; then
     dnf install -y openvpn curl jq
+    rc=$?
 elif [[ "$os" == "alpine" ]]; then
     if cpio 2>&1 | grep -q BusyBox; then
         echo "https://dl-cdn.alpinelinux.org/alpine/v$(cut -d'.' -f1,2 /etc/alpine-release)/community/" >> /etc/apk/repositories
         apk update
     fi
     apk add bash curl grep openssl openvpn cpio uuidgen openrc jq
+    rc=$?
     modprobe tun || :
 elif [[ "$os" == "opensuse" ]]; then
     zypper -n install openvpn curl jq
+    rc=$?
 elif [[ "$os" == "arch" ]]; then
     pacman --noconfirm -S openvpn curl cpio jq
+    rc=$?
     extra_msg='You may need to run `pacman -Syu`'
 fi
-if [ $? -ne 0 ]; then
+if [ $rc -ne 0 ]; then
     bail 1 "ERROR: Can't install dependencies, refer to error(s) above for reason. ${extra_msg}"
 fi
 echo Done.
