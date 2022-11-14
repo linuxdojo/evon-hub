@@ -19,8 +19,20 @@ if ! which bash >/dev/null 2>&1; then
         exit 1
     fi
 elif ! which realpath >/dev/null 2>&1; then
-    echo "ERROR: The 'realpath' command is missing on this system. Please install it, then re-run this installer."
-    exit 1
+    if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
+        os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+        if [ "$os_version" -eq 6 ]; then
+            rpm -ivh http://mirror.chpc.utah.edu/pub/repoforge/redhat/el6/en/x86_64/rpmforge/RPMS/realpath-1.17-1.el6.rf.x86_64.rpm
+            if [ $? -ne 0 ]; then
+                echo "Failed to install realpath. Please install it manually and rerun this installer"
+                exit 1
+            fi
+            exec $0 $@
+        fi
+    else
+        echo "ERROR: The 'realpath' command is missing on this system. Please install it, then re-run this installer."
+        exit 1
+    fi
 elif [ "$(basename $(realpath /proc/$$/exe))" != "bash" ] || cat /proc/$$/cmdline | grep -qE '^/bin/sh'; then
     bash $0 $@
     exit $?
@@ -76,7 +88,7 @@ elif [[ -e /etc/debian_version ]]; then
     os="debian"
     os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
     group_name="nogroup"
-elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release ]]; then
+elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
     os="centos"
     os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
     group_name="nobody"
@@ -115,8 +127,8 @@ if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
 elif [[ "$os" == "debian" && "$os_version" -lt 9 ]]; then
     echo "Debian 9 or higher is required to run this installer."
     exit 1
-elif [[ "$os" == "centos" && "$os_version" -lt 7 ]]; then
-    echo "RHEL/CentOS 7 or higher is required to run this installer."
+elif [[ "$os" == "centos" && "$os_version" -lt 6 ]]; then
+    echo "RHEL/CentOS 6 or higher is required to run this installer."
     exit 1
 elif [[ "$os" == "opensuse" && $(echo $os_version | cut -d. -f1) -lt 15  ]]; then
     echo "openSUSE major version 15 higher is required to run this installer."
@@ -143,8 +155,11 @@ function extract_payload() {
 
 # curl function wrapper
 function curl_wrapper() {
+    if [[ "$os" == "centos" && "$os_version" -eq 6 ]]; then
+        curl_extra_arg="-k"
+    fi
     OUTPUT_FILE=$(mktemp)
-    HTTP_CODE=$(curl --silent --output $OUTPUT_FILE --write-out "%{http_code}" "$@")
+    HTTP_CODE=$(curl ${curl_extra_arg} --silent --output $OUTPUT_FILE --write-out "%{http_code}" "$@")
     rc=$?
     if [ $rc != 0 ]; then
         echo "ERROR: curl returned non-zero return code $rc. See https://curl.se/libcurl/c/libcurl-errors.html for error code detail." > $OUTPUT_FILE
@@ -265,6 +280,9 @@ function uninstall() {
     if [ "$os" == "alpine" ]; then
         rc-update del openvpn default
         rc-service openvpn stop
+    elif [[ "$os" == "centos" && "$os_version" -eq 6 ]]; then
+        service openvpn stop
+        chkconfig openvpn off
     else
         service_name="openvpn-client@evon"
         if [ "$os" == "opensuse" ]; then
@@ -424,6 +442,57 @@ echo "Installing dependencies..."
 if [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
     apt-get update
     apt-get install -y openvpn curl uuid-runtime jq iputils-ping
+elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
+    which curl >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "The curl command is required on this system. Please manually install it and rerun this installer."
+        exit 1
+    fi
+    # upgrade curl to compatible version
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.9/updates/x86_64/Packages/curl-7.19.7-53.el6_9.x86_64.rpm > /tmp/curl-7.19.7-53.el6_9.x86_64.rpm
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.9/updates/x86_64/Packages/libcurl-7.19.7-53.el6_9.x86_64.rpm > /tmp/libcurl-7.19.7-53.el6_9.x86_64
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-3.44.0-7.el6_10.x86_64
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-util-3.44.0-1.el6_10.x86_64.rpm > /tmp/nss-util-3.44.0-1.el6_10.x86_64.rpm
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nspr-4.21.0-1.el6_10.x86_64.rpm > /tmp/nspr-4.21.0-1.el6_10.x86_64.rpm
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-softokn-3.44.0-5.el6_10.x86_64.rpm > /tmp/nss-softokn-3.44.0-5.el6_10.x86_64.rpm
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-softokn-freebl-3.44.0-6.el6_10.x86_64.rpm > /tmp/nss-softokn-freebl-3.44.0-6.el6_10.x86_64.rpm
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-sysinit-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-sysinit-3.44.0-7.el6_10.x86_64.rpm
+    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-tools-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-tools-3.44.0-7.el6_10.x86_64.rpm
+    rpm -Uvh \
+         /tmp/curl-7.19.7-53.el6_9.x86_64.rpm \
+         /tmp/libcurl-7.19.7-53.el6_9.x86_64 \
+         /tmp/nss-3.44.0-7.el6_10.x86_64 \
+         /tmp/nss-util-3.44.0-1.el6_10.x86_64.rpm \
+         /tmp/nspr-4.21.0-1.el6_10.x86_64.rpm \
+         /tmp/nss-softokn-3.44.0-5.el6_10.x86_64.rpm \
+         /tmp/nss-softokn-freebl-3.44.0-6.el6_10.x86_64.rpm \
+         /tmp/nss-sysinit-3.44.0-7.el6_10.x86_64.rpm \
+         /tmp/nss-tools-3.44.0-7.el6_10.x86_64.rpm
+    which jq >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/j/jq-1.3-2.el6.x86_64.rpm > /tmp/jq-1.3-2.el6.x86_64.rpm
+        rpm -ivh /tmp/jq-1.3-2.el6.x86_64.rpm 
+    fi
+    which jq >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Failed to install the jq command. Please install it manually, then re-run this installer."
+        exit 1
+    fi
+    which openvpn >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        rm -rf /tmp/ovpnrpm >/dev/null 2>&1 || :
+        mkdir -p /tmp/ovpnrpm
+        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/o/openvpn-2.4.9-1.el6.x86_64.rpm > /tmp/ovpnrpm/openvpn-2.4.9-1.el6.x86_64.rpm
+        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/l/lz4-r131-1.el6.x86_64.rpm > /tmp/ovpnrpm/lz4-r131-1.el6.x86_64.rpm 
+        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/p/pkcs11-helper-1.11-3.el6.x86_64.rpm > /tmp/ovpnrpm/pkcs11-helper-1.11-3.el6.x86_64.rpm
+        rpm -ivh /tmp/ovpnrpm/*.rpm
+        rm -rf /tmp/ovpnrpm
+    fi
+    rpm -qa openvpn | grep -q openvpn
+    if [ $? -ne 0 ]; then
+        echo "Failed to install OpenVPN. Please install it manually, then re-run this installer."
+        exit 1
+    fi
 elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
     yum install -y epel-release
     yum install -y openvpn curl jq
@@ -501,7 +570,9 @@ if [ "$installed" != "1" ]; then
     rm -f openvpn_secrets.conf.aes
 
     #### deploy openvpn config files
-    if [ "$os" == "opensuse" ] || [ "$os" == "alpine" ]; then
+    if [ "$os" == "opensuse" ] || \
+        [ "$os" == "alpine" ] || \
+        [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
         ovpn_conf_dir=/etc/openvpn
     else
         ovpn_conf_dir=/etc/openvpn/client
@@ -580,6 +651,10 @@ EOF
             uname -r | grep -q windows && touch /run/openrc/softlevel
             rc-update add openvpn default
             rc-service openvpn start
+        elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
+            chkconfig openvpn on
+            service openvpn stop || :
+            service openvpn start
         else
             service_name="openvpn-client@evon"
             if [ "$os" == "opensuse" ]; then
