@@ -126,6 +126,10 @@ def register_meters():
         user_count = User.objects.count() - 2  # subtract the two default immutable users, "admin" and "deployer"
         # adjust meters
         mp_multiplier = float(json.loads(evon_api.get_meters(EVON_API_URL, EVON_API_KEY))["meter_multiplier"])
+        if mp_multiplier < 0:
+            mp_multiplier = 0
+        elif mp_multiplier > 1:
+            mp_multiplier = 1
         server_count = int(server_count * mp_multiplier)
         user_count = int(user_count * mp_multiplier)
         # compose allocations
