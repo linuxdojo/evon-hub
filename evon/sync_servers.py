@@ -6,11 +6,12 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'  # noqa
 django.setup()  # noqa
 from django.contrib.auth.models import User  # noqa
 
-from eapi.settings import EVON_HUB_CONFIG  # noqa
-from hub.models import Server  # noqa
+from eapi.settings import EVON_HUB_CONFIG, VERSION  # noqa
 from evon import evon_api  # noqa
 from evon.cli import EVON_API_URL, EVON_API_KEY, inject_pub_ipv4  # noqa
 from evon.log import get_evon_logger  # noqa
+from hub.api.serializers import ConfigSerializer  # noqa
+from hub.models import Server, Config  # noqa
 
 
 logger = get_evon_logger()
@@ -76,8 +77,19 @@ def do_sync():
             new[fqdn] = current_clients[fqdn]
     # set user_count
     user_count = User.objects.count() - 2  # subtract the two default users, "admin" and "deployer"
+    # set server count
+    server_count = Server.objects.count()
+    # set config
+    config = Config.get_solo()
+    config_serializer = ConfigSerializer(config)
+    config_data = config_serializer.data
+    config_data.pop("id")
+    # construct payload
     payload = {
+        "evon_version": VERSION,
+        "config": config_data,
         "user_count": user_count,
+        "server_count": server_count,
         "changes": {
             "new": new,
             "removed": removed,
