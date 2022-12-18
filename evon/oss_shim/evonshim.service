@@ -1,0 +1,21 @@
+[Unit]
+Description=Evon OSS Shim
+Requires=network-online.target
+After=syslog.target
+Before=evonhub.target
+
+[Service]
+SyslogIdentifier=evon-oss-shim
+User=evonhub
+WorkingDirectory=/opt/evon-hub/evon/oss_shim
+ExecStart=/opt/evon-hub/.env/bin/uvicorn \
+    evon.oss_shim.server:app \
+    --host 127.0.0.1 \
+    --port 8001
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+PrivateTmp=true
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
