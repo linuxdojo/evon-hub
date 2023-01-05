@@ -1,7 +1,7 @@
 import os
 
 
-# TODO make root_domain settable
+# TODO make root_domain configurable somewhere...
 API_ROOT_DOMAIN = os.environ.get('API_ROOT_DOMAIN', "example.com")
 
 
@@ -23,7 +23,15 @@ class EvonAPI:
         }
 
     def deregister(self, data):
-        return {"message": "not implemented"}
+        pub_ipv4 = data["public-ipv4"]
+        subnet_key = pub_ipv4.split(".")[1]
+        account_domain = f"{data['domain-prefix']}.{self.root_domain}",
+        return {
+            "account_domain": account_domain,
+            "subnet_key": subnet_key,
+            "public_ipv4": pub_ipv4,
+            "message": "account successfully deregistered"
+        }
 
     def get_records(self):
         return {"message": "not implemented"}

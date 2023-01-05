@@ -14,20 +14,28 @@ client = boto3.client('apigateway')
 
 
 def get_api_key(env):
-    # TODO return "not_applicable" if in OSS mode
+    if env == "oss":
+        return "not_applicable"
     api_key_name = f"evon-{env}-api-apikey"
     resp = client.get_api_keys()
     key_id = [k for k in resp["items"] if k["name"] == api_key_name].pop()["id"]
     key = client.get_api_key(apiKey=key_id, includeValue=True)["value"]
     return key
 
+
 def get_domain_suffix(env):
     if env in ["dev", "staging"]:
         return f"{env}.evon.link"
+    elif env == "oss":
+        # TODO make this settable somewhere
+        return "example.com"
     else:
         return "evon.link"
 
+
 def get_api_url(env):
+    if env == "oss":
+        return "http://127.0.0.1"
     domain_suffix = get_domain_suffix(env)
     return f"https://api.{domain_suffix}"
 
