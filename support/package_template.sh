@@ -221,7 +221,7 @@ amazon-linux-extras install epel -y
 cat <<EOF > /etc/yum.repos.d/MariaDB.repo
 [mariadb]
 name = MariaDB
-baseurl = https://mirror.mariadb.org/yum/10.5.18/centos7-amd64/
+baseurl = https://mirror.mariadb.org/yum/10.5/centos7-amd64/
 gpgkey = http://mirror.aarnet.edu.au/pub/MariaDB/yum/RPM-GPG-KEY-MariaDB
 gpgcheck = 1
 EOF
