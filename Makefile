@@ -77,7 +77,7 @@ publish: # publish latest package to target ec2 host at file path /home/ec2-user
 	ssh $(EC2_USER)@$(EC2_HOST) "rm -f bin/evon-deploy >/dev/null 2>&1 || :; mv bin/evon-hub_*.sh bin/evon-deploy; chmod +x bin/evon-deploy"
 	echo Done.
 
-deploy-update: # deploy latest package to s3 where it will be available to all deployments via the local `evon --update` command and autoupdate scheduler
+publish-update: # deploy latest package to s3 where it will be available to all deployments via the local `evon --update` command and via the autoupdate scheduler
 	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then echo You must be in master branch to deploy an update package.; exit 1; fi
 	make package
 	echo "##### Publishing Update to S3 #####"
