@@ -82,7 +82,7 @@ fi
 # detect distribution
 if grep -qs "ubuntu" /etc/os-release; then
     os="ubuntu"
-    os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
+    os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | sed -E 's/(\.[0-9]$)/\10/' | tr -d '.')
     group_name="nogroup"
 elif [[ -e /etc/debian_version ]]; then
     os="debian"
