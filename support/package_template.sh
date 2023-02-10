@@ -309,6 +309,9 @@ EOF
 chmod 4755 /usr/local/bin/evon
 chmod 4755 /usr/local/bin/eapi
 
+# load evon env vars
+source /opt/evon-hub/evon/.evon_env
+
 echo '### Obtaining and persisting account info...'
 evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}"
 if [ $? -ne 0 ]; then
@@ -392,7 +395,6 @@ if [ "$update_available" == "true" ]; then
 fi
 
 # Validate EC2 IAM Role has been setup correctly
-source /opt/evon-hub/evon/.evon_env
 if [ "${EVON_ENV}" != "dev" ]; then
     evon --iam-validate
     if [ $? -ne 0 ]; then
