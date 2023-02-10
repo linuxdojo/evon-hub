@@ -82,37 +82,38 @@ fi
 # detect distribution
 if grep -qs "ubuntu" /etc/os-release; then
     os="ubuntu"
-    os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | sed -E 's/(\.[0-9]$)/\10/' | tr -d '.')
-    group_name="nogroup"
+    if [[ -e /etc/upstream-release/lsb-release ]]; then
+        # add support for Linux Mint
+        os_version=$(grep 'DISTRIB_RELEASE' /etc/upstream-release/lsb-release | cut -d '=' -f 2 | tr -d '.')
+    else
+        os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
+    fi
 elif [[ -e /etc/debian_version ]]; then
     os="debian"
     os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
-    group_name="nogroup"
+elif [[ -e /etc/sysconfig/ipoffice ]]; then
+    os="ipoffice"
+    # upstream is CentOS 7
+    os_version=$(grep IPOFFICE_FULL_VERSION /etc/sysconfig/ipoffice | cut -d'"' -f2 | awk '{print $1}' | cut -d. -f1)
 elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
     os="centos"
     os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
-    group_name="nobody"
 elif [[ -e /etc/fedora-release ]]; then
     os="fedora"
     os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
-    group_name="nobody"
 elif grep -qs "Amazon Linux" /etc/os-release; then
     os="al"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
-    group_name="nobody"
 elif grep -qs "openSUSE" /etc/os-release; then
     os="opensuse"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
-    group_name="nobody"
 elif grep -qs "Alpine" /etc/os-release; then
     os="alpine"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
-    group_name="nobody"
     modprobe tun || :
 elif grep -qs "Arch" /etc/os-release; then
     os="arch"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
-    group_name="nobody"
 else
     echo "This installer seems to be running on an unsupported Linux distribution.
 Supported distros are AlmaLinux, Alpine, Amazon Linux, Arch, CentOS, Debian, Fedora, RHEL, Rocky Linux, Ubuntu and openSUSE."
@@ -124,6 +125,9 @@ fi
 if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
     echo "Ubuntu 18.04 or higher is required to run this installer."
     exit 1
+elif [[ "$os" == "ipoffice" && "$os_version" -lt 11 ]]; then
+    echo "Avaya IPOffice major version 11 is required to run this installer."
+    exit 1
 elif [[ "$os" == "debian" && "$os_version" -lt 9 ]]; then
     echo "Debian 9 or higher is required to run this installer."
     exit 1
@@ -131,7 +135,7 @@ elif [[ "$os" == "centos" && "$os_version" -lt 6 ]]; then
     echo "RHEL/CentOS 6 or higher is required to run this installer."
     exit 1
 elif [[ "$os" == "opensuse" && $(echo $os_version | cut -d. -f1) -lt 15  ]]; then
-    echo "openSUSE major version 15 higher is required to run this installer."
+    echo "openSUSE major version 15 or higher is required to run this installer."
     exit 1
 elif [[ ! -e /dev/net/tun ]] || ! ( exec 7<>/dev/net/tun ) 2>/dev/null; then
     echo "The system does not have the TUN device available which is required by this installer."
@@ -494,6 +498,36 @@ elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
         echo "Failed to install OpenVPN. Please install it manually, then re-run this installer."
         exit 1
     fi
+elif [[ "$os" == "ipoffice" ]]; then
+    #TODO install yum repos for the below packages
+cat <<EOF > /etc/yum.repos.d/evon_deps.repo
+[base]
+name=CentOS-$releasever - Base
+mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os&infra=$infra
+#baseurl=http://mirror.centos.org/centos/$releasever/os/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[updates]
+name=CentOS-$releasever - Updates
+mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=updates&infra=$infra
+#baseurl=http://mirror.centos.org/centos/$releasever/updates/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+[epel]
+name=Extra Packages for Enterprise Linux 7 - $basearch
+#baseurl=http://download.fedoraproject.org/pub/epel/7/$basearch
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
+failovermethod=priority
+enabled=0
+gpgcheck=1
+gpgkey=https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
+EOF
+    yum --enablerepo=base,updates,epel install openvpn jq -y
+    rc=$?
 elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
     yum install -y epel-release
     yum install -y openvpn curl jq
