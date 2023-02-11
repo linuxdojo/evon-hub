@@ -95,6 +95,8 @@ elif [[ -e /etc/sysconfig/ipoffice ]]; then
     os="ipoffice"
     # upstream is CentOS 7
     os_version=$(grep IPOFFICE_FULL_VERSION /etc/sysconfig/ipoffice | cut -d'"' -f2 | awk '{print $1}' | cut -d. -f1)
+    FW_LINE='iptables -I INPUT -i tun0 -j ACCEPT'
+    RC_FILE='/etc/rc.d/rc.local'
 elif [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
     os="centos"
     os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
@@ -294,6 +296,9 @@ function uninstall() {
         fi
         systemctl disable $service_name
         systemctl stop $service_name
+    fi
+    if [[ "$os" == "ipoffice" ]]; then
+        sed -i "/${FW_LINE}/d" $RC_FILE
     fi
     echo Removing Evon OpenVPN config files...
     find /etc/openvpn | grep 'evon' | grep -v 'evon.uuid' | while read f; do
@@ -526,6 +531,8 @@ enabled=0
 gpgcheck=1
 gpgkey=https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
 EOF
+    grep -qF -- "$FW_LINE" "$RC_FILE" || echo -e "\n$FW_LINE\n" >> "$RC_FILE"
+    ${FW_LINE}
     yum --enablerepo=base,updates,epel install openvpn jq -y
     rc=$?
 elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
