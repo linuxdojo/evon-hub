@@ -532,7 +532,7 @@ gpgcheck=1
 gpgkey=https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
 EOF
     grep -qF -- "$FW_LINE" "$RC_FILE" || echo -e "\n$FW_LINE\n" >> "$RC_FILE"
-    ${FW_LINE}
+    iptables -nvL INPUT | grep -qE '.+ACCEPT\s+all.+tun0.+0\.0\.0\.0\/0\s+0\.0\.0\.0\/0' || ${FW_LINE}
     yum --enablerepo=base,updates,epel install openvpn jq -y
     rc=$?
 elif [[ ( "$os" == "centos" && $os_version -eq 7  ) ]]; then
