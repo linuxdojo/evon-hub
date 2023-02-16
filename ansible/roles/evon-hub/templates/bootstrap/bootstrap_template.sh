@@ -504,7 +504,6 @@ elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
         exit 1
     fi
 elif [[ "$os" == "ipoffice" ]]; then
-    #TODO install yum repos for the below packages
 cat <<EOF > /etc/yum.repos.d/evon_deps.repo
 [base]
 name=CentOS-$releasever - Base
