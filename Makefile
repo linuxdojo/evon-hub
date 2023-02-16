@@ -148,3 +148,5 @@ setup-local: # configure DB with fixtures for local development (ie if you want 
 get-version: # render the full current semantic version of evon-hub
 	echo $$(cat version.txt).$$(git rev-list HEAD --count master)
 
+start-shim: # Start the evon_shim service locally for use with non-EC2 VPS hosts
+	uvicorn evon.oss_shim.server:app --reload
