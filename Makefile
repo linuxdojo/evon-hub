@@ -82,6 +82,8 @@ publish-update: # deploy latest package to s3 where it will be available to all 
 	make package
 	echo "##### Publishing Update to S3 #####"
 	aws s3 cp evon-hub_*.sh s3://evon-$(ENV)-hub-updates
+	echo Removing old updates...
+	aws s3 ls s3://evon-$(ENV)-hub-updates | sort | head -n-3 | awk '{print $$NF}' | while read f; do aws s3 rm s3://evon-$(ENV)-hub-updates/$$f; done
 	echo Done.
 
 deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI. WARNING - the ssh pub key is deleted from ec2-user/known_hosts, you will NOT be able to ssh in, this is for creating an AMI only
