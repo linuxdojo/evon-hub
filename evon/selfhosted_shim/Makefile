@@ -6,7 +6,7 @@ help: # Show this help
 	  sed -e 's/# //; s/^/    /' | \
 	  column -s: -t
 
-deploy: # deploy Evon OSS Shim
+deploy: # deploy Evon Selfhosted Shim
 	cp evonshim.service /usr/lib/systemd/system
 	systemctl daemon-reload
 	systemctl start evonshim

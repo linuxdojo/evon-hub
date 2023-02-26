@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from evon.oss_shim.ec2_metadata import EC2Metadata
-from evon.oss_shim.evon_api import EvonAPI
+from evon.selfhosted_shim.ec2_metadata import EC2Metadata
+from evon.selfhosted_shim.evon_api import EvonAPI
 
 app = FastAPI()
 ec2_md = EC2Metadata()

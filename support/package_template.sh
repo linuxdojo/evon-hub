@@ -8,24 +8,13 @@ VERSION=__VERSION__
 PY_VERSION="3.10.5"
 EVON_DOMAIN_SUFFIX=__EVON_DOMAIN_SUFFIX__
 HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+FQDN_REGEX='(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'
 SUBNET_KEY_REGEX='^[0-9]{1,3}$'
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
     # replace self process owner with root
     exec sudo $0 $@
-fi
-
-# ensure we're running on AL2
-if [ -r /etc/system-release ]; then
-    grep -q "Amazon Linux release 2" /etc/system-release
-    if [ $? -ne 0 ]; then
-        echo 'Evon Hub must be installed on Amazon Linux 2'
-        exit 1
-    fi
-else
-    echo 'Unable to validate that this OS is Amazon Linux 2 (can not read /etc/system-release). Aborting.'
-    exit 1
 fi
 
 # define payload extractor
@@ -67,7 +56,14 @@ Options:
    Registers or retrieves your Evon account based on DOMAIN_PREFIX. This Hub
    will then be reachable at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}.
    Omitting this option will cause this installer to interactively prompt for
-   your domain prefix.
+   your domain prefix. This option requires a paid Evon subscription using
+   AWS Marketplace.
+
+  -f, --self-hosted FQDN
+    Deploy Evon Hub in self-hosted (free) mode. FQDN specifies the DNS zone in
+    which Evon server domain records will be dynamically updated. FQDN must
+    contain at least two domain labels, eg 'example.com'. Can not be used in
+    conjunction with the -d option.
 
   -s, --subnet-key SUBNET_KEY
     Registers or retrieves your Evon account based on SUBNET_KEY.
@@ -124,6 +120,7 @@ for arg in "$@"; do
   case "$arg" in
     '--help')          set -- "$@" '-h'   ;;
     '--domain-prefix') set -- "$@" '-d'   ;;
+    '--self-hosted')   set -- "$@" '-f'   ;;
     '--subnet-key')    set -- "$@" '-s'   ;;
     *)                 set -- "$@" "$arg" ;;
   esac
@@ -131,23 +128,65 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts ":hd:s:b" opt; do
+while getopts ":hd:s:bf:" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
     'b') base_build=true ;;
     'd') domain_prefix=$OPTARG ;;
     's') subnet_key=$OPTARG ;;
+    'f') selfhosted_fqdn=$OPTARG ;;
     '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
   esac
 done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
 
+
 # optargs validation
+
 if [ ${#@} -ne 0 ]; then
     echo "Invalid arguments: $@"
     echo "For usage info, use --help"
     exit 1
 fi
+
+if [ -n "$selfhosted_fqdn" ] && [ -n "$domain_prefix" ]; then
+    echo "-d and -f options are mutually exclusive."
+    echo "For usage info, use --help"
+    exit 1
+fi
+
+if [ -z "$selfhosted_fqdn" ] && [ -z "$domain_prefix" ]; then
+    echo "Either -d or -f is required with an argument."
+    echo "For usage info, use --help"
+    exit 1
+fi
+
+if [ "$selfhosted_fqdn" ]; then
+    echo "$selfhosted_fqdn" | grep -qP "$FQDN_REGEX"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The provided FQDN '${selfhosted_fqdn}' was not formatted correctly."
+        echo "For usage info, use --help"
+        exit 1
+    fi
+fi
+
+# ensure we're running on AL2 if not self-hosted
+if [ -z "$selfhosted_fqdn" ]; then
+    # we're running in paid subscription mode
+    if  [ -r /etc/system-release ]; then
+        grep -q "Amazon Linux release 2" /etc/system-release
+        if [ $? -ne 0 ]; then
+            echo 'Evon Hub must be installed on Amazon Linux 2'
+            exit 1
+        fi
+    else
+        echo 'Unable to validate that this OS is Amazon Linux 2 (can not read /etc/system-release). Aborting.'
+        exit 1
+    fi
+fi
+
+#TODO
+#  if -f, update /opt/evon-hub/evon/.evon_env EVON_DOMAIN_SUFFIX value
 
 if [ -z $base_build ]; then
     if [ -z $subnet_key ]; then
