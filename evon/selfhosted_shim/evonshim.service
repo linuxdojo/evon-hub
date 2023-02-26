@@ -1,15 +1,15 @@
 [Unit]
-Description=Evon OSS Shim
+Description=Evon Self-hosted Shim
 Requires=network-online.target
 After=syslog.target
 Before=evonhub.target
 
 [Service]
-SyslogIdentifier=evon-oss-shim
+SyslogIdentifier=evon-selfhosted-shim
 User=evonhub
-WorkingDirectory=/opt/evon-hub/evon/oss_shim
+WorkingDirectory=/opt/evon-hub/evon/selfhosted_shim
 ExecStart=/opt/evon-hub/.env/bin/uvicorn \
-    evon.oss_shim.server:app \
+    evon.selfhosted_shim.server:app \
     --host 127.0.0.1 \
     --port 8001
 ExecReload=/bin/kill -s HUP $MAINPID
