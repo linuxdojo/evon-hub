@@ -46,6 +46,11 @@
             </a>
           </li>
           <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="mobile-tab" aria-selected="false" href="#mobile-tab">
+              On Mobile
+            </a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link" data-toggle="pill" role="tab" aria-controls="cli-tab" aria-selected="false" href="#cli-tab">
               Using OpenVPN CLI (Any OS)
             </a>
@@ -57,7 +62,7 @@
               <div class="p-5">
                 <strong>Using NetworkManager:</strong><br />
                 <br />
-                Import the <strong>EvonHub.ovpn</strong> file into NetworkManager by entering the following commands, replacing <strong>your_evon_hub_username</strong> with your Evon Hub username below:
+                Import the <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong> file into NetworkManager by entering the following commands, replacing <strong>your_evon_hub_username</strong> with your Evon Hub username below:
                 <pre>
         nmcli connection import type openvpn file EvonHub.ovpn
         nmcli connection modify EvonHub ipv4.never-default true
@@ -70,9 +75,9 @@
           <div id="windows-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="windows-tab">
             <div class="card ">
               <div class="p-5">
-                Download and install OpenVPN for Windows <a href="https://openvpn.net/community-downloads/" target="_blank">here</a>. Once installed, right-click the <strong>EvonHub.ovpn</strong> file and select "Import into OpenVPN-GUI".<br />
+                Download and install <a href="https://openvpn.net/community-downloads/" target="_blank">OpenVPN for Windows</a>. Once installed, right-click the <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong> file and select <strong>Import into OpenVPN-GUI</strong>.<br />
                 <br />
-                To connect, right-click the OpenVPN-GUI icon in the system tray and click Connect. You'll be prompted for your Evon Hub username/password.
+                To connect, right-click the <strong>OpenVPN-GUI icon</strong> in the system tray and click <strong>Connect</strong>. You'll be prompted for your Evon Hub username/password.
                 <br />
               </div>
             </div>
@@ -80,19 +85,31 @@
           <div id="mac-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="mac-tab">
             <div class="card ">
               <div class="p-5">
-                Download and install Tunnelblick <a href="https://tunnelblick.net/downloads.html" target="_blank">here</a>. Once installed, open the <strong>EvonHub.ovpn</strong> file and import it into Tunnelblick.<br />
+                Download and install <a href="https://tunnelblick.net/downloads.html" target="_blank">Tunnelblick</a>. Once installed, open the <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong> file and import it into Tunnelblick.<br />
                 <br />
-                To connect, click the Tunnelblick icon in the Status Menu and click "Connect EvonHub". You'll be prompted for your Evon Hub username/password.
+                To connect, click the <strong>Tunnelblick icon</strong> in the Status Menu and click <strong>Connect EvonHub</strong>. You'll be prompted for your Evon Hub username/password.
                 <br />
               </div>
             </div>
           </div>
+
+          <div id="mobile-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="mobile-tab">
+            <div class="card ">
+              <div class="p-5">
+                Download and install <strong>OpenVPN Connect</strong> for <a href="https://apps.apple.com/us/app/openvpn-connect/id590379981" target="_blank">iPhone / iPad</a> or for <a href="https://play.google.com/store/apps/details?id=net.openvpn.openvpn&gl=US" target="_blank">Android / ChromeOS</a>.<br />
+                <br />
+                Once installed, import the <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong> file into the app and connect using your Evon Hub username/password.
+                <br />
+              </div>
+            </div>
+          </div>
+
           <div id="cli-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="cli-tab">
             <div class="card ">
               <div class="p-5">
                 If you already have OpenVPN installed on your system, you can invoke it from the CLI directly.<br />
                 <br />
-                Enter the following command as a user with appropriate privileges:
+                Download <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>, then enter the following command as a user with appropriate privileges:
                 <pre>openvpn EvonHub.ovpn</pre>
                 You'll be promoted for your Evon Hub username/password. To connect non-interactively, update your <strong>EvonHub.ovpn</strong> file, referring to the <strong>--auth-user-pass</strong> setting in the <a href="https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/" target="_blank">OpenVPN 2.4 Reference Manual</a>.
               </div>
@@ -109,7 +126,7 @@
         You can obtain a list of servers to which you're permitted to connect (subject to Policy defined by an admin) either via the <a href="/hub/server">Servers</a> menu option in this Web UI or via the <a href="/api/#tag/server" target="_blank">Evon Hub API</a>.<br/>
         {% if user.is_superuser  %}
         <br/>
-        When listing servers via the API, superusers (like yourself) will obtain a list of <strong>all</strong> servers, whereas non-superusers will only see a list of servers that they're permitted to access via a Policy. As such, for superuser API requests, listed servers include an `accessible` boolean property on each server object that indicates whether or not they can connect to it based on Policy. See the <a href="/api/#tag/server" target="_blank">API Documentation</a> for further detail.<br/>
+        When listing servers via the API, superusers (like yourself) will obtain a list of <strong>all</strong> servers, whereas non-superusers will only see a list of servers that they're permitted to access via a Policy. As such, superuser API requests will include an `accessible` boolean property on each listed server object that indicates whether or not they're permitted connect to it based on Policy. See the <a href="/api/#tag/server" target="_blank">API Documentation</a> for further detail.<br/>
         {% endif %}
         <br/>
         Example scripts are provided below for listing your servers via the API. These examples include your <a href="/authtoken/tokenproxy/">Authentication Token</a> in clear text, therefore care should be taken to keep these scripts private if used as is.<br />
