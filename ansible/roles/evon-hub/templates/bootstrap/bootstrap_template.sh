@@ -22,7 +22,7 @@ elif ! which realpath >/dev/null 2>&1; then
     if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
         os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
         if [ "$os_version" -eq 6 ]; then
-            rpm -ivh http://mirror.chpc.utah.edu/pub/repoforge/redhat/el6/en/x86_64/rpmforge/RPMS/realpath-1.17-1.el6.rf.x86_64.rpm
+            rpm -ivh http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/realpath-1.17-1.el6.rf.x86_64.rpm
             if [ $? -ne 0 ]; then
                 echo "Failed to install realpath. Please install it manually and rerun this installer"
                 exit 1
