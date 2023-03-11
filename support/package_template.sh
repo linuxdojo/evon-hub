@@ -9,7 +9,9 @@ PY_VERSION="3.10.5"
 EVON_DOMAIN_SUFFIX=__EVON_DOMAIN_SUFFIX__
 HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 FQDN_REGEX='(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'
+NON_RFC1918_IP_PATTERN='\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}\b'
 SUBNET_KEY_REGEX='^[0-9]{1,3}$'
+SELFHOSTED=__SELFHOSTED__
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -53,23 +55,35 @@ function show_usage() {
 Options:
 
   -d, --domain-prefix DOMAIN_PREFIX
-   Registers or retrieves your Evon account based on DOMAIN_PREFIX. This Hub
-   will then be reachable at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}.
-   Omitting this option will cause this installer to interactively prompt for
-   your domain prefix. This option requires a paid Evon subscription using
-   AWS Marketplace.
-
-  -f, --self-hosted FQDN
-    Deploy Evon Hub in self-hosted (free) mode. FQDN specifies the DNS zone in
-    which Evon server domain records will be dynamically updated. FQDN must
-    contain at least two domain labels, eg 'example.com'. Can not be used in
-    conjunction with the -d option.
+    Specify your DOMAIN_PREFIX. This Evon Hub instance will be reachable at:
+    <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
+    Omitting this option will cause this installer to interactively prompt for
+    your domain prefix.
 
   -s, --subnet-key SUBNET_KEY
-    Registers or retrieves your Evon account based on SUBNET_KEY.
-    Your overlay network subnet will be 100.<SUBNET_KEY>.224.0/19 where
-    SUBNET_KEY is between 64 and 127 inclusive. Default is 111 if omitted.
-    "
+    Specify your SUBNET_KEY for this Evon Hub instance. Your overlay network
+    subnet will become 100.<SUBNET_KEY>.224.0/19 where SUBNET_KEY must be
+    between 64 and 127 inclusive. Default is 111 if this option is omitted."
+    if [ "$SELFHOSTED" == "true" ]; then
+        echo "
+  -a, --hwaddr HARDWARE_ID
+    Specify your HARDWARE_ID provided during registration of this selfhosted
+    Evon Hub instance. This option is required.
+
+  -i, --public-ip IPv4_ADDRESS
+    If specified, set the public IPv4 address of this server to IPv4_ADDRESS,
+    else automatically detect it. This address is used to create a DNS record
+    for this Evon Hub at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
+    Specifying this option will will save the provided IPv4_ADDRESS in the file
+    \`/opt/evon-hub/.evon-hub.static_pub_ipv4\`. This file can be manually
+    updated should the public IPv4 Address change.  Omitting this option or
+    deleting \`/opt/evon-hub/.evon-hub.static_pub_ipv4\` will enable automatic
+    detection of the current public IPv4 address, and the DNS record will be
+    dynamically updated whenever a change is detected.
+"
+    else
+        echo ""
+    fi
 }
 
 # main installer
@@ -120,21 +134,23 @@ for arg in "$@"; do
   case "$arg" in
     '--help')          set -- "$@" '-h'   ;;
     '--domain-prefix') set -- "$@" '-d'   ;;
-    '--self-hosted')   set -- "$@" '-f'   ;;
     '--subnet-key')    set -- "$@" '-s'   ;;
+    '--public-ipv4')   set -- "$@" '-i'   ;;
+    '--hwaddr')        set -- "$@" '-a'   ;;
     *)                 set -- "$@" "$arg" ;;
   esac
 done
 
 # Parse short options
 OPTIND=1
-while getopts ":hd:s:bf:" opt; do
+while getopts ":hbd:s:i:a:" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
     'b') base_build=true ;;
     'd') domain_prefix=$OPTARG ;;
     's') subnet_key=$OPTARG ;;
-    'f') selfhosted_fqdn=$OPTARG ;;
+    'i') public_ipv4_address=$OPTARG ;;
+    'a') hwaddr=$OPTARG ;;
     '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
   esac
 done
@@ -149,30 +165,18 @@ if [ ${#@} -ne 0 ]; then
     exit 1
 fi
 
-if [ -n "$selfhosted_fqdn" ] && [ -n "$domain_prefix" ]; then
-    echo "-d and -f options are mutually exclusive."
+echo -n "$public_ipv4_address" | grep -qP $NON_RFC1918_IP_PATTERN
+if [ $? -ne 0 ]; then
+    echo "ERROR: The provided IPv4_ADDRESS '${public_ipv4_address}' is invalid. It must be a public IPv4 address."
     echo "For usage info, use --help"
     exit 1
-fi
-
-if [ -z "$selfhosted_fqdn" ] && [ -z "$domain_prefix" ]; then
-    echo "Either -d or -f is required with an argument."
-    echo "For usage info, use --help"
-    exit 1
-fi
-
-if [ "$selfhosted_fqdn" ]; then
-    echo "$selfhosted_fqdn" | grep -qP "$FQDN_REGEX"
-    if [ $? -ne 0 ]; then
-        echo "ERROR: The provided FQDN '${selfhosted_fqdn}' was not formatted correctly."
-        echo "For usage info, use --help"
-        exit 1
-    fi
 fi
 
 # ensure we're running on AL2 if not self-hosted
-if [ -z "$selfhosted_fqdn" ]; then
+if [ "$SELFHOSTED" == "false" ]; then
     # we're running in paid subscription mode
+    public_ipv4_address=""
+    hwaddr=""
     if  [ -r /etc/system-release ]; then
         grep -q "Amazon Linux release 2" /etc/system-release
         if [ $? -ne 0 ]; then
@@ -183,10 +187,17 @@ if [ -z "$selfhosted_fqdn" ]; then
         echo 'Unable to validate that this OS is Amazon Linux 2 (can not read /etc/system-release). Aborting.'
         exit 1
     fi
+else
+    if [ -n "$hwaddr" ]; then
+        echo 'ERROR: --hwaddr option is required'
+        exit 1
+    fi
+    # TODO
+    # we're running in self hosted mode, ensure the linux distro is supported
+    # also, update the deploy steps below to support whatever linux distro we
+    # decide to support.
 fi
 
-#TODO
-#  if -f, update /opt/evon-hub/evon/.evon_env EVON_DOMAIN_SUFFIX value
 
 if [ -z $base_build ]; then
     if [ -z $subnet_key ]; then
@@ -200,7 +211,6 @@ if [ -z $base_build ]; then
             exit 1
         fi
     fi
-
 
 
     # start main installer
@@ -323,6 +333,14 @@ if [ ! -d .env  ]; then
     /opt/pyenv/versions/${PY_VERSION}/bin/virtualenv -p /opt/pyenv/versions/${PY_VERSION}/bin/python .env
 fi
 
+if [ "$public_ipv4_address" ]; then
+    echo -n "$public_ipv4_address" > /opt/evon-hub/.evon-hub.static_pub_ipv4
+fi
+
+if [ "$hwaddr" ]; then
+    echo -n "$hwaddr" > /opt/evon-hub/.evon-hub.hwaddr
+fi
+
 echo '### Installing Python deps...'
 . .env/bin/activate && \
     pip install pip -U && \
@@ -352,6 +370,7 @@ chmod 4755 /usr/local/bin/eapi
 source /opt/evon-hub/evon/.evon_env
 
 echo '### Obtaining and persisting account info...'
+#TODO if we're selfhosted, start and persist the selfhosteD_shim service
 evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}"
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to register your Evon account, see above for info. Check your domain prefix and/or subnet key and re-run this installer."
@@ -385,6 +404,7 @@ aws_account_id: ${aws_account_id}
 aws_region: ${aws_region}
 aws_az: ${aws_az}
 ec2_id: ${ec2_id}
+selfhosted: ${SELFHOSTED}
 EOF
 
 echo '### Initialising DB and Evon Hub app...'
