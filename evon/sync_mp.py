@@ -51,7 +51,10 @@ def validate_ec2_role(env=None):
     "status" == True iff the iam role is setup correctly
     "message" string contains human readable information about the current status
     """
-    # TODO return True if we're in OSS mode
+    if EVON_VARS["selfhosted"]:
+        logger.info("SELFHOSTED is True - marking EC2 IAM Role as valid")
+        save_ec2_role_status(True)
+        return {"status": True, "message": "Selfhosted mode enabled, skipping IAM Role check."}
     # set default status
     status = False
     # get region name
@@ -110,7 +113,6 @@ def register_meters():
     occurs first.
     Returns json if successful else rasises
     """
-    # TODO skip and return if in OSS mode
     # compute paramters
     region_name = get_region()
     marketplaceClient = boto3.client('meteringmarketplace', region_name=region_name)

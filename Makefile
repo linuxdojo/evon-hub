@@ -1,6 +1,7 @@
 .SILENT:
 PACKAGE_NAME := evon-hub
 EC2_USER := ec2-user
+SELFHOSTED := false
 #ENV := dev
 #EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
 #DOMAIN_PREFIX := mycompany
@@ -63,8 +64,10 @@ package: # produce package artefact ready for publishing
 	cat /tmp/evon_hub.tar.gz | base64 >> $(OUTFILE)
 	# cleanup
 	rm -f /tmp/evon_hub.tar.gz
+	# render installer package
 	sed -i 's/__VERSION__/$(VER)/g' $(OUTFILE)
 	sed -i "s/__EVON_DOMAIN_SUFFIX__/$$(cat evon/.evon_env | grep EVON_DOMAIN_SUFFIX | cut -d= -f2)/g" $(OUTFILE)
+	sed -i 's/__SELFHOSTED__/$(SELFHOSTED)/g' $(OUTFILE)
 	# render initial deploy motd
 	cat support/package_motd | sed 's/__VERSION__/$(VER)/g' > /tmp/evon_hub_motd
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
