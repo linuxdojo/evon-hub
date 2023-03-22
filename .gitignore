@@ -9,6 +9,6 @@ bootstrap.sh
 openvpn*.conf.inc
 
 # Package artefacts
-evon-hub_*.sh
+evon-hub*.sh
 eapi/static/
 temp/

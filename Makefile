@@ -37,7 +37,7 @@ package: # produce package artefact ready for publishing
 	echo Packaging...
 	rm -f evon-hub_*.sh
 	# generate env
-	ENV=$(ENV) support/gen_env.py
+	ENV=$(ENV) SELFHOSTED=$(SELFHOSTED) support/gen_env.py
 	# create archive
 	rm -f /tmp/evon_hub.tar.gz || :
 	tar -zcf /tmp/evon_hub.tar.gz \
@@ -55,10 +55,9 @@ package: # produce package artefact ready for publishing
 		setup.py \
 		version.txt
 	# Generate output package filename
-	$(eval NAME=$(PACKAGE_NAME)-$(BRANCH))
 	$(eval GITCOUNT=$(shell git rev-list HEAD --count))
 	$(eval VER=$(shell cat version.txt).$(GITCOUNT))
-	$(eval OUTFILE=$(PACKAGE_NAME)_$(VER).sh)
+	$(eval OUTFILE=$(PACKAGE_NAME)$(shell [ "${SELFHOSTED}" == "true" ] && echo "-selfhosted" )_$(VER).sh)
 	# write final package
 	cp support/package_template.sh $(OUTFILE)
 	cat /tmp/evon_hub.tar.gz | base64 >> $(OUTFILE)
@@ -73,6 +72,7 @@ package: # produce package artefact ready for publishing
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
 publish: # publish latest package to target ec2 host at file path /home/ec2-user/bin/evon-deploy
+	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
 	make package
 	echo "##### Publishing Package #####"
 	ssh $(EC2_USER)@$(EC2_HOST) "mkdir -p bin"
@@ -90,6 +90,7 @@ publish-update: # deploy latest package to s3 where it will be available to all 
 	echo Done.
 
 deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI. WARNING - the ssh pub key is deleted from ec2-user/known_hosts, you will NOT be able to ssh in, this is for creating an AMI only
+	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
 	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then echo You must be in master branch to deploy the base components.; exit 1; fi
 	echo -n "WARNING: The taraget EC2 will not be reachable after this operation! Sleeping for 5 seconds, press ctrl-c to abort."
 	while true; do echo -n .; count=$${count}.; sleep 1; [ "$$count" == "....." ] && break; done
@@ -105,12 +106,14 @@ deploy-base: # setup newly-deployed target EC2 system to be ready for producing 
 	echo Done.
 
 deploy-test: # DEV ONLY - convenience target to make package, publish and run installer on remote host
+	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
 	make publish
 	echo "##### Deploying #####"
 	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
 	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
 
 deploy-quick: # DEV ONLY - convenience target to upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
+	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
 	echo "##### Quick Deploying #####"
 	make clean
 	echo "Quick deploying..."
@@ -151,5 +154,5 @@ setup-local: # configure DB with fixtures for local development (ie if you want 
 get-version: # render the full current semantic version of evon-hub
 	echo $$(cat version.txt).$$(git rev-list HEAD --count master)
 
-start-shim: # Start the evon_shim service locally for use with non-EC2 VPS hosts
+start-shim: # Start the evon_shim http service locally on TCP/8000
 	uvicorn evon.selfhosted_shim.server:app --reload
