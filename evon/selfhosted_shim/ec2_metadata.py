@@ -27,10 +27,14 @@ class EC2Metadata:
         }
 
     def get_hwaddr(self):
-        with open(self.hwaddr_path, "r") as f:
-            hwaddr = f.read().strip()
-            if not self.hwaddr_patt.match(hwaddr):
-                raise Exception("hwaddr pattern mismatch")
+        try:
+            with open(self.hwaddr_path, "r") as f:
+                hwaddr = f.read().strip()
+                if not self.hwaddr_patt.match(hwaddr):
+                    raise Exception("hwaddr pattern mismatch")
+        except FileNotFoundError:
+            # set arbitrary hwaddr for local dev
+            hwaddr = "selfhosted-0000000000"
         return hwaddr
 
     def get_metadata_json(self):

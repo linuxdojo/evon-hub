@@ -8,7 +8,6 @@ VERSION=__VERSION__
 PY_VERSION="3.10.5"
 EVON_DOMAIN_SUFFIX=__EVON_DOMAIN_SUFFIX__
 HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
-FQDN_REGEX='(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'
 NON_RFC1918_IP_PATTERN='\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}\b'
 SUBNET_KEY_REGEX='^[0-9]{1,3}$'
 SELFHOSTED=__SELFHOSTED__
@@ -99,7 +98,7 @@ function show_banner() {
 function get_domain_prefix() {
     echo ""
     echo "Please choose a domain prefix for your Evon Hub."
-	echo ""
+    echo ""
     echo "Your Evon Hub will be reachable at domain:   <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}"
     while [ "$success" != "true" ]; do
         echo ""
@@ -127,6 +126,21 @@ function get_domain_prefix() {
         fi
     done
 }
+
+
+function is_al2() {
+    if  [ -r /etc/system-release ]; then
+        grep -q "Amazon Linux release 2" /etc/system-release
+        if [ $? -eq 0 ]; then
+            echo true
+        else
+            echo false
+        fi
+    else
+        echo false
+    fi
+}
+
 
 # Transform long options to short ones
 for arg in "$@"; do
@@ -174,28 +188,29 @@ fi
 
 # ensure we're running on AL2 if not self-hosted
 if [ "$SELFHOSTED" == "false" ]; then
-    # we're running in paid subscription mode
-    public_ipv4_address=""
-    hwaddr=""
-    if  [ -r /etc/system-release ]; then
-        grep -q "Amazon Linux release 2" /etc/system-release
-        if [ $? -ne 0 ]; then
-            echo 'Evon Hub must be installed on Amazon Linux 2'
-            exit 1
-        fi
-    else
-        echo 'Unable to validate that this OS is Amazon Linux 2 (can not read /etc/system-release). Aborting.'
+    # we're running in paid subscription mode, ensure we're on al2
+    if [ "$(is_al2)" == "false" ]; then
+        echo 'Unable to validate that this OS is Amazon Linux 2. Aborting.'
         exit 1
     fi
+    # clear selfhosted vars if present
+    public_ipv4_address=""
+    hwaddr=""
 else
+    # we're running in selfhosted mode
     if [ -n "$hwaddr" ]; then
         echo 'ERROR: --hwaddr option is required'
         exit 1
     fi
-    # TODO
     # we're running in self hosted mode, ensure the linux distro is supported
-    # also, update the deploy steps below to support whatever linux distro we
-    # decide to support.
+    os_version=0
+    if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
+        os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+    fi
+    if [ $os_version -lt 8 ]; then
+        echo "RHEL/CentOS/Rocky/Alma version 8 or higher is required to install Evon Hub."
+        exit 1
+    fi
 fi
 
 
@@ -266,14 +281,6 @@ echo "### Installing version: ${VERSION}"
 extract_payload
 
 echo '### Installing dependencies...'
-amazon-linux-extras install epel -y
-cat <<EOF > /etc/yum.repos.d/MariaDB.repo
-[mariadb]
-name = MariaDB
-baseurl = https://mirror.mariadb.org/yum/10.5/centos7-amd64/
-gpgkey = http://mirror.aarnet.edu.au/pub/MariaDB/yum/RPM-GPG-KEY-MariaDB
-gpgcheck = 1
-EOF
 package_list='
     bzip2
     bzip2-devel
@@ -290,16 +297,11 @@ package_list='
     libcap
     libcap-devel
     libffi-devel
-    MariaDB-client
-    MariaDB-devel
-    MariaDB-server
     mlocate
     net-tools
     nginx
-    openssl11-devel
     openvpn
     patch
-    python2-certbot-nginx
     readline-devel
     sqlite-devel
     sslh
@@ -307,9 +309,33 @@ package_list='
     tmux
     vim
     xz-devel
-    zlib-devel
-'
-yum -y install $package_list
+    zlib-devel'
+if [ "$(is_al2)" == "true" ]; then
+    package_list="$package_list
+        mariadb-client
+        mariadb-devel
+        mariadb-server
+        openssl11-devel
+        python2-certbot-nginx"
+    amazon-linux-extras install epel -y
+    cat <<EOF > /etc/yum.repos.d/MariaDB.repo
+    [mariadb]
+    name = MariaDB
+    baseurl = https://mirror.mariadb.org/yum/10.5/centos7-amd64/
+    gpgkey = http://mirror.aarnet.edu.au/pub/MariaDB/yum/RPM-GPG-KEY-MariaDB
+    gpgcheck = 1
+    yum -y install $package_list
+EOF
+else
+    package_list="$package_list
+        mariadb
+        mariadb-devel
+        mariadb-server
+        openssl-devel
+        python3-certbot-nginx"
+    dnf -y install epel-release
+    dnf -y install $package_list
+fi
 
 echo '### Installing pyenv...'
 if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
@@ -369,8 +395,14 @@ chmod 4755 /usr/local/bin/eapi
 # load evon env vars
 source /opt/evon-hub/evon/.evon_env
 
+if [ "$SELFHOSTED" == "true" ]; then
+    # if we're selfhosted, start and persist the selfhosted_shim service
+    cd /opt/evon-hub/evon/selfhosted_shim
+    make deploy
+    cd -
+fi
+
 echo '### Obtaining and persisting account info...'
-#TODO if we're selfhosted, start and persist the selfhosteD_shim service
 evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}"
 if [ $? -ne 0 ]; then
     echo "ERROR: Failed to register your Evon account, see above for info. Check your domain prefix and/or subnet key and re-run this installer."
