@@ -8,14 +8,9 @@ Before=evonhub.target
 SyslogIdentifier=evon-selfhosted-shim
 User=root
 WorkingDirectory=/opt/evon-hub/evon/selfhosted_shim
-ExecStartPre=/usr/sbin/ip addr add 169.254.169.254/32 dev lo || :
-ExecStart=/opt/evon-hub/.env/bin/uvicorn \
-    evon.selfhosted_shim.server:app \
-    --host 169.254.169.254 \
-    --port 80
+ExecStart=/opt/evon-hub/evon/selfhosted_shim/evonshim.sh start
 ExecReload=/bin/kill -s HUP $MAINPID
-ExecStop=/bin/kill -s TERM $MAINPID \
-    && /usr/sbin/ip addr del 169.254.169.254/32 dev lo || :
+ExecStop=/opt/evon-hub/evon/selfhosted_shim/evonshim.sh stop $MAINPID
 PrivateTmp=true
 Restart=on-failure
 
