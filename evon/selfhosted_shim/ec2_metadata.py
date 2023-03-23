@@ -13,9 +13,9 @@ class EC2Metadata:
             "https://ifconfig.me",
         ]
         self.non_rfc1918_ip_patt = re.compile(r"\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}\b")
-        self.static_pub_ipv4_path = "/opt/evon-hub/.evon-hub.static_pub_ipv4"
+        self.static_pub_ipv4_path = "/opt/.evon-hub.static_pub_ipv4"
         self.hwaddr_patt = re.compile(r"^[a-zA-Z0-9]{10}$")
-        self.hwaddr_path = "/opt/evon-hub/.evon-hub.hwaddr"
+        self.hwaddr_path = "/opt/.evon-hub.hwaddr"
         hardware_address = self.get_hwaddr()
         self.metadata = {
             "accountId": f"selfhosted-{hardware_address}",

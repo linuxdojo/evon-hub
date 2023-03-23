@@ -9,11 +9,16 @@ PY_VERSION="3.10.5"
 EVON_DOMAIN_SUFFIX=__EVON_DOMAIN_SUFFIX__
 HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 NON_RFC1918_IP_PATTERN='\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}\b'
+HWADDR_PATTERN='^[a-zA-Z0-9]{10}$'
 SUBNET_KEY_REGEX='^[0-9]{1,3}$'
 SELFHOSTED=__SELFHOSTED__
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
+    if [ $SELFHOSTED == "true" ]; then
+        echo You must be root to run this installer.
+        exit 1
+    fi
     # replace self process owner with root
     exec sudo $0 $@
 fi
@@ -50,15 +55,21 @@ function extract_payload() {
 function show_usage() {
     echo "Usage:"
     echo "  $0 [options]"
-    echo "
+    echo -n "
 Options:
 
   -d, --domain-prefix DOMAIN_PREFIX
     Specify your DOMAIN_PREFIX. This Evon Hub instance will be reachable at:
-    <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
+    <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}"
+    if [ "$SELFHOSTED" == "true"  ]; then
+        echo "
+    This option is required."
+    else
+        echo "
     Omitting this option will cause this installer to interactively prompt for
-    your domain prefix.
-
+    your domain prefix."
+    fi
+    echo "
   -s, --subnet-key SUBNET_KEY
     Specify your SUBNET_KEY for this Evon Hub instance. Your overlay network
     subnet will become 100.<SUBNET_KEY>.224.0/19 where SUBNET_KEY must be
@@ -67,18 +78,19 @@ Options:
         echo "
   -a, --hwaddr HARDWARE_ID
     Specify your HARDWARE_ID provided during registration of this selfhosted
-    Evon Hub instance. This option is required.
+    Evon Hub instance.
+    This option is required.
 
   -i, --public-ip IPv4_ADDRESS
     If specified, set the public IPv4 address of this server to IPv4_ADDRESS,
     else automatically detect it. This address is used to create a DNS record
     for this Evon Hub at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
     Specifying this option will will save the provided IPv4_ADDRESS in the file
-    \`/opt/evon-hub/.evon-hub.static_pub_ipv4\`. This file can be manually
-    updated should the public IPv4 Address change.  Omitting this option or
-    deleting \`/opt/evon-hub/.evon-hub.static_pub_ipv4\` will enable automatic
-    detection of the current public IPv4 address, and the DNS record will be
-    dynamically updated whenever a change is detected.
+    \`/opt/.evon-hub.static_pub_ipv4\`. This file can be manually updated should
+    the public IPv4 Address change.  Omitting this option or deleting
+    \`/opt/evon-hub/.evon-hub.static_pub_ipv4\` will enable automatic detection
+    of the current public IPv4 address, and the DNS record will be dynamically
+    updated whenever a change is detected.
 "
     else
         echo ""
@@ -87,10 +99,13 @@ Options:
 
 # main installer
 function show_banner() {
+    if [ $SELFHOSTED == "true" ]; then
+        shbanner="Selfhosted"
+    fi
     echo ''
-    echo '  __| |  |    \ \  |               '
-    echo '  _|  \  | () |  \ | Hub Installer '
-    echo " ___|  _/  ___/_| _| v${VERSION}   " 
+    echo '  __| |  |    \ \  |' ${shbanner}
+    echo '  _|  \  | () |  \ | Hub Installer'
+    echo " ___|  _/  ___/_| _| v${VERSION}" 
     echo '[ Elastic Virtual Overlay Network ]'
     echo ''
 }
@@ -171,7 +186,7 @@ done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
 
 
-# optargs validation
+### optargs validation
 
 if [ ${#@} -ne 0 ]; then
     echo "Invalid arguments: $@"
@@ -179,18 +194,12 @@ if [ ${#@} -ne 0 ]; then
     exit 1
 fi
 
-echo -n "$public_ipv4_address" | grep -qP $NON_RFC1918_IP_PATTERN
-if [ $? -ne 0 ]; then
-    echo "ERROR: The provided IPv4_ADDRESS '${public_ipv4_address}' is invalid. It must be a public IPv4 address."
-    echo "For usage info, use --help"
-    exit 1
-fi
 
 # ensure we're running on AL2 if not self-hosted
 if [ "$SELFHOSTED" == "false" ]; then
     # we're running in paid subscription mode, ensure we're on al2
     if [ "$(is_al2)" == "false" ]; then
-        echo 'Unable to validate that this OS is Amazon Linux 2. Aborting.'
+        echo 'Amazon Linux 2 is required. Aborting.'
         exit 1
     fi
     # clear selfhosted vars if present
@@ -198,11 +207,32 @@ if [ "$SELFHOSTED" == "false" ]; then
     hwaddr=""
 else
     # we're running in selfhosted mode
-    if [ -n "$hwaddr" ]; then
+
+    # we require hwaddr to be specified
+    if [ -z "$hwaddr" ]; then
         echo 'ERROR: --hwaddr option is required'
+        echo "For usage info, use --help"
         exit 1
     fi
-    # we're running in self hosted mode, ensure the linux distro is supported
+
+    # validate hwaddr
+    echo "$hwaddr" | grep -qE "$HWADDR_PATTERN"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The provided hwaddr '${domain_prefix}' is invalid."
+        exit 1
+    fi
+
+    # validate pub ipv4 address if supplied
+    if [ "$public_ipv4_address" ]; then
+        echo -n "$public_ipv4_address" | grep -qP $NON_RFC1918_IP_PATTERN
+        if [ $? -ne 0 ]; then
+            echo "ERROR: The provided IPv4_ADDRESS '${public_ipv4_address}' is invalid. It must be a public IPv4 address."
+            echo "For usage info, use --help"
+            exit 1
+        fi
+    fi
+
+    # ensure the linux distro is supported
     os_version=0
     if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
         os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
@@ -214,7 +244,11 @@ else
 fi
 
 
-if [ -z $base_build ]; then
+### main installer
+
+if [ "$base_build" ]; then
+    echo '***** Applying base build only *****'
+else
     if [ -z $subnet_key ]; then
         subnet_key=111
     else
@@ -226,7 +260,6 @@ if [ -z $base_build ]; then
             exit 1
         fi
     fi
-
 
     # start main installer
     show_banner
@@ -243,6 +276,11 @@ if [ -z $base_build ]; then
             exit 1
         fi
     else
+        if [ "${SELFHOSTED}" == "true" ]; then
+            echo 'ERROR: --domain-prefix option is required'
+            echo "For usage info, use --help"
+            exit 1
+        fi
         get_domain_prefix
     fi
 
@@ -272,8 +310,6 @@ if [ -z $base_build ]; then
 
     # register exit handler
     trap end EXIT
-else
-    echo '***** Applying base build only *****'
 fi
 
 
@@ -327,12 +363,15 @@ if [ "$(is_al2)" == "true" ]; then
     yum -y install $package_list
 EOF
 else
+    # distro is el8+
     package_list="$package_list
+        make
         mariadb
         mariadb-devel
         mariadb-server
         openssl-devel
-        python3-certbot-nginx"
+        python3-certbot-nginx
+        tar"
     dnf -y install epel-release
     dnf -y install $package_list
 fi
@@ -360,11 +399,11 @@ if [ ! -d .env  ]; then
 fi
 
 if [ "$public_ipv4_address" ]; then
-    echo -n "$public_ipv4_address" > /opt/evon-hub/.evon-hub.static_pub_ipv4
+    echo -n "$public_ipv4_address" > /opt/.evon-hub.static_pub_ipv4
 fi
 
 if [ "$hwaddr" ]; then
-    echo -n "$hwaddr" > /opt/evon-hub/.evon-hub.hwaddr
+    echo -n "$hwaddr" > /opt/.evon-hub.hwaddr
 fi
 
 echo '### Installing Python deps...'
@@ -396,7 +435,9 @@ chmod 4755 /usr/local/bin/eapi
 source /opt/evon-hub/evon/.evon_env
 
 if [ "$SELFHOSTED" == "true" ]; then
-    # if we're selfhosted, start and persist the selfhosted_shim service
+    # we're selfhosted, start and persist the selfhosted_shim service
+    setenforce 0
+    sed -i 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/selinux/config
     cd /opt/evon-hub/evon/selfhosted_shim
     make deploy
     cd -
@@ -405,16 +446,14 @@ fi
 echo '### Obtaining and persisting account info...'
 evon --register "{\"domain-prefix\":\"${domain_prefix}\",\"subnet-key\":\"${subnet_key}\"}"
 if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to register your Evon account, see above for info. Check your domain prefix and/or subnet key and re-run this installer."
-    exit 1
+    bail 1 "ERROR: Failed to register your Evon account, see above log for info."
 fi
 account_info=$(evon --get-account-info)
 if [ $? -ne 0 ]; then
     echo "Error registering account:"
     echo $account_info
     echo ""
-    echo Pease refer to the error above, check your domain prefix and/or subnet key and re-run this installer.
-    exit 1
+    bail 1 "ERROR: Failed to retrieve your Evon account, see above log for info."
 fi
 iid=$(curl -s 'http://169.254.169.254/latest/dynamic/instance-identity/document')
 account_domain=$(echo $account_info | jq .account_domain)
@@ -425,7 +464,7 @@ aws_az=$(echo $iid | jq .availabilityZone)
 aws_account_id=$(echo $iid | jq .accountId)
 ec2_id=$(echo $iid | jq .instanceId)
 if [ -z "ec2_id" ]; then
-    bail 1 "Failed to retrieve AWS EC2 Instance Identity Document information. Please retry by re-running this installer."
+    bail 1 "Failed to retrieve the Instance Identity Document information. Please retry by re-running this installer."
 fi
 cat <<EOF > /opt/evon-hub/evon_vars.yaml
 ---

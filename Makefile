@@ -35,7 +35,7 @@ package: # produce package artefact ready for publishing
 	echo Checking AWS credentials...
 	aws sts get-caller-identity 
 	echo Packaging...
-	rm -f evon-hub_*.sh
+	rm -f evon-hub*.sh
 	# generate env
 	ENV=$(ENV) SELFHOSTED=$(SELFHOSTED) support/gen_env.py
 	# create archive
