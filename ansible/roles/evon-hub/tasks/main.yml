@@ -1,32 +1,19 @@
 ---
 
-### Setup base OS
+### determine version
 
-- name: ensure we are running on Amazon Linux
-  ansible.builtin.shell: grep "Amazon Linux" /etc/system-release
-  changed_when: false
+- name: set evon version fact
+  ansible.builtin.set_fact:
+    evon_version: "{{ lookup('file', '/opt/evon-hub/version.txt') }}"
 
-- name: install epel release
-  ansible.builtin.shell: |
-    rpm -qi epel-release >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-      yes | amazon-linux-extras install epel
-    fi
-  register: shell_output
-  changed_when: "'Installing:' in shell_output.stdout"
+
+### Setup ip forwarding
 
 - name: enable ipv4 forwarding
   sysctl:
     name: net.ipv4.ip_forward
     value: "1"
     reload: yes
-
-
-### determine version
-
-- name: set verssion fact
-  ansible.builtin.set_fact:
-    version: "{{ lookup('file', '/opt/evon-hub/version.txt') }}"
 
 
 ### Setup sslh
@@ -156,7 +143,7 @@
     comment: User that runs the Evon Hub service
     shell: "/bin/false"
 
-- name: allow evonhub user to run evon-deploy
+- name: allow evonhub user to run evon-deploy --update
   community.general.sudoers:
     name: evon-deploy
     state: present
@@ -270,7 +257,11 @@
 
 - name: reload systemd
   ansible.builtin.shell: systemctl daemon-reload
-  when: systemd_unit_evonhub_socket or systemd_unit_evonhub.changed or systemd_unit_evonsync.changed or systemd_unit_evonsync_timer.changed
+  when: |
+    systemd_unit_evonhub_socket or
+    systemd_unit_evonhub.changed or
+    systemd_unit_evonsync.changed or
+    systemd_unit_evonsync_timer.changed
 
 - name: restart and persist evonhub.service
   ansible.builtin.service:

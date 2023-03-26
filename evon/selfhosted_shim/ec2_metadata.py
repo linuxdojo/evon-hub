@@ -9,7 +9,7 @@ class EC2Metadata:
 
     def __init__(self):
         self.ipv4_get_urls = [
-            "https://api.ipify.org"
+            "https://api.ipify.org",
             "https://ifconfig.me",
         ]
         self.non_rfc1918_ip_patt = re.compile(r"\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}\b")
