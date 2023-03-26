@@ -355,16 +355,17 @@ if [ "$(is_al2)" == "true" ]; then
         python2-certbot-nginx"
     amazon-linux-extras install epel -y
     cat <<EOF > /etc/yum.repos.d/MariaDB.repo
-    [mariadb]
-    name = MariaDB
-    baseurl = https://mirror.mariadb.org/yum/10.5/centos7-amd64/
-    gpgkey = http://mirror.aarnet.edu.au/pub/MariaDB/yum/RPM-GPG-KEY-MariaDB
-    gpgcheck = 1
-    yum -y install $package_list
+[mariadb]
+name = MariaDB
+baseurl = https://mirror.mariadb.org/yum/10.5/centos7-amd64/
+gpgkey = http://mirror.aarnet.edu.au/pub/MariaDB/yum/RPM-GPG-KEY-MariaDB
+gpgcheck = 1
 EOF
+    yum -y install $package_list
 else
     # distro is el8+
     package_list="$package_list
+        iptables-services
         make
         mariadb
         mariadb-devel
