@@ -20,4 +20,6 @@ install: # install and start Evon Selfhosted Shim
 deploy: # deploy Evon Selfhosted Shim to localhost (root required)
 	make uninstall
 	make install
+	# wait for socket to bind
+	count=5; while true; do netstat -taupen | grep -qE '169.254.169.254:80.*LISTEN' && break; sleep 1; count=$$((count-1)); [ $$count -lt 1 ] && exit 1; done
 	echo Evon selfhosted shim deployed.
