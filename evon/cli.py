@@ -244,7 +244,7 @@ def sync_pub_ipv4():
     help="Deregister account. You will be forced to interactively agree to "
          "the deregistration operation if invoked. Once an account is deregistered, "
          "all connected servers and user clients will need a new bootstrap.sh or "
-         "OpenVPN config to be uninstalled or reinstalled if subsequent re-registration"
+         "OpenVPN config to be uninstalled or reinstalled if subsequent re-registration "
          "is performed."
 )
 @click.option(
