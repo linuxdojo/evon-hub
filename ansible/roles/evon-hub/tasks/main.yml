@@ -108,7 +108,7 @@
 
     - name: check if ca is initialised
       ansible.builtin.stat:
-        path: "{{ easy_rsa_dir }}/pki"
+        path: "{{ easy_rsa_dir }}/pki/ca.crt"
       register: easyrsa_init
 
     - name: "initialise ca - this may take a while..."
@@ -117,11 +117,21 @@
         ./easyrsa init-pki
         ./easyrsa gen-dh
         ./easyrsa build-ca nopass <<< {{ ec2_id }}.ca.evon-hub
+      when: not easyrsa_init.stat.exists
+
+    - name: check if certs and keys are initialised
+      ansible.builtin.stat:
+        path: "{{ easy_rsa_dir }}/issued/{{ ec2_id }}.server.evon-hub"
+      register: certs_keys_init
+
+    - name: "build certs and keys"
+      ansible.builtin.shell: |
+        cd "{{ easy_rsa_dir }}"
         ./easyrsa build-server-full {{ ec2_id }}.server.evon-hub nopass
         ./easyrsa build-client-full {{ ec2_id }}.endpoint.evon-hub nopass
         ./easyrsa build-client-full {{ ec2_id }}.user.evon-hub nopass
         openvpn --genkey --secret pki/ta.key
-      when: not easyrsa_init.stat.exists
+      when: not certs_keys_init.stat.exists
 
   rescue:
 
@@ -226,10 +236,8 @@
 ### Setup Evon Hub app
 
 - name: set ownership of evonhub app
-  ansible.builtin.file:
-    path: /opt/evon-hub
-    owner: evonhub
-    recurse: yes
+  ansible.builtin.shell: |
+    chown -R evonhub /opt/evon-hub
 
 - name: deploy evonhub.socket systemd unit
   ansible.builtin.copy:
