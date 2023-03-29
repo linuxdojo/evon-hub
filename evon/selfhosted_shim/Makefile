@@ -13,9 +13,12 @@ uninstall: # remove Evon Selfhosted Shim
 
 install: # install and start Evon Selfhosted Shim
 	cp evonshim.service /usr/lib/systemd/system
+	rm -f /etc/nginx/conf.d/evonshim.conf >/dev/null 2>&1 || :
+	cp evonshim.conf /etc/nginx/conf.d/
 	systemctl daemon-reload
-	systemctl start evonshim.service
-	systemctl enable evonshim.service
+	systemctl restart nginx
+	systemctl restart evonshim
+	systemctl enable evonshim
 
 deploy: # deploy Evon Selfhosted Shim to localhost (root required)
 	make uninstall
