@@ -12,7 +12,7 @@ param(
 )
 
 ### define vars
-$ver = "{{ version }}"
+$ver = "{{ evon_version }}"
 $account_domain = "{{ account_domain }}"
 $subnet_key = "{{ subnet_key }}"
 $evon_hub_peer = "100.$subnet_key.224.1"

@@ -40,7 +40,7 @@ fi
 
 
 # set vars
-VERSION="{{ version }}"
+VERSION="{{ evon_version }}"
 EVON_HUB_PEER="100.{{ subnet_key }}.224.1"
 ACCOUNT_DOMAIN="{{ account_domain }}"
 SUBNET_KEY="{{ subnet_key }}"

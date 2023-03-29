@@ -1,7 +1,7 @@
 
       __| |  |    \ \  |
       _|  \  | () |  \ | Hub AMI
-     ___|  _/  ___/_| _| v{{ version }}
+     ___|  _/  ___/_| _| v{{ evon_version }}
 [ Elastic Virtual Overlay Network ]
 
 Your Evon Hub WebUI: https://{{account_domain}}
