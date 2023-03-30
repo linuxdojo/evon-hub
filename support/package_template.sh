@@ -348,9 +348,9 @@ package_list='
     zlib-devel'
 if [ "$(is_al2)" == "true" ]; then
     package_list="$package_list
-        mariadb-client
-        mariadb-devel
-        mariadb-server
+        MariaDB-client
+        MariaDB-devel
+        MariaDB-server
         openssl11-devel
         python2-certbot-nginx"
     amazon-linux-extras install epel -y
