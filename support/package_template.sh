@@ -353,6 +353,7 @@ if [ "$(is_al2)" == "true" ]; then
         MariaDB-server
         openssl11-devel
         python2-certbot-nginx"
+    rm -f /etc/yum.repos.d/MariaDB.repo
     amazon-linux-extras install epel -y
     cat <<EOF > /etc/yum.repos.d/MariaDB.repo
 [mariadb]
