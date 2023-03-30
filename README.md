@@ -45,6 +45,13 @@ make ENV=<ENV> EC2_HOST=<EC2_FQDN> deploy-base
 ```
 Once done, manually export the EC2's EBS device as an AMI.
 
+For procedure, refer to [EVON AWS Marketplace Integration docs](https://linuxdojo.atlassian.net/wiki/spaces/EVON/pages/138379265/AWS+Marketplace+Integration)
+
+### Deploy to Staging Environment
+
+* subscribe and deploy Evon Hub from AWS Marketplace
+* use `make ENV=staging EC2_HOST=<EC2_FQDN> publish` to upload latest deploy script
+* ssh to ec2 and run `evon-deploy` as ec2-user
 
 ### Deploying to a test EC2 instance (any region)
 
