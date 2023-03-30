@@ -44,9 +44,9 @@ def store_env(api_url, api_key, env):
         f'EVON_API_URL="{api_url}"\n'
         f'EVON_API_KEY="{api_key}"\n'
         f'EVON_ENV="{env}"\n'
-		f'EVON_DOMAIN_SUFFIX="{domain_suffix}"\n'
-		f'SELFHOSTED="{str(SELFHOSTED).lower()}"'
-	)
+        f'EVON_DOMAIN_SUFFIX="{domain_suffix}"\n'
+        f'SELFHOSTED="{str(SELFHOSTED).lower()}"'
+    )
     with open(env_abs_path, "w") as f:
         f.write(content)
     return env_abs_path
