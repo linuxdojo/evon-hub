@@ -105,7 +105,7 @@ function show_banner() {
     echo ''
     echo '  __| |  |    \ \  |' ${shbanner}
     echo '  _|  \  | () |  \ | Hub Installer'
-    echo " ___|  _/  ___/_| _| v${VERSION}" 
+    echo " ___|  _/  ___/_| _| v${VERSION}"
     echo '[ Elastic Virtual Overlay Network ]'
     echo ''
 }
