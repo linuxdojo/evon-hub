@@ -14,6 +14,7 @@ import logging.handlers
 import os
 import pkg_resources
 import subprocess
+import stat
 import sys
 import textwrap
 
@@ -370,7 +371,7 @@ def main(**kwargs):
 
     if kwargs["check_update"]:
         logger.info("Checking for updates...")
-        result = json.loads(evon_api.get_updates(EVON_API_URL, EVON_API_KEY, EVON_VERSION))
+        result = json.loads(evon_api.get_updates(EVON_API_URL, EVON_API_KEY, EVON_VERSION, selfhosted=SELFHOSTED))
         result["status"] = "success"
         click.echo(json.dumps(result, indent=2))
 
@@ -384,16 +385,24 @@ def main(**kwargs):
         domain_prefix = evon_vars["account_domain"].split(".")[0]
         subnet_key = evon_vars["subnet_key"]
         logger.info("Checking for updates...")
-        result = json.loads(evon_api.get_updates(EVON_API_URL, EVON_API_KEY, EVON_VERSION))
+        result = json.loads(evon_api.get_updates(EVON_API_URL, EVON_API_KEY, EVON_VERSION, selfhosted=SELFHOSTED))
         if result["update_available"]:
             # download and run update
             new_version = result["update_version"]
             logger.info(f"New Evon Hub version {new_version} available, downloading...")
             r = requests.get(result["presigned_url"])
             logger.info("Upgrading to new version...")
-            with open("/home/ec2-user/bin/evon-deploy", "wb") as f:
+            if SELFHOSTED:
+                installer_path = "/tmp/evon-deploy"
+            else:
+                installer_path = "/home/ec2-user/bin/evon-deploy"
+            with open(installer_path, "wb") as f:
                 f.write(r.content)
-            cmd = f"/home/ec2-user/bin/evon-deploy --domain-prefix {domain_prefix} --subnet-key {subnet_key}"
+            os.chmod(installer_path, os.stat(installer_path).st_mode | stat.S_IEXEC) 
+            cmd = f"{installer_path} --domain-prefix {domain_prefix} --subnet-key {subnet_key}"
+            if SELFHOSTED:
+                hwaddr = evon_vars["ec2_id"]
+                cmd += f" --hwaddr {hwaddr}"
             p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=sys.stderr, stderr=sys.stderr)
             rc = p.wait()
             if rc:
