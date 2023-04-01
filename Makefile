@@ -24,7 +24,6 @@ clean: # remove unneeded artefacts from repo
 	$(eval USER=$(shell whoami))
 	find . -user root | while read o; do sudo chown $(USER) "$$o"; done
 	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
-	rm -f evon-hub_*.sh
 	rm -f /tmp/evon_hub.tar.gz || :
 
 
@@ -34,8 +33,13 @@ package: # produce package artefact ready for publishing
 	echo "##### Packaging #####"
 	echo Checking AWS credentials...
 	aws sts get-caller-identity 
+	echo Removing old artefacts...
+	if [ "$(SELFHOSTED)" == "true" ]; then \
+		rm -f evon-hub-selfhosted_*.sh; \
+	else \
+		rm -f evon-hub_*.sh; \
+	fi
 	echo Packaging...
-	rm -f evon-hub*.sh
 	# generate env
 	ENV=$(ENV) SELFHOSTED=$(SELFHOSTED) support/gen_env.py
 	# create archive
@@ -71,6 +75,11 @@ package: # produce package artefact ready for publishing
 	cat support/package_motd | sed 's/__VERSION__/$(VER)/g' > /tmp/evon_hub_motd
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
+package-all: # make both AWS and Selfhosted packages
+	make SELFHOSTED=false package
+	make SELFHOSTED=true package
+
+
 publish: # publish latest package to target ec2 host at file path /home/ec2-user/bin/evon-deploy
 	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
 	make package
@@ -80,13 +89,14 @@ publish: # publish latest package to target ec2 host at file path /home/ec2-user
 	ssh $(EC2_USER)@$(EC2_HOST) "rm -f bin/evon-deploy >/dev/null 2>&1 || :; mv bin/evon-hub_*.sh bin/evon-deploy; chmod +x bin/evon-deploy"
 	echo Done.
 
-publish-update: # deploy latest package to s3 where it will be available to all deployments via the local `evon --update` command and via the autoupdate scheduler
-	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then echo You must be in master branch to deploy an update package.; exit 1; fi
-	make package
-	echo "##### Publishing Update to S3 #####"
+publish-update: # deploy latest AWS and Selfhosted package to s3 where it will be available to all deployments via the local `evon --update` command and via the autoupdate scheduler
+	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ] && [ "$(ENV)" != "dev" ]; then echo You must be in master branch to deploy an update package.; exit 1; fi
+	make package-all
+	echo "##### Publishing updated packages to S3 #####"
+	aws s3 cp evon-hub-selfhosted_*.sh s3://evon-$(ENV)-hub-updates
 	aws s3 cp evon-hub_*.sh s3://evon-$(ENV)-hub-updates
 	echo Removing old updates...
-	aws s3 ls s3://evon-$(ENV)-hub-updates | sort | head -n-3 | awk '{print $$NF}' | while read f; do aws s3 rm s3://evon-$(ENV)-hub-updates/$$f; done
+	aws s3 ls s3://evon-$(ENV)-hub-updates | sort | head -n-6 | awk '{print $$NF}' | while read f; do aws s3 rm s3://evon-$(ENV)-hub-updates/$$f; done
 	echo Done.
 
 deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI. WARNING - the ssh pub key is deleted from ec2-user/known_hosts, you will NOT be able to ssh in, this is for creating an AMI only
