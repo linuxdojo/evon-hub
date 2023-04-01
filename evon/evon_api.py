@@ -50,12 +50,14 @@ def get_pub_ipv4():
     return response.text
 
 
-def do_request(url, requests_method, headers, json_payload=None):
+def do_request(url, requests_method, headers, json_payload=None, params={}):
     request_kwargs = {
         "headers": headers,
     }
     if json_payload:
         request_kwargs["data"] = json_payload.encode("utf-8")
+    if params:
+        request_kwargs["params"] = params
     response = None
     try:
         response = requests_method(url, **request_kwargs, timeout=REQUESTS_TIMEOUT)
@@ -109,12 +111,13 @@ def deregister(api_url, api_key, json_payload):
     return response.text
 
 
-def get_updates(api_url, api_key, version):
+def get_updates(api_url, api_key, version, selfhosted=False):
     url = f"{api_url}/zone/update/{version}"
     response = do_request(
         url,
         requests.get,
-        headers=generate_headers(api_key)
+        headers=generate_headers(api_key),
+        params={"selfhosted": selfhosted}
     )
     return response.text
 
