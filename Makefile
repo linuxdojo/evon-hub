@@ -96,7 +96,7 @@ publish-update: # deploy latest AWS and Selfhosted package to s3 where it will b
 	aws s3 cp evon-hub-selfhosted_*.sh s3://evon-$(ENV)-hub-updates
 	aws s3 cp evon-hub_*.sh s3://evon-$(ENV)-hub-updates
 	echo Removing old updates...
-	aws s3 ls s3://evon-$(ENV)-hub-updates | sort | head -n-6 | awk '{print $$NF}' | while read f; do aws s3 rm s3://evon-$(ENV)-hub-updates/$$f; done
+	aws s3api list-objects --bucket evon-$(ENV)-hub-updates --query 'sort_by(Contents, &LastModified)[].Key' --output text | sed 's/\s/\n/g' | head -n-6 | awk '{print $$NF}' | while read f; do aws s3 rm s3://evon-$(ENV)-hub-updates/$$f; done
 	echo Done.
 
 deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI. WARNING - the ssh pub key is deleted from ec2-user/known_hosts, you will NOT be able to ssh in, this is for creating an AMI only
