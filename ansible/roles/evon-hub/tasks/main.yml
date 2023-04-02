@@ -130,7 +130,7 @@
         ./easyrsa build-server-full {{ ec2_id }}.server.evon-hub nopass
         ./easyrsa build-client-full {{ ec2_id }}.endpoint.evon-hub nopass
         ./easyrsa build-client-full {{ ec2_id }}.user.evon-hub nopass
-        openvpn --genkey --secret pki/ta.key
+        openvpn --genkey --secret pki/{{ ec2_id }}.ta.key
       when: not certs_keys_init.stat.exists
 
   rescue:
