@@ -237,8 +237,8 @@ else
     if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
         os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
     fi
-    if [ $os_version -lt 8 ]; then
-        echo "RHEL/CentOS/Rocky/Alma version 8 or higher is required to install Evon Hub."
+    if [ $os_version -ne 8 ]; then
+        echo "RHEL/CentOS/Rocky/Alma version 8 is required to install Evon Hub."
         exit 1
     fi
 fi
