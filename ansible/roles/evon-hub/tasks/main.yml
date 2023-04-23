@@ -392,7 +392,7 @@
         ca_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/ca.crt') }}"
         client_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/issued/{{ ec2_id }}.endpoint.evon-hub.crt') }}"
         client_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/private/{{ ec2_id }}.endpoint.evon-hub.key') }}"
-        tls_auth_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/ta.key') }}"
+        tls_auth_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/{{ ec2_id }}.ta.key') }}"
         bootstrap_key: "{{ bootstrap_key_cmd.stdout }}"
 
     - name: render bootstrap client config
