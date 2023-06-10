@@ -51,6 +51,7 @@ MUTEX_OPTIONS = [
     "sync_pubip",
     "iam_validate",
     "mp_meter",
+    "reset_admin_pw",
 ]
 
 
@@ -290,6 +291,13 @@ def sync_pub_ipv4():
     help="Sync all Servers to reflect current connected state"
 )
 @click.option(
+    "--reset-admin-pw",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "reset_admin_pw"],
+    is_flag=True,
+    help="Reset the Admin password"
+)
+@click.option(
     "--kill-server",
     type=str,
     metavar="UUID",
@@ -500,3 +508,7 @@ def main(**kwargs):
             click.echo(json.dumps(response))
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
+
+    if kwargs["reset_admin_pw"]:
+        logger.info("Resetting Admin password...")
+        os.execl("/usr/local/bin/eapi", "/usr/local/bin/eapi", "changepassword", "admin")
