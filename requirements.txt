@@ -70,7 +70,7 @@ python-iptables==1.0.0
 pytz==2022.2.1
 PyYAML==6.0
 referencing==0.29.1
-requests==2.28.1
+requests==2.31.0
 resolvelib==0.5.4
 retry==0.9.2
 rich==12.5.1
