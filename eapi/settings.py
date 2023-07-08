@@ -137,11 +137,12 @@ JAZZMIN_SETTINGS = {
         "hub.bootstrap": "fas fa-download",
         "hub.ovpnclientconfig": "fas fa-laptop-code",
     },
+    "custom_css": "css/evon.css",
 }
 
 JAZZMIN_UI_TWEAKS = {
     "theme": "flatly",
-    "dark_mode_theme": "darkly",
+#    "dark_mode_theme": "darkly",
 }
 
 

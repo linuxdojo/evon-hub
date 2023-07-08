@@ -2,9 +2,7 @@
   <div class="card card-primary card-outline">
     <div class="card-body">
       <div id="content-main" class="col-12">
-        Evon Bootsrap is an agent-like, run-once shell script that connects a server to your overlay network.<br />
-        <br />
-        The Bootstrap script simply downloads, starts and persists OpenVPN on your server with shipped config that connects it to your Evon Hub.<br />
+        Evon Bootsrap is an run-once shell script that connects a server to your overlay network. Download Bootstrap below and run it on your server to connect it to your Hub.<br />
         <br />
         Bootstrap is also available as a Docker container which connects a host Linux server to your Hub without modifying the host OS.<br />
         <br />
@@ -61,7 +59,7 @@
                   <li>OpenSUSE 15 or higher</li>
                 </ul>
                 <hr>
-                <h5>Download Bootstrap:</h5>
+                <h5>1. Download Bootstrap:</h5>
                 <strong>Direct download:</strong><br />
                 <br />
                 <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/linux">bootstrap.sh</a></span>
@@ -72,7 +70,7 @@
                 <strong>Using wget:</strong><br />
                 <pre>wget --header 'Authorization: Token {{ deploy_token }}' 'https://{{ account_domain }}/api/bootstrap/linux' -O bootstrap.sh; chmod +x bootstrap.sh</pre>
                 <hr>
-                <h5>Install Bootstrap:</h5>
+                <h5>2. Install Bootstrap:</h5>
                 Run the following command as root on your server:
                 <pre>EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
                 Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
@@ -93,7 +91,7 @@
                   <li>Windows Server 2016 or higher</li>
                 </ul>
                 <hr>
-                <h5>Download Bootstrap:</h5>
+                <h5>1. Download Bootstrap:</h5>
                 <strong>Direct download:</strong><br />
                 <br />
                 <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/windows">bootstrap.ps1</a></span>
@@ -102,7 +100,7 @@
                 <strong>Using PowerShell:</strong><br />
                 <pre>Invoke-WebRequest -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
                 <hr>
-                <h5>Install Bootstrap:</h5>
+                <h5>2. Install Bootstrap:</h5>
                 Run the following PowerShell command on your server as Administrator:
                 <pre>.\bootstrap.ps1 -Apikey {{ deploy_token }}</pre>
                 Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:

@@ -1,0 +1,40 @@
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    color: #000;
+}
+
+.select2-results__option {
+  color: gray;
+}
+
+.dark-mode .navbar-white {
+  background-color: #aeaeae;
+  color: #1f2d3d;
+}
+
+.dark-mode select {
+  color: #000;
+}
+
+.dark-mode {
+  background-color: rgb(58, 63, 65);
+  color: rgb(232, 230, 227);
+}
+
+.dark-mode .content-wrapper {
+  background-color: rgb(32, 32, 32);
+  color: rgb(232, 230, 227);
+}
+
+.help-block, .timezonewarning {
+  font-size: 1em;
+  color: rgb(140, 140, 140);
+  font-style: italic;
+}
+
+.accent-primary .btn-link, .accent-primary .nav-tabs .nav-link, .accent-primary a:not(.dropdown-item):not(.btn-app):not(.nav-link):not(.brand-link):not(.page-link):not(.btn) {
+  color: #0079ff;
+}
+
+.accent-primary .btn-link:hover, .accent-primary .nav-tabs .nav-link:hover, .accent-primary a:not(.dropdown-item):not(.btn-app):not(.nav-link):not(.brand-link):not(.page-link):not(.btn):hover {
+    color: #00bd6f;
+}

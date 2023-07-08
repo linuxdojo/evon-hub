@@ -19,9 +19,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from rest_framework.authtoken.admin import TokenAdmin 
 from rest_framework.authtoken.models import Token, TokenProxy
-
 from solo.admin import SingletonModelAdmin
-import humanfriendly
 
 from eapi.settings import EVON_VARS, BASE_DIR, JAZZMIN_SETTINGS, EVON_HUB_CONFIG
 import hub.models
@@ -52,11 +50,7 @@ def linkify(obj, prepend_icon=True):
     return format_html('<a href="{}">{}</a>', link_url, label)
 
 
-
-
-
 admin.site.unregister(TokenProxy)
-
 @admin.register(TokenProxy)
 class HubTokenAdmin(TokenAdmin):
     search_fields = ["key", "created"]
@@ -505,4 +499,3 @@ class GenericUser(UserAdmin):
             # filter permissions with blacklisted names
             permissions.queryset = permissions.queryset.exclude(name__in=EXCLUDED_PERMISSION_NAMES)
         return form
-
