@@ -200,6 +200,13 @@ def update_object(sender, instance=None, created=False, **kwargs):
         firewall.apply_rule(instance)
     elif isinstance(instance, hub.models.Policy):
         firewall.apply_policy(instance)
+    elif isinstance(instance, hub.models.User) and kwargs.get("action") == "post_remove":
+        # make "All Users" group membership immutable
+        all_users_group = hub.models.Group.objects.get(name="All Users")
+        if all_users_group not in instance.groups.all():
+            logger.info(f"preventing user '{instance}' from leaving group '{all_users_group}'")
+            instance.groups.add(all_users_group)
+        transaction.on_commit(firewall.init)
     else:
         transaction.on_commit(firewall.init)
 
