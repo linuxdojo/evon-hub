@@ -1,0 +1,5 @@
+Requirement already satisfied: starlette in ./.env/lib/python3.10/site-packages (0.22.0)
+Requirement already satisfied: anyio<5,>=3.4.0 in ./.env/lib/python3.10/site-packages (from starlette) (3.7.1)
+Requirement already satisfied: idna>=2.8 in ./.env/lib/python3.10/site-packages (from anyio<5,>=3.4.0->starlette) (3.3)
+Requirement already satisfied: sniffio>=1.1 in ./.env/lib/python3.10/site-packages (from anyio<5,>=3.4.0->starlette) (1.3.0)
+Requirement already satisfied: exceptiongroup in ./.env/lib/python3.10/site-packages (from anyio<5,>=3.4.0->starlette) (1.1.2)

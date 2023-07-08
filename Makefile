@@ -165,4 +165,9 @@ get-version: # render the full current semantic version of evon-hub
 	echo $$(cat version.txt).$$(git rev-list HEAD --count master)
 
 start-shim: # Start the evon_shim http service locally on TCP/8000
-	uvicorn evon.selfhosted_shim.server:app --reload
+	sudo /usr/sbin/ip addr add 169.254.169.254/32 dev lo >/dev/null 2>&1 || :
+	sudo bash -c '. .env/bin/activate && uvicorn evon.selfhosted_shim.server:app --reload --host 169.254.169.254 --port 80'
+	sudo /usr/sbin/ip addr del 169.254.169.254/32 dev lo >/dev/null 2>&1 || :
+
+freeze: # freeze pip deps and store into requirements.txt
+	pip freeze | grep -v egg=evon  > requirements.txt

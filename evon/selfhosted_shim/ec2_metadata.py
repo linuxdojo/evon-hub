@@ -35,7 +35,7 @@ class EC2Metadata:
         }
 
     def get_hwaddr(self):
-        default_hwaddr = "selfhosted-0000000000"
+        default_hwaddr = "0000000000"
         try:
             with open(self.hwaddr_path, "r") as f:
                 hwaddr = f.read().strip()
