@@ -3,7 +3,13 @@
 
 Evon Hub is the core component of the Evon system, acting as the central network hub for connected servers, users and policy. It provides a web application and an API along with OpenVPN services for overlay network connectivity.
 
-Evin Hub must be deployed on an AWS EC2 instance running Amazon Linux 2.
+* Evon Hub in hosted mode must be deployed on an AWS EC2 instance running Amazon Linux 2.
+* Evon Hub in standalone mode must be deployed to a host running EL8 (eg Rocky 8)
+
+## Local Development
+
+* Create a virtualenv using Python 3.10.5
+* run `make setup-local`
 
 ## Deployment
 

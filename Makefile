@@ -141,7 +141,7 @@ shell: # launch an eapi shell as root
 	sudo bash -c '. .env/bin/activate && eapi shell'
 
 runserver: # run the dev server as root
-	sudo bash -c '. .env/bin/activate && eapi runserver'
+	sudo bash -c '. .env/bin/activate && eapi runserver 8001'
 
 fwflush: # flush all Evon fw rules
 	sudo bash -c '. .env/bin/activate && eapi fwctl --delete'

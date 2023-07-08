@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # run this script to setup django db for local dev using dev server (eapi runserver)
+#
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+pip install -e .
 
 cat <<EOF | eapi shell
 from django.contrib.auth import get_user_model
