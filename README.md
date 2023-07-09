@@ -1,4 +1,4 @@
-![EVON Logo](assets/evon_logo.png)
+![EVON Logo](assets/evon_logo_e.png)
 # Evon Hub
 
 Evon Hub is the core component of the Evon system, acting as the central network hub for connected servers, users and policy. It provides a web application and an API along with OpenVPN services for overlay network connectivity.
@@ -40,7 +40,6 @@ This will put the package in S3, ready to be picked up by deployments during nex
 
 ### Building an EC2 instance ready for converting to an AMI or other image
 
-|----------------------------------------------------------------------------------------------|
 | :memo: If not selfhosted, the target EC2 must be freshly installed in the `us-east-1` region |
 |----------------------------------------------------------------------------------------------|
 
@@ -86,7 +85,7 @@ Deployment durations:
 Once published and deployed, the Hub WebUI can be reached at `https://<PREFIX>.<env>.evon.link` (`<env>` is ommited if `prod`).
 
 Default Web UI login credentials are:
-|------------|----------------------------|
-|__Username__| admin                      |
-|__Password__| `<Instance ID of Hub>`     |
-|------------|----------------------------|
+| | |
+|--------|----------------------------|
+|Username| admin                      |
+|Password| `<Instance ID of Hub>`     |
