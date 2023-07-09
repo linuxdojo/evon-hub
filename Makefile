@@ -116,8 +116,17 @@ deploy-base: # setup newly-deployed target system to be ready for producing AMI 
 	ssh $(TARGET_USER)@$(TARGET_HOST) "sudo mv -f /tmp/motd /etc/motd"
 	# run base build
 	ssh $(TARGET_USER)@$(TARGET_HOST) "bash --login -c 'sudo bin/evon-deploy -b'"
-	# nuke the ssh pub key if deploying to prod EC2, ready for AMI creation (to pass AWS MP security scan)
-	if [ "$(SELFHOSTED)" != "true" ]; then \
+	# if not selfhosted, nuke the ssh pub key if deploying to prod EC2, ready for AMI creation (to pass AWS MP security scan), else setup the selfhosted instance
+	if [ "$(SELFHOSTED)" == "true" ]; then \
+		ssh $(TARGET_USER)@$(TARGET_HOST) " \
+			sudo sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config; \
+			sudo systemctl restart sshd; \
+			sudo sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config; \
+			sudo sed -i \"s/$$(hostname)/evon-hub/g\" /etc/hosts; \
+			sudo echo evoh-hub > /etc/hostname; \
+			sudo hostname evon-hub; \
+		"; \
+	else \
 		[ "$(ENV)" == "prod" ] && ssh $(TARGET_USER)@$(TARGET_HOST) "bash --login -c 'sudo rm -f /home/ec2-user/.ssh/authorized_keys /root/.ssh/authorized_keys'" || :; \
 	fi
 	echo Done.
