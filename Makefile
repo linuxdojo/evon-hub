@@ -1,16 +1,16 @@
 .SILENT:
 PACKAGE_NAME := evon-hub
-EC2_USER := ec2-user
+TARGET_USER := ec2-user
 SELFHOSTED := false
 #ENV := dev
-#EC2_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
+#TARGET_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
 #DOMAIN_PREFIX := mycompany
 #SUBNET_KEY := 111
 
 
 help: # Show this help
 	@echo Make targets:
-	@egrep -h ":\s+# " $(MAKEFILE_LIST) | \
+	@grep -E -h ":\s+# " $(MAKEFILE_LIST) | \
 	  sed -e 's/# //; s/^/    /' | \
 	  column -s: -t
 
@@ -25,6 +25,7 @@ clean: # remove unneeded artefacts from repo
 	find . -user root | while read o; do sudo chown $(USER) "$$o"; done
 	find . -not -path "./.env/*" | grep -E "(__pycache__|\.pyc|\.pyo$$)" | while read o; do rm -rf "$$o"; done
 	rm -f /tmp/evon_hub.tar.gz || :
+	rm -rf _build || :
 
 
 package: # produce package artefact ready for publishing
@@ -40,7 +41,7 @@ package: # produce package artefact ready for publishing
 		rm -f evon-hub_*.sh; \
 	fi
 	echo Packaging...
-	# generate env
+	# generate evon/.evon_env
 	ENV=$(ENV) SELFHOSTED=$(SELFHOSTED) support/gen_env.py
 	# create archive
 	rm -f /tmp/evon_hub.tar.gz || :
@@ -72,21 +73,24 @@ package: # produce package artefact ready for publishing
 	sed -i "s/__EVON_DOMAIN_SUFFIX__/$$(cat evon/.evon_env | grep EVON_DOMAIN_SUFFIX | cut -d= -f2)/g" $(OUTFILE)
 	sed -i 's/__SELFHOSTED__/$(SELFHOSTED)/g' $(OUTFILE)
 	# render initial deploy motd
-	cat support/package_motd | sed 's/__VERSION__/$(VER)/g' > /tmp/evon_hub_motd
+	mkdir _build
+	cat support/package_motd | sed 's/__VERSION__/$(VER)/g' > _build/evon_hub_motd
 	echo Wrote $$(ls -lah $(OUTFILE) | awk '{print $$5}') file: $(OUTFILE)
 
 package-all: # make both AWS and Selfhosted packages
 	make SELFHOSTED=false package
 	make SELFHOSTED=true package
 
-
-publish: # publish latest package to target ec2 host at file path /home/ec2-user/bin/evon-deploy
-	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
+publish: # publish latest package to target host at file path ~/bin/evon-deploy
 	make package
 	echo "##### Publishing Package #####"
-	ssh $(EC2_USER)@$(EC2_HOST) "mkdir -p bin"
-	scp evon-hub_*.sh $(EC2_USER)@$(EC2_HOST):/home/ec2-user/bin
-	ssh $(EC2_USER)@$(EC2_HOST) "rm -f bin/evon-deploy >/dev/null 2>&1 || :; mv bin/evon-hub_*.sh bin/evon-deploy; chmod +x bin/evon-deploy"
+	ssh $(TARGET_USER)@$(TARGET_HOST) "mkdir -p bin"
+	if [ "$(SELFHOSTED)" == "true" ]; then \
+		scp evon-hub-selfhosted_*.sh $(TARGET_USER)@$(TARGET_HOST):bin/evon-deploy; \
+	else \
+		scp evon-hub_*.sh $(TARGET_USER)@$(TARGET_HOST):bin/evon-deploy; \
+	fi
+	ssh $(TARGET_USER)@$(TARGET_HOST) "chmod +x bin/evon-deploy"
 	echo Done.
 
 publish-update: # deploy latest AWS and Selfhosted package to s3 where it will be available to all deployments via the local `evon --update` command and via the autoupdate scheduler
@@ -99,31 +103,32 @@ publish-update: # deploy latest AWS and Selfhosted package to s3 where it will b
 	aws s3api list-objects --bucket evon-$(ENV)-hub-updates --query 'sort_by(Contents, &LastModified)[].Key' --output text | sed 's/\s/\n/g' | head -n-6 | awk '{print $$NF}' | while read f; do aws s3 rm s3://evon-$(ENV)-hub-updates/$$f; done
 	echo Done.
 
-deploy-base: # setup newly-deployed target EC2 system to be ready for producing AMI. WARNING - the ssh pub key is deleted from ec2-user/known_hosts, you will NOT be able to ssh in, this is for creating an AMI only
-	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
+deploy-base: # setup newly-deployed target system to be ready for producing AMI or other image. WARNING - if not SELFHOSTED, the ssh pub key will be deleted from all known_host files and you will NOT be able to ssh in (for creating an AMI only)
 	if [ "$$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then echo You must be in master branch to deploy the base components.; exit 1; fi
-	echo -n "WARNING: The taraget EC2 will not be reachable after this operation! Sleeping for 5 seconds, press ctrl-c to abort."
-	while true; do echo -n .; count=$${count}.; sleep 1; [ "$$count" == "....." ] && break; done
-	echo ""
+	if [ "$(SELFHOSTED)" != "true" ]; then \
+		echo -n "WARNING: The taraget EC2 will not be reachable after this operation! Sleeping for 5 seconds, press ctrl-c to abort."; \
+		while true; do echo -n .; count=$${count}.; sleep 1; [ "$$count" == "....." ] && break; done; \
+		echo ""; \
+	fi
 	make publish
 	echo "##### Deploying Base #####"
-	scp /tmp/evon_hub_motd $(EC2_USER)@$(EC2_HOST):/tmp/motd
-	ssh $(EC2_USER)@$(EC2_HOST) "sudo mv -f /tmp/motd /etc/motd"
+	scp _build/evon_hub_motd $(TARGET_USER)@$(TARGET_HOST):/tmp/motd
+	ssh $(TARGET_USER)@$(TARGET_HOST) "sudo mv -f /tmp/motd /etc/motd"
 	# run base build
-	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy -b'"
-	# nuke the ssh pub key if prod, ready for AMI creation (to pass AWS MP security scan)
-	[ "$(ENV)" == "prod" ] && ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo rm -f /home/ec2-user/.ssh/authorized_keys /root/.ssh/authorized_keys'" || :
+	ssh $(TARGET_USER)@$(TARGET_HOST) "bash --login -c 'sudo bin/evon-deploy -b'"
+	# nuke the ssh pub key if deploying to prod EC2, ready for AMI creation (to pass AWS MP security scan)
+	if [ "$(SELFHOSTED)" != "true" ]; then \
+		[ "$(ENV)" == "prod" ] && ssh $(TARGET_USER)@$(TARGET_HOST) "bash --login -c 'sudo rm -f /home/ec2-user/.ssh/authorized_keys /root/.ssh/authorized_keys'" || :; \
+	fi
 	echo Done.
 
-deploy-test: # DEV ONLY - convenience target to make package, publish and run installer on remote host
-	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
+deploy-test: # DEV ONLY - convenience target to make package, publish and run installer on target host
 	make publish
 	echo "##### Deploying #####"
-	echo "Deploying to host: $(EC2_USER)@$(EC2_HOST)"
-	ssh $(EC2_USER)@$(EC2_HOST) "bash --login -c 'sudo /home/ec2-user/bin/evon-deploy --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
+	echo "Deploying to host: $(TARGET_USER)@$(TARGET_HOST)"
+	ssh $(TARGET_USER)@$(TARGET_HOST) "bash --login -c 'sudo ~/bin/evon-deploy --domain-prefix $(DOMAIN_PREFIX) --subnet-key $(SUBNET_KEY)'"
 
-deploy-quick: # DEV ONLY - convenience target to upload local non-Django project elements to remote dev ec2 instance (assumes root ssh with pub key auth has been setup)
-	if [ "$(SELFHOSTED)" == "true" ]; then echo "SELFHOSTED=true, aborting"; exit 1; fi
+deploy-quick: # DEV ONLY - convenience target to upload local non-Django project elements to remote dev EC2 instance (assumes root ssh with pub key auth has been setup)
 	echo "##### Quick Deploying #####"
 	make clean
 	echo "Quick deploying..."
@@ -132,9 +137,9 @@ deploy-quick: # DEV ONLY - convenience target to upload local non-Django project
 		ansible \
 		hub \
 		eapi \
-		root@$(EC2_HOST):/opt/evon-hub/
+		root@$(TARGET_HOST):/opt/evon-hub/
 	echo "Bounching evonapi service..."
-	ssh root@$(EC2_HOST) "bash --login -c 'systemctl restart evonhub'"
+	ssh root@$(TARGET_HOST) "bash --login -c 'systemctl restart evonhub'"
 	echo "Done."
 
 shell: # launch an eapi shell as root
@@ -164,7 +169,7 @@ setup-local: # configure DB with fixtures for local development (ie if you want 
 get-version: # render the full current semantic version of evon-hub
 	echo $$(cat version.txt).$$(git rev-list HEAD --count master)
 
-start-shim: # Start the evon_shim http service locally on TCP/8000
+start-shim: # Start the evon_shim http service locally on 169.254.169.254 on TCP/80
 	sudo /usr/sbin/ip addr add 169.254.169.254/32 dev lo >/dev/null 2>&1 || :
 	sudo bash -c '. .env/bin/activate && uvicorn evon.selfhosted_shim.server:app --reload --host 169.254.169.254 --port 80'
 	sudo /usr/sbin/ip addr del 169.254.169.254/32 dev lo >/dev/null 2>&1 || :

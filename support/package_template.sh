@@ -207,28 +207,29 @@ if [ "$SELFHOSTED" == "false" ]; then
     hwaddr=""
 else
     # we're running in selfhosted mode
-
-    # we require hwaddr to be specified
-    if [ -z "$hwaddr" ]; then
-        echo 'ERROR: --hwaddr option is required'
-        echo "For usage info, use --help"
-        exit 1
-    fi
-
-    # validate hwaddr
-    echo "$hwaddr" | grep -qE "$HWADDR_PATTERN"
-    if [ $? -ne 0 ]; then
-        echo "ERROR: The provided hwaddr '${domain_prefix}' is invalid."
-        exit 1
-    fi
-
-    # validate pub ipv4 address if supplied
-    if [ "$public_ipv4_address" ]; then
-        echo -n "$public_ipv4_address" | grep -qP $NON_RFC1918_IP_PATTERN
-        if [ $? -ne 0 ]; then
-            echo "ERROR: The provided IPv4_ADDRESS '${public_ipv4_address}' is invalid. It must be a public IPv4 address."
+    if [ ! "$base_build" ]; then
+        # we require hwaddr to be specified
+        if [ -z "$hwaddr" ]; then
+            echo 'ERROR: --hwaddr option is required'
             echo "For usage info, use --help"
             exit 1
+        fi
+
+        # validate hwaddr
+        echo "$hwaddr" | grep -qE "$HWADDR_PATTERN"
+        if [ $? -ne 0 ]; then
+            echo "ERROR: The provided hwaddr '${domain_prefix}' is invalid."
+            exit 1
+        fi
+
+        # validate pub ipv4 address if supplied
+        if [ "$public_ipv4_address" ]; then
+            echo -n "$public_ipv4_address" | grep -qP $NON_RFC1918_IP_PATTERN
+            if [ $? -ne 0 ]; then
+                echo "ERROR: The provided IPv4_ADDRESS '${public_ipv4_address}' is invalid. It must be a public IPv4 address."
+                echo "For usage info, use --help"
+                exit 1
+            fi
         fi
     fi
 
