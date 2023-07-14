@@ -17,7 +17,6 @@ class EC2Metadata:
             "https://ident.me",
             "https://ipinfo.io/ip",
             "https://ipecho.net/plain",
-            "https://www.trackip.net/ip"
         ]
         self.ipv4_get_timeout = 3
         self.non_rfc1918_ip_patt = re.compile(r"\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}\b")
@@ -67,7 +66,11 @@ class EC2Metadata:
             random.shuffle(urls)
             for url in urls:
                 logger.info(f"trying to obtain pub ipv4 from: {url}")
-                response = requests.get(url, timeout=self.ipv4_get_timeout)
+                try:
+                    response = requests.get(url, timeout=self.ipv4_get_timeout)
+                except Exception as e:
+                    logger.warning(f"failed to obtain public ipv4 address from '{url}', skipping to next provider: {e}")
+                    continue
                 pub_ipv4 = response.text.strip()
                 if response.ok and self.non_rfc1918_ip_patt.match(pub_ipv4):
                     logger.info(f"obtained pub ipv4: {pub_ipv4}")
