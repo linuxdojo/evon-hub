@@ -439,8 +439,8 @@ source /opt/evon-hub/evon/.evon_env
 
 if [ "$SELFHOSTED" == "true" ]; then
     # we're selfhosted, start and persist the selfhosted_shim service
-    setenforce 0
-    sed -i 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/selinux/config
+    setenforce 0 || :
+    sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
     cd /opt/evon-hub/evon/selfhosted_shim
     make deploy
     cd -
