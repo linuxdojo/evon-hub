@@ -22,7 +22,7 @@ elif ! which realpath >/dev/null 2>&1; then
     if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
         os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
         if [ "$os_version" -eq 6 ]; then
-            rpm -ivh http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/realpath-1.17-1.el6.rf.x86_64.rpm
+            rpm -ivh http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/realpath-1.17-1.el6.rf.x86_64.rpm
             if [ $? -ne 0 ]; then
                 echo "Failed to install realpath. Please install it manually and rerun this installer"
                 exit 1
@@ -459,15 +459,15 @@ elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
         exit 1
     fi
     # upgrade curl to compatible version
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.9/updates/x86_64/Packages/curl-7.19.7-53.el6_9.x86_64.rpm > /tmp/curl-7.19.7-53.el6_9.x86_64.rpm
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/centos/6.9/updates/x86_64/Packages/libcurl-7.19.7-53.el6_9.x86_64.rpm > /tmp/libcurl-7.19.7-53.el6_9.x86_64
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-3.44.0-7.el6_10.x86_64
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-util-3.44.0-1.el6_10.x86_64.rpm > /tmp/nss-util-3.44.0-1.el6_10.x86_64.rpm
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nspr-4.21.0-1.el6_10.x86_64.rpm > /tmp/nspr-4.21.0-1.el6_10.x86_64.rpm
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-softokn-3.44.0-5.el6_10.x86_64.rpm > /tmp/nss-softokn-3.44.0-5.el6_10.x86_64.rpm
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-softokn-freebl-3.44.0-6.el6_10.x86_64.rpm > /tmp/nss-softokn-freebl-3.44.0-6.el6_10.x86_64.rpm
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-sysinit-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-sysinit-3.44.0-7.el6_10.x86_64.rpm
-    curl -s http://ftp.iij.ad.jp/pub/linux/centos-vault/6.10/updates/x86_64/Packages/nss-tools-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-tools-3.44.0-7.el6_10.x86_64.rpm
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/curl-7.19.7-53.el6_9.x86_64.rpm > /tmp/curl-7.19.7-53.el6_9.x86_64.rpm
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/libcurl-7.19.7-53.el6_9.x86_64.rpm > /tmp/libcurl-7.19.7-53.el6_9.x86_64
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/nss-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-3.44.0-7.el6_10.x86_64
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/nss-util-3.44.0-1.el6_10.x86_64.rpm > /tmp/nss-util-3.44.0-1.el6_10.x86_64.rpm
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/nspr-4.21.0-1.el6_10.x86_64.rpm > /tmp/nspr-4.21.0-1.el6_10.x86_64.rpm
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/nss-softokn-3.44.0-5.el6_10.x86_64.rpm > /tmp/nss-softokn-3.44.0-5.el6_10.x86_64.rpm
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/nss-softokn-freebl-3.44.0-6.el6_10.x86_64.rpm > /tmp/nss-softokn-freebl-3.44.0-6.el6_10.x86_64.rpm
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/nss-sysinit-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-sysinit-3.44.0-7.el6_10.x86_64.rpm
+    curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/nss-tools-3.44.0-7.el6_10.x86_64.rpm > /tmp/nss-tools-3.44.0-7.el6_10.x86_64.rpm
     rpm -Uvh \
          /tmp/curl-7.19.7-53.el6_9.x86_64.rpm \
          /tmp/libcurl-7.19.7-53.el6_9.x86_64 \
@@ -480,7 +480,7 @@ elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
          /tmp/nss-tools-3.44.0-7.el6_10.x86_64.rpm
     which jq >/dev/null 2>&1
     if [ $? -ne 0 ]; then
-        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/j/jq-1.3-2.el6.x86_64.rpm > /tmp/jq-1.3-2.el6.x86_64.rpm
+        curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/jq-1.3-2.el6.x86_64.rpm > /tmp/jq-1.3-2.el6.x86_64.rpm
         rpm -ivh /tmp/jq-1.3-2.el6.x86_64.rpm 
     fi
     which jq >/dev/null 2>&1
@@ -492,9 +492,9 @@ elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
     if [ $? -ne 0 ]; then
         rm -rf /tmp/ovpnrpm >/dev/null 2>&1 || :
         mkdir -p /tmp/ovpnrpm
-        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/o/openvpn-2.4.9-1.el6.x86_64.rpm > /tmp/ovpnrpm/openvpn-2.4.9-1.el6.x86_64.rpm
-        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/l/lz4-r131-1.el6.x86_64.rpm > /tmp/ovpnrpm/lz4-r131-1.el6.x86_64.rpm 
-        curl -s http://archives.fedoraproject.org/pub/archive/epel/6/x86_64/Packages/p/pkcs11-helper-1.11-3.el6.x86_64.rpm > /tmp/ovpnrpm/pkcs11-helper-1.11-3.el6.x86_64.rpm
+        curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/openvpn-2.4.9-1.el6.x86_64.rpm > /tmp/ovpnrpm/openvpn-2.4.9-1.el6.x86_64.rpm
+        curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/lz4-r131-1.el6.x86_64.rpm > /tmp/ovpnrpm/lz4-r131-1.el6.x86_64.rpm
+        curl -s http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el6/pkcs11-helper-1.11-3.el6.x86_64.rpm > /tmp/ovpnrpm/pkcs11-helper-1.11-3.el6.x86_64.rpm
         rpm -ivh /tmp/ovpnrpm/*.rpm
         rm -rf /tmp/ovpnrpm
     fi
