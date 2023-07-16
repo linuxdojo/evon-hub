@@ -18,6 +18,7 @@ test: # Run unit tests
 	echo "##### Running Tests #####"
 	pytest evon/ eapi/ hub/
 	flake8 --ignore=E501 evon/
+	cd ansible && make test
 
 clean: # remove unneeded artefacts from repo
 	echo "##### Cleaning Repo #####"
