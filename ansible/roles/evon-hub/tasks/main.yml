@@ -1,11 +1,14 @@
 ---
 
-### determine version
+### compute facts
 
 - name: set evon version fact
   ansible.builtin.set_fact:
     evon_version: "{{ lookup('file', '/opt/evon-hub/version.txt') }}"
 
+- name: set package facts
+  package_facts:
+    manager: "auto"
 
 ### Setup ip forwarding
 
@@ -116,21 +119,30 @@
         cd "{{ easy_rsa_dir }}"
         ./easyrsa init-pki
         ./easyrsa gen-dh
-        ./easyrsa build-ca nopass <<< {{ ec2_id }}.ca.evon-hub
+        ./easyrsa build-ca nopass <<< {{ account_domain }}.ca.evon-hub
       when: not easyrsa_init.stat.exists
 
     - name: check if certs and keys are initialised
       ansible.builtin.stat:
-        path: "{{ easy_rsa_dir }}/pki/issued/{{ ec2_id }}.server.evon-hub.crt"
+        path: "{{ easy_rsa_dir }}/pki/issued/{{ account_domain }}.server.evon-hub.crt"
       register: certs_keys_init
+
+    - name: set default easy-rsa extra args
+      ansible.builtin.set_fact:
+        easy_rsa_extra_args: ""
+
+    - name: "set easy-rsa extra args if version >= 3.1.5"
+      ansible.builtin.set_fact:
+        easy_rsa_extra_args: "--batch --req-cn=ChangeMe"
+      when: ansible_facts.packages["easy-rsa"][0].version is version("3.1.5", ">=")
 
     - name: "build certs and keys"
       ansible.builtin.shell: |
         cd "{{ easy_rsa_dir }}"
-        ./easyrsa build-server-full {{ ec2_id }}.server.evon-hub nopass
-        ./easyrsa build-client-full {{ ec2_id }}.endpoint.evon-hub nopass
-        ./easyrsa build-client-full {{ ec2_id }}.user.evon-hub nopass
-        openvpn --genkey --secret pki/{{ ec2_id }}.ta.key
+        ./easyrsa {{ easy_rsa_extra_args }} build-server-full {{ account_domain }}.server.evon-hub nopass
+        ./easyrsa {{ easy_rsa_extra_args }} build-client-full {{ account_domain }}.endpoint.evon-hub nopass
+        ./easyrsa {{ easy_rsa_extra_args }} build-client-full {{ account_domain }}.user.evon-hub nopass
+        openvpn --genkey --secret pki/{{ account_domain }}.ta.key
       when: not certs_keys_init.stat.exists
 
   rescue:
@@ -390,9 +402,9 @@
     - name: set bootstrap facts
       ansible.builtin.set_fact:
         ca_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/ca.crt') }}"
-        client_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/issued/{{ ec2_id }}.endpoint.evon-hub.crt') }}"
-        client_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/private/{{ ec2_id }}.endpoint.evon-hub.key') }}"
-        tls_auth_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/{{ ec2_id }}.ta.key') }}"
+        client_cert: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/issued/{{ account_domain }}.endpoint.evon-hub.crt') }}"
+        client_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/private/{{ account_domain }}.endpoint.evon-hub.key') }}"
+        tls_auth_key: "{{ lookup('file', '{{ easy_rsa_dir }}/pki/{{ account_domain }}.ta.key') }}"
         bootstrap_key: "{{ bootstrap_key_cmd.stdout }}"
 
     - name: render bootstrap client config

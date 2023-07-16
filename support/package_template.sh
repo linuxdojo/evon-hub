@@ -235,11 +235,15 @@ else
 
     # ensure the linux distro is supported
     os_version=0
+    proceed=false
     if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
         os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+        if [[ $os_version -ne 8 || $os_version -ne 9 ]]; then
+            proceed=true
+        fi
     fi
-    if [ $os_version -ne 8 ]; then
-        echo "RHEL/CentOS/Rocky/Alma version 8 is required to install Evon Hub."
+    if [ "$proceed" != "true" ]; then
+        echo "RHEL, Rocky Linux or AlmaLinux version 8 or 9 is required to install Evon Hub."
         exit 1
     fi
 fi
@@ -322,7 +326,6 @@ package_list='
     bzip2
     bzip2-devel
     certbot
-    easy-rsa
     gcc
     git
     htop
@@ -341,19 +344,23 @@ package_list='
     patch
     readline-devel
     sqlite-devel
-    sslh
     tk-devel
     tmux
     vim
     xz-devel
     zlib-devel'
 if [ "$(is_al2)" == "true" ]; then
+    ###############
+    # distro is al2
+    ###############
     package_list="$package_list
+        easy-rsa
         MariaDB-client
         MariaDB-devel
         MariaDB-server
         openssl11-devel
-        python2-certbot-nginx"
+        python2-certbot-nginx
+        sslh"
     rm -f /etc/yum.repos.d/MariaDB.repo
     amazon-linux-extras install epel -y
     cat <<EOF > /etc/yum.repos.d/MariaDB.repo
@@ -364,9 +371,29 @@ gpgkey = http://mirror.aarnet.edu.au/pub/MariaDB/yum/RPM-GPG-KEY-MariaDB
 gpgcheck = 1
 EOF
     yum -y install $package_list
-else
-    # distro is el8+
+elif [ $os_version -eq 8 ]; then
+    ###############
+    # distro is el8
+    ###############
     package_list="$package_list
+        easy-rsa
+        iptables-services
+        make
+        mariadb
+        mariadb-devel
+        mariadb-server
+        openssl-devel
+        python3-certbot-nginx
+        sslh
+        tar"
+    dnf -y install epel-release
+    dnf -y install $package_list
+else
+    ###############
+    # distro is el9
+    ###############
+    package_list="$package_list
+        iptables-legacy-devel
         iptables-services
         make
         mariadb
@@ -375,8 +402,12 @@ else
         openssl-devel
         python3-certbot-nginx
         tar"
+    dnf config-manager --set-enabled crb
     dnf -y install epel-release
     dnf -y install $package_list
+    dnf install -y \
+        http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el9/sslh-1.21c-6.fc38.x86_64.rpm \
+        http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el9/easy-rsa-3.1.5-1.fc38.noarch.rpm
 fi
 
 echo '### Installing pyenv...'
@@ -516,7 +547,7 @@ echo '### Deploying state'
 evon --save-state
 rc=$?
 if [ $rc -ne 0 ]; then
-    bail $rc "ERROR: Installation failed, please contact support at support@evon.link and provide the log file at path $logfile"
+    bail $rc "ERROR: Installation failed, please contact support at support@evonhub.com and provide the log file at path $logfile"
 fi
 
 # Check for and apply updates

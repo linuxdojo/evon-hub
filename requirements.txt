@@ -49,7 +49,7 @@ mysqlclient==2.1.1
 netaddr==0.8.0
 openapi-codec==1.3.2
 openvpn-api @ git+https://github.com/linuxdojo/openvpn-api.git@d2669bb171119e93dd98aaa7700e32807a796029
-openvpn-status==0.2.1
+openvpn-status @ git+https://github.com/linuxdojo/openvpn-status.git@02d39962b349f35fc51cd7c2d29b7a9645b9b880
 packaging==23.1
 parso==0.8.3
 pexpect==4.8.0
