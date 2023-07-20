@@ -160,6 +160,8 @@ MIDDLEWARE = [
     "hub.middleware.HubMiddleware",
 ]
 
+SESSION_COOKIE_AGE = 14400  # auto-logout after 4 hours
+
 ROOT_URLCONF = "eapi.urls"
 
 TEMPLATES = [
