@@ -122,6 +122,18 @@
         ./easyrsa build-ca nopass <<< {{ account_domain }}.ca.evon-hub
       when: not easyrsa_init.stat.exists
 
+    - name: migrate to new ca tree scheme if required
+      ansible.builtin.shell: |
+        cd "{{ easy_rsa_dir  }}"
+        [ ! -e pki/{{ ec2_id }}.ta.key ] && cp pki/ta.key pki/{{ ec2_id }}.ta.key || :
+        [ ! -e pki/{{ account_domain }}.ta.key ] && cp pki/{{ ec2_id }}.ta.key pki/{{ account_domain }}.ta.key || :
+        [ ! -e pki/issued/{{ account_domain }}.server.evon-hub.crt ] && cp pki/issued/{{ ec2_id }}.server.evon-hub.crt pki/issued/{{ account_domain }}.server.evon-hub.crt || :
+        [ ! -e pki/issued/{{ account_domain }}.endpoint.evon-hub.crt ] && cp pki/issued/{{ ec2_id }}.endpoint.evon-hub.crt pki/issued/{{ account_domain }}.endpoint.evon-hub.crt || :
+        [ ! -e pki/issued/{{ account_domain }}.user.evon-hub.crt ] && cp pki/issued/{{ ec2_id }}.user.evon-hub.crt pki/issued/{{ account_domain }}.user.evon-hub.crt || :
+        [ ! -e pki/private/{{ account_domain }}.server.evon-hub.key ] && cp pki/private/{{ ec2_id }}.server.evon-hub.key pki/private/{{ account_domain }}.server.evon-hub.key || :
+        [ ! -e pki/private/{{ account_domain }}.endpoint.evon-hub.key ] && cp pki/private/{{ ec2_id }}.endpoint.evon-hub.key pki/private/{{ account_domain }}.endpoint.evon-hub.key || :
+        [ ! -e pki/private/{{ account_domain }}.user.evon-hub.key ] && cp pki/private/{{ ec2_id }}.user.evon-hub.key pki/private/{{ account_domain }}.user.evon-hub.key || :
+
     - name: check if certs and keys are initialised
       ansible.builtin.stat:
         path: "{{ easy_rsa_dir }}/pki/issued/{{ account_domain }}.server.evon-hub.crt"
