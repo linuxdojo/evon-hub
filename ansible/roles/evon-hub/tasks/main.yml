@@ -10,6 +10,9 @@
   package_facts:
     manager: "auto"
 
+- name: set service facts
+  ansible.builtin.service_facts:
+
 ### Setup ip forwarding
 
 - name: enable ipv4 forwarding
@@ -43,6 +46,13 @@
 
 
 ### Setup iptables
+
+- name: disable firewalld service if present
+  ansible.builtin.service:
+    name: firewalld
+    state: stopped
+    enabled: false
+  when: "'firewalld.service' in services"
 
 - name: configure iptables
   ansible.builtin.template:

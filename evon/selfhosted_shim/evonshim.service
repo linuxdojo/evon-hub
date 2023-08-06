@@ -1,8 +1,8 @@
 [Unit]
 Description=Evon Self-hosted Shim
 Requires=network-online.target
-After=syslog.target
-Before=evonhub.target
+After=syslog.target rsyslog.service cloud-config.service cloud-final.service cloud-init-local.service cloud-init-log-reader.service cloud-init.service
+Before=evonhub.service
 
 [Service]
 SyslogIdentifier=evon-selfhosted-shim
