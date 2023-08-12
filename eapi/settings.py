@@ -11,11 +11,9 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 import os
-import sys
 
 from openvpn_api.vpn import VPN
 from pathlib import Path
-import psutil
 import yaml
 
 
@@ -160,7 +158,7 @@ MIDDLEWARE = [
     "hub.middleware.HubMiddleware",
 ]
 
-SESSION_COOKIE_AGE = 14400  # auto-logout after 4 hours
+SESSION_COOKIE_AGE = 14400  # FIXME: use django-auto-logout
 
 ROOT_URLCONF = "eapi.urls"
 

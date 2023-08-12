@@ -1,9 +1,10 @@
 ---
 # Development only, this file will be dynamically generated on the Evon Hub
 account_domain: "xxxxx.dev.evon.link"
+aws_account_id: "000000000000"
 subnet_key: 111
 public_ipv4: "127.0.0.1"
 aws_region: "ap-southeast-2"
 aws_az: "ap-southeast-2a"
 ec2_id: "xxxxx"
-
+selfhosted: true

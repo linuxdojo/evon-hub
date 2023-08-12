@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This file is triggered hourly via systemd timer: evonsync.timer
+
 AUDITLOG_RETENTION_DAYS=90
 
 # Sync all Evon-connected servers to reflect current connected state
