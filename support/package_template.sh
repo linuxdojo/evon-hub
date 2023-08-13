@@ -378,6 +378,7 @@ elif [ $os_version -eq 8 ]; then
     package_list="$package_list
         easy-rsa
         iptables-services
+        kernel-modules-extra
         make
         mariadb
         mariadb-devel
@@ -396,6 +397,7 @@ else
         iptables-legacy
         iptables-legacy-devel
         iptables-services
+        kernel-modules-extra
         make
         mariadb
         mariadb-devel
