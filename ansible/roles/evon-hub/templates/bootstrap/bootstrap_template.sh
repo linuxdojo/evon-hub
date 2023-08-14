@@ -39,6 +39,34 @@ elif [ "$(basename $(realpath /proc/$$/exe))" != "bash" ] || cat /proc/$$/cmdlin
 fi
 
 
+function custom_section() {
+#################################################
+# CUSTOM SECTION
+#################################################
+
+# Use this section of the script to perform any custom operations on the remote system as required,
+# such as adding an SSH public key to a user's authorized keys file. See below for such an example.
+# Uncomment and supply your own `ssh_pub_key` value to use it:
+
+#username=root       # use root user
+##username=$(id -un)  # or, use current user
+#ssh_pub_key='ssh-rsa AAAAB3Nza...ovI8ksEmov'  # the SSH public key to install
+#echo "Installing SSH public key to ${username}'s authorized keys file..."
+#homedir=$(getent passwd ${username} | cut -d: -f6)
+#mkdir -p ${homedir}/.ssh
+#chmod 700 ${homedir}/.ssh
+#touch ${homedir}/.ssh/authorized_keys
+#chmod 600 ${homedir}/.ssh/authorized_keys
+#grep -q "${ssh_pubkey}" ${homedir}/.ssh/authorized_keys || echo -e "\n${ssh_pubkey}" >> ${homedir}/.ssh/authorized_keys
+#echo Done.
+
+#################################################
+# END CUSTOM SECTION
+#################################################
+:
+}
+
+
 # set vars
 VERSION="{{ evon_version }}"
 EVON_HUB_PEER="100.{{ subnet_key }}.224.1"
@@ -746,6 +774,9 @@ fi
 echo Cleanup tempdir...
 cd
 rm -rf $tempdir
+
+##### run custom section
+custom_section
 
 # finish
 echo "The Evon Hub connection setup has successfully completed!"
