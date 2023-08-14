@@ -12,7 +12,6 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'  # noqa
 django.setup()  # noqa
 from django.contrib.auth.models import User  # noqa
 
-
 from eapi.settings import EVON_HUB_CONFIG, EVON_VARS  # noqa
 from evon import evon_api  # noqa
 from evon.cli import EVON_API_URL, EVON_API_KEY  # noqa
