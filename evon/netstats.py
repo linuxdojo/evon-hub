@@ -18,7 +18,7 @@ from hub.models import User  # noqa
 logger = get_evon_logger()
 
 
-def get_interfaces():
+def get_interfaces(tun_only=True):
     """
     returns a list of non-loopback interfaces
     """
@@ -26,7 +26,10 @@ def get_interfaces():
     cmd = "ip link show | grep -E '^[0-9]' | grep -v LOOPBACK | cut -d: -f2 | xargs"
     p = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
     stdout_err = p.stdout.read().decode("utf-8").strip()
-    return stdout_err.split()
+    result = stdout_err.split()
+    if tun_only:
+        result = [e for e in result if "tun" in e.lower()]
+    return result
 
 
 def get_user_count():
