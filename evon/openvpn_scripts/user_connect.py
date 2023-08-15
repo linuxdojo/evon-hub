@@ -46,7 +46,11 @@ if not user:
 local = user.userprofile.ipv4_address
 remote = ipaddress.ip_address(local) - 1
 ccd_config = f'ifconfig-push {local} {remote}'
-with open(ccd_file, "w") as f:
-    f.write(ccd_config)
+#with open(ccd_file, "w") as f:
+#    f.write(ccd_config)
+# XXX above yields:
+#   PermissionError: [Errno 13] Permission denied: '/tmp/openvpn_cc_2e4c9ed50581c7ed38138f28c8483f1e.tmp'
+#   Workaround with os.system below.
+os.system(f"echo {ccd_config} > {ccd_file}")
 
 logger.info(f"Wrote CCD file '{ccd_file}' with content: {ccd_config}")
