@@ -78,8 +78,10 @@ def get_records(api_url, api_key):
     return records
 
 
-def set_records(api_url, api_key, json_payload):
+def set_records(api_url, api_key, json_payload, usage_stats=False):
     url = f"{api_url}/zone/records"
+    if usage_stats:
+        url += "?usage_stats=true"
     response = do_request(
         url,
         requests.put,
