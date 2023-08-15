@@ -52,6 +52,7 @@ MUTEX_OPTIONS = [
     "iam_validate",
     "mp_meter",
     "reset_admin_pw",
+    "netstats",
 ]
 
 
@@ -298,6 +299,13 @@ def sync_pub_ipv4():
     help="Reset the Admin password"
 )
 @click.option(
+    "--netstats",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "netstats"],
+    is_flag=True,
+    help="Calculate and register netstats"
+)
+@click.option(
     "--kill-server",
     type=str,
     metavar="UUID",
@@ -512,3 +520,21 @@ def main(**kwargs):
     if kwargs["reset_admin_pw"]:
         logger.info("Resetting Admin password...")
         os.execl("/usr/local/bin/eapi", "/usr/local/bin/eapi", "changepassword", "admin")
+
+    if kwargs["netstats"]:
+        if not SELFHOSTED:
+            logger.info("This option is for selfhosted mode systems only")
+            click.echo(json.dumps({"message": "selfhosted mode disabled, skipping netstats registration"}))
+            return
+        from evon import netstats
+        if kwargs["debug"]:
+            logger.setLevel(logging.DEBUG)
+        logger.info("Calculating and registering netstats...")
+        try:
+            # register meters
+            json_payload = json.dumps(netstats.main())
+            json_payload = inject_pub_ipv4(json_payload)
+            response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload, usage_stats=True)
+            click.echo(json.dumps(response))
+        except Exception as e:
+            click.echo(f'{{"status": "failed", "message": "{e}"}}')

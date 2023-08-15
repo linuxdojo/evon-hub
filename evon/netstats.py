@@ -11,7 +11,6 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'  # noqa
 django.setup()  # noqa
 
 from evon.cli import EVON_API_URL, EVON_API_KEY  # noqa
-from evon.evon_api import set_records  # noqa
 from evon.log import get_evon_logger  # noqa
 from hub.models import User  # noqa
 
@@ -49,7 +48,7 @@ def get_data_used_in_month():
         if "not enough data" in stdout_err.lower() or "error" in stdout_err.lower():
             continue
         bytes_used += int(stdout_err.split(";")[9])
-    return int(round(bytes_used / 1024))
+    return int(round(bytes_used / 1024 / 1024))
 
 
 def get_data_used_per_day():
@@ -74,7 +73,7 @@ def get_data_used_per_day():
                 month_short_name = datetime.datetime.strptime(month_num, "%m").strftime("%b")
                 day = day_data["date"]["day"]
                 key = f"{day} {month_short_name}"
-                val = int(round(day_data["tx"] / 1024))
+                val = int(round(day_data["tx"] / 1024 / 1024))
                 result[key] += val
     return dict(result)  # oerdered since Python 3.7
 
@@ -85,13 +84,11 @@ def commit_stats(user_count, data_used_in_month, data_used_per_day):
         "data_used_in_month": data_used_in_month,
         "data_used_per_day": data_used_per_day,
     }
-    logger.info(f"Applying usage stats changes: {payload}")
-    response = set_records(EVON_API_URL, EVON_API_KEY, payload, usage_stats=True)
-    logger.info(f"set_records reponse: {response}")
+    return payload
 
 
-if __name__ == "__main__":
-    commit_stats(
+def main():
+    return commit_stats(
         get_user_count(),
         get_data_used_in_month(),
         get_data_used_per_day(),
