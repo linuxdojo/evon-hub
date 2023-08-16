@@ -393,6 +393,7 @@ else
     # distro is el9
     ###############
     package_list="$package_list
+        iptables-legacy
         iptables-legacy-devel
         iptables-services
         make

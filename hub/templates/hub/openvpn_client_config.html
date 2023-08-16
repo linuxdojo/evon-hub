@@ -2,7 +2,7 @@
   <div class="card card-primary card-outline">
     <div class="card-body">
       <div id="content-main" class="col-12">
-        This page describes how to setup OpenVPN on your system for connecting to the overlay network as a User.<br />
+        This page describes how you and others can connect to your Evon Hub from any device to access systems on your overlay network and share connectivity to your own device.<br />
       </div>
     </div>
     <div class="card-header">
@@ -10,16 +10,12 @@
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
-        First, download the OpenVPN client configuration file here: <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>. Alternatively, you can download it via the <a href="/api/#tag/ovpnclient" target="_blank">API</a>.<br />
-        <br />
-        This file contains OpenVPN configuration for connecting to your Evon Hub. Simply import it into your OpenVPN client of choice. See below for details about how to set it up on your system.<br />
-        <br />
-        Of Note:<br />
+        First, download the OpenVPN client configuration file here: <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>. This file contains standard OpenVPN configuration. Simply import it into your OpenVPN client of choice. Note:<br />
         <br />
         <ul>
-          <li>While users obtain static IP addresses, they do not obtain an FQDN as a Server would.</li>
-          <li>Users can be specified as sources but not as targets in Rules and Policies, thus a User's machine is always a client from a networking perspective on your overlay network.</li>
-          <li>Users connect to this Evon Hub using the standard OpenVPN protocol and port, UDP/1194</li>
+          <li>As a user, you'll connect to this Hub using the standard OpenVPN protocol and port of UDP/1194</li>
+          <li>You'll obtain a static IP address on the overlay network.</li>
+          <li>To share access to your device, enable the <strong>Device Settings 🠊 Shared</strong> option in your <a href="/auth/user/{{ user.id }}/change/#device-settings-tab">user profile</a>.</li>
         </ul>
       </div>
     </div>
@@ -63,11 +59,11 @@
                 <strong>Using NetworkManager:</strong><br />
                 <br />
                 Import the <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong> file into NetworkManager by entering the following commands, replacing <strong>your_evon_hub_username</strong> with your Evon Hub username below:
-                <pre>
+                <pre class="border border-secondary mt-3">
         nmcli connection import type openvpn file EvonHub.ovpn
         nmcli connection modify EvonHub ipv4.never-default true
         nmcli connection modify EvonHub +vpn.data username=your_evon_hub_username</pre>
-                To connect, click your NetworkManager icon, select VPN Connections -> EvonHub. You will be prompted for your password upon connection.
+                To connect, click your NetworkManager icon, select VPN Connections 🠊 EvonHub. You will be prompted for your password upon connection.
                 <br />
               </div>
             </div>
@@ -110,8 +106,8 @@
                 If you already have OpenVPN installed on your system, you can invoke it from the CLI directly.<br />
                 <br />
                 Download <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>, then enter the following command as a user with appropriate privileges:
-                <pre>openvpn EvonHub.ovpn</pre>
-                You'll be promoted for your Evon Hub username/password. To connect non-interactively, update your <strong>EvonHub.ovpn</strong> file, referring to the <strong>--auth-user-pass</strong> setting in the <a href="https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/" target="_blank">OpenVPN 2.4 Reference Manual</a>.
+                <pre class="border border-secondary mt-3">openvpn EvonHub.ovpn</pre>
+                You'll be promoted for your Evon Hub username/password. To connect non-interactively, update your <strong>EvonHub.ovpn</strong> file, referring to the <strong>--auth-user-pass</strong> setting in the <a href="https://openvpn.net/community-resources/reference-manual-for-openvpn-2-4/" target="_blank">OpenVPN Reference Manual</a>.
               </div>
             </div>
           </div>
@@ -155,7 +151,7 @@
                 <hr>
                 <h5>list_servers.sh</h5>
                 Note that the <strong>curl</strong>, <strong>jq</strong> and <strong>sed</strong> commands are required by the below script.
-                <pre>
+                <pre class="border border-secondary mt-3">
 #!/bin/bash
 
 url="https://{{ account_domain }}/api/server"
@@ -171,7 +167,7 @@ while [ "${url}" != "null" ]; do
 done</pre>
                 <hr>
                 <h5>Example Usage:</h5>
-                <pre>
+                <pre class="border border-secondary mt-3">
 $ chmod +x list_servers.sh
 $ ./list_servers.sh
 IPv4             State   FQDN
@@ -188,7 +184,7 @@ $</pre>
               <div class="p-5">
                 <hr>
                 <h5>list_servers.ps1</h5>
-                <pre>
+                <pre class="border border-secondary mt-3">
 #!/usr/bin/pwsh
 
 $url = "https://{{ account_domain }}/api/server"
@@ -205,7 +201,7 @@ while ( $url -ne $null ) {
 }</pre>
                 <hr>
                 <h5>Example Usage:</h5>
-                <pre>
+                <pre class="border border-secondary mt-3">
 PS C:\scripts> .\list_servers.ps1
 IPv4             State   FQDN
 100.111.224.6    up      webserver.example.com.{{ account_domain }}
@@ -222,7 +218,7 @@ PS C:\scripts></pre>
                 <hr>
                 <h5>list_servers.py</h5>
                   Note that the <strong>requests</strong> library is required by the below script. 
-                <pre>
+                <pre class="border border-secondary mt-3">
 #!/usr/bin/env python
 
 import requests
@@ -239,7 +235,7 @@ while url:
     url = data["next"]</pre>
                 <hr>
                 <h5>Example Usage:</h5>
-                <pre>
+                <pre class="border border-secondary mt-3">
 $ pip install --user requests
 $ python list_servers.py
 IPv4             State   FQDN

@@ -36,6 +36,7 @@ urlpatterns = [
     path('api/permission', hub.views.PermissionListView.as_view()),
     path('api/user', hub.views.UserListView.as_view()),
     path('api/user/<int:pk>', hub.views.UserDetailView.as_view()),
+    path('api/userprofile/<int:pk>', hub.views.UserProfileDetailView.as_view()),
     path('api/group', hub.views.GroupListView.as_view()),
     path('api/group/<int:pk>', hub.views.GroupDetailView.as_view()),
     path('api/server', hub.views.ServerListView.as_view()),

@@ -584,6 +584,10 @@ class UserProfile(models.Model):
         validators=[EvonIPV4UserValidator],
         help_text="This value is auto-assigned and static for this User"
     )
+    shared = models.BooleanField(
+        default=False,
+        help_text="Allow other systems to connect to your device. Enabling this option will add to your Hub's overall Server count."
+    )
 
     def __str__(self):
         return "Profile"

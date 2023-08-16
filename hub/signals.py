@@ -71,6 +71,9 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
         # disconnect the user from the VPN if connected
         transaction.on_commit(partial(firewall.kill_inactive_users, extra_user=instance.username))
 
+    # update user device sharing fw rule
+    transaction.on_commit(partial(firewall.apply_user, instance))
+
 
 @receiver(post_save, sender=hub.models.Group)
 def upsert_group(sender, instance=None, created=False, **kwargs):
@@ -225,7 +228,7 @@ def post_login(sender, user, request, **kwargs):
         if authenticate(username='admin', password=ec2_id):
             messages.warning(
                 request,
-                mark_safe(f'You are currently using the default admin password. Please <a href="/password_change">click here</a> to change it.')
+                mark_safe('You are currently using the default admin password. Please <a href="/password_change">click here</a> to change it.')
             )
 
 
