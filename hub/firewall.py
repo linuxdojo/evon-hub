@@ -60,7 +60,7 @@ def apply_rule(rule):
                 iptc_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
                 iptc_chain.insert_rule(rule)
         else:
-            # we're an icmp or any paacket, we create one rule only
+            # we're an icmp or any packet, we create one rule only
             rule = iptc.Rule()
             if destination_protocol != "all":
                 rule.protocol = destination_protocol
@@ -90,7 +90,7 @@ def apply_policy(policy):
     delete_policy(policy)
 
     ##### iptc bugfix workaround 
-    # bug: where first rule in interation sometimes not being inserted, happens
+    # bug: first rule in iteration sometimes doesn't get inserted, happens
     # when rules are manually deleted using iptables command then re-added.
     # we insert a temp ICMP rule with a uuid in the comment, then if it exists, we delete it.
     # subsequent insertions will work.
@@ -119,6 +119,27 @@ def apply_policy(policy):
             rule.add_match(match)
             rule.target = iptc.Target(rule, target_chain)
             ipt_chain.insert_rule(rule)
+
+
+def apply_user(user):
+    """
+    Takes a hub.models.User instance and creates iptables rules in the evon-user chain if the user has shared their device
+    """
+    # delete iptrule first, then recreate if required
+    rule_comment = f"evon-user-{user.pk}"
+    delete_iptrules_by_comment("evon-user", rule_comment)
+    if user.is_active and user.userprofile.shared:
+        # this user has opted for their device to be visiable on the overlay network
+        # we allow all hub connected devices to connect to it on any protocol/port,
+        # and they must rely on their host based firewall for filtering.
+        ipt_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "evon-user")
+        rule = iptc.Rule()
+        rule.dst = user.userprofile.ipv4_address
+        match = iptc.Match(rule, "comment")
+        match.comment = rule_comment
+        rule.add_match(match)
+        rule.target = iptc.Target(rule, "ACCEPT")
+        ipt_chain.insert_rule(rule)
 
 
 def delete_iptrules_by_target_name(chain_name, target_name):
@@ -197,6 +218,15 @@ def sync_all_policies():
     iptc.easy.flush_chain("filter", "evon-policy")
     for policy in hub.models.Policy.objects.all():
         apply_policy(policy)
+
+
+def sync_all_users():
+    """
+    Syncs all user rules in the evon-user chain
+    """
+    iptc.easy.flush_chain("filter", "evon-user")
+    for user in hub.models.User.objects.all():
+        apply_user(user)
     
 
 def delete_all(flush_only=True):
@@ -207,6 +237,9 @@ def delete_all(flush_only=True):
     # flush policy chain
     if "evon-policy" in iptc.easy.get_chains('filter'):
         iptc.easy.flush_chain("filter", "evon-policy")
+    # flush user chain
+    if "evon-user" in iptc.easy.get_chains('filter'):
+        iptc.easy.flush_chain("filter", "evon-user")
     # delete rule chains
     for chain_name in [c for c in iptc.easy.get_chains('filter') if c.startswith(hub.models.Rule.chain_name_prefix)]:
         delete_chain(chain_name)
@@ -222,6 +255,8 @@ def delete_all(flush_only=True):
         delete_chain("evon-main")
         # flush and delete evon-policy chain
         delete_chain("evon-policy")
+        # flush and delete evon-user chain
+        delete_chain("evon-user")
 
 
 def kill_orphan_servers():
@@ -269,7 +304,7 @@ def init(full=True):
     if `full` == False, just create the core chains.
     """
     # create core chains
-    core_chains = ["evon-main", "evon-policy"]
+    core_chains = ["evon-main", "evon-policy", "evon-user"]
     for chain_name in core_chains:
         if chain_name not in iptc.easy.get_chains('filter'):
             iptc.easy.add_chain("filter", chain_name)
@@ -285,6 +320,20 @@ def init(full=True):
         match.comment = main_chain_comment
         rule.add_match(match)
         rule.target = iptc.Target(rule, "evon-main")
+        ipt_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "FORWARD")
+        ipt_chain.insert_rule(rule)
+    # add rule to chain FORWARD -> evon-user
+    user_chain_comment = "evon-forward-to-evon-user"
+    subnet_key = EVON_VARS["subnet_key"]
+    if not [r for r in iptc.easy.dump_table('filter')['FORWARD'] if r.get("comment", {}).get("comment") == user_chain_comment]:
+        rule = iptc.Rule()
+        match = iptc.Match(rule, "iprange")
+        match.src_range = f"100.{ subnet_key }.208.1-100.{ subnet_key }.255.254"
+        rule.add_match(match)
+        match = iptc.Match(rule, "comment")
+        match.comment = user_chain_comment
+        rule.add_match(match)
+        rule.target = iptc.Target(rule, "evon-user")
         ipt_chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), "FORWARD")
         ipt_chain.insert_rule(rule)
     # add main rules
@@ -336,3 +385,4 @@ def init(full=True):
     if full:
         sync_all_rules()
         sync_all_policies()
+        sync_all_users()

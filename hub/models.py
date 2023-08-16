@@ -586,7 +586,7 @@ class UserProfile(models.Model):
     )
     shared = models.BooleanField(
         default=False,
-        help_text="Allow other systems to connect to your device. Enabling this option will increment your Hub's Server count."
+        help_text="Allow other systems to connect to your device. Enabling this option will add to your Hub's overall Server count."
     )
 
     def __str__(self):

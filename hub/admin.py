@@ -303,9 +303,20 @@ class PolicyAdmin(admin.ModelAdmin):
 @admin.register(hub.models.Config)
 class ConfigAdmin(admin.ModelAdmin):
     fields = ('timezone', 'auto_update', 'auto_update_time', 'discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
+    list_display = ('config','hub_server_count','auto_update', 'auto_update_time', 'discovery_mode')
     if not EVON_VARS["selfhosted"]:
         fields = ('ec2_iam_role_status',) + fields
         readonly_fields = ('ec2_iam_role_status',)
+
+    def config(self, obj=None):
+        return "Edit Config"
+
+    def hub_server_count(self, obj=None):
+        server_count = hub.models.Server.objects.count()
+        shared_count = hub.models.UserProfile.objects.filter(shared=True).count()
+        server_plural = "s" if server_count > 1 else ""
+        shared_plural = "s" if shared_count > 1 else ""
+        return f"Total: {server_count + shared_count} 🠊 {server_count} Server{server_plural} + {shared_count} shared User device{shared_plural}"
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -467,7 +478,7 @@ class ProfileInLine(admin.StackedInline):
 admin.site.unregister(User)
 @admin.register(User)
 class GenericUser(UserAdmin):
-    list_display = ["username",  "first_name", "last_name", "email", "is_active", "is_superuser", "ipv4_address", "group_membership"]
+    list_display = ["username",  "first_name", "last_name", "email", "is_active", "is_superuser", "ipv4_address",  "device_sharing", "group_membership"]
     list_filter = ["is_active", "is_superuser", "groups"]
     inlines = [ProfileInLine]
     extra_search_fields = ["userprofile__ipv4_address"]
@@ -482,6 +493,9 @@ class GenericUser(UserAdmin):
 
     def ipv4_address(self, obj):
         return obj.userprofile.ipv4_address
+
+    def device_sharing(self, obj):
+        return "Enabled" if obj.userprofile.shared else ""
 
     def save_model(self, request, obj, form, change):
         if request.user.is_superuser:
