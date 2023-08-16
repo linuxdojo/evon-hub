@@ -12,7 +12,7 @@ django.setup()  # noqa
 
 from evon.cli import EVON_API_URL, EVON_API_KEY  # noqa
 from evon.log import get_evon_logger  # noqa
-from hub.models import User  # noqa
+from hub.models import User, UserProfile, Server  # noqa
 
 
 logger = get_evon_logger()
@@ -37,6 +37,13 @@ def get_user_count():
     Returns current user count (less 2, for admin and deployer) on the hub
     """
     return User.objects.count() - 2
+
+
+def get_server_count():
+    """
+    Returns current server count (servers + shared user devices) on the hub
+    """
+    return Server.objects.count() + UserProfile.objects.filter(shared=True).count()
 
 
 def get_data_used_in_month():
@@ -81,9 +88,10 @@ def get_data_used_per_day():
     return dict(result)  # oerdered since Python 3.7
 
 
-def commit_stats(user_count, data_used_in_month, data_used_per_day):
+def commit_stats(user_count, server_count, data_used_in_month, data_used_per_day):
     payload = {
         "user_count": user_count,
+        "server_count": server_count,
         "data_used_in_month": data_used_in_month,
         "data_used_per_day": data_used_per_day,
     }
@@ -93,6 +101,7 @@ def commit_stats(user_count, data_used_in_month, data_used_per_day):
 def main():
     return commit_stats(
         get_user_count(),
+        get_server_count(),
         get_data_used_in_month(),
         get_data_used_per_day(),
     )
