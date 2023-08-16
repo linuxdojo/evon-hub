@@ -17,11 +17,16 @@ class PermissionSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    userprofile_id = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="UserProfile ID"
+    )
 
     class Meta:
         model = User
         fields = (
             'id',
+            'userprofile_id',
             'username',
             'password',
             'is_superuser',
@@ -32,6 +37,28 @@ class UserSerializer(serializers.ModelSerializer):
             'groups',
             'user_permissions'
         )
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_userprofile_id(self, User):
+        return User.userprofile.id
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    ipv4_address = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="IPv4 address assigned to user"
+    )
+
+    class Meta:
+        model = hub.models.UserProfile
+        fields = (
+            'shared',
+            'ipv4_address'
+        )
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_ipv4_address(self, UserProfile):
+        return UserProfile.ipv4_address()
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -87,6 +114,7 @@ class ServerSerializer(serializers.ModelSerializer):
             user = request.user 
         return server.user_has_access(user) if user else False
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_last_seen(self, server):
         return server.last_seen()
 

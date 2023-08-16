@@ -460,7 +460,7 @@ class ProfileInLine(admin.StackedInline):
     model = hub.models.UserProfile
     can_delete = False
     verbose_name = "IPv4 Address"
-    verbose_name_plural = "IPv4 Address"
+    verbose_name_plural = "Device Settings"
     readonly_fields = ['ipv4_address']
 
 
