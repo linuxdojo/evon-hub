@@ -2,15 +2,11 @@
   <div class="card card-primary card-outline">
     <div class="card-body">
       <div id="content-main" class="col-12">
-        Evon Bootsrap is an run-once shell script that connects a server to your overlay network. Download Bootstrap below and run it on your server to connect it to your Hub.<br />
-        <br />
-        Bootstrap is also available as a Docker container which connects a host Linux server to your Hub without modifying the host OS.<br />
-        <br />
-        Of Note:<br />
+        Evon Bootsrap is a script that connects a server to your Hub.<br />
         <br />
         <ul>
-          <li>The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user (or any superuser) is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below CLI invocations include this token for your convenience.</li>
-          <li>Servers connect to this Evon Hub using OpenVPN via TCP/443 with SSL/TLS. It is therefore possible to connect Servers to this Hub that are behind a web proxy. See below under <strong>Install Bootstrap</strong> for more info.</li>
+          <li>The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user or a superuser is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below instructions include your token for your convenience.</li>
+          <li>You can connect servers that are behind a web proxy. See below for details.</li>
         </ul>
       </div>
     </div>
@@ -49,7 +45,6 @@
                   <li>Alpine</li>
                   <li>Amazon Linux 2</li>
                   <li>Arch Linux</li>
-                  <li>Avaya IP Office 11.x</li>
                   <li>CentOS Stream</li>
                   <li>Debian 9 or higher</li>
                   <li>Fedora Linux</li>
@@ -58,24 +53,29 @@
                   <li>Ubuntu 18.04 or higher</li>
                   <li>OpenSUSE 15 or higher</li>
                 </ul>
-                Distro not listed? Deploy bootstrap on any Linux system using Docker, see "Using Docker" tab above.
+                Distro not listed? Try Bootstrap anyway as many derivative distro's are known to work, or simply deploy Bootstrap using Docker, see "Using Docker" tab above.
                 <hr>
                 <h5>1. Download Bootstrap:</h5>
-                <strong>Direct download:</strong><br />
-                <br />
-                <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/linux">bootstrap.sh</a></span>
-                <br />
-                <br />
-                <strong>Using curl:</strong><br />
-                <pre>curl -s 'https://{{ account_domain }}/api/bootstrap/linux' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
-                <strong>Using wget:</strong><br />
-                <pre>wget --header 'Authorization: Token {{ deploy_token }}' 'https://{{ account_domain }}/api/bootstrap/linux' -O bootstrap.sh; chmod +x bootstrap.sh</pre>
-                <hr>
+                <div class="ml-3">
+                  <br />
+                  <span>Direct download link: <a href="/api/bootstrap/linux">bootstrap.sh</a></span>
+                  <br />
+                  <br />
+                  <strong>Or using curl:</strong><br />
+                  <pre class="border border-secondary mt-3">curl -s 'https://{{ account_domain }}/api/bootstrap/linux' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
+                  <hr>
+                </div>
                 <h5>2. Install Bootstrap:</h5>
-                Run the following command as root on your server:
-                <pre>EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
-                Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
-                <pre>./bootstrap.sh --help</pre>
+                <div class="ml-3">
+                  Run the following command as root on your server:
+                  <pre class="border border-secondary mt-3">EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
+                  Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
+                  <pre class="border border-secondary mt-3">./bootstrap.sh --help</pre>
+                </div>
+                <h5>3. (Optional) Customising Bootstrap:</h5>
+                <div class="ml-3">
+                  The source code of bootstrap.sh contains a custom section near the top of the file that can be edited and used to execute arbitrary commands during install time. A typical operation is to install a common SSH public key into a user's authorized_keys file so that you can easily SSH to your servers the moment they come online in Evon. Example code exists for adding an SSH public key for your convenience, including explanatory comments.
+                </div>
               </div>
             </div>
           </div>
@@ -99,13 +99,13 @@
                 <br />
                 <br />
                 <strong>Using PowerShell:</strong><br />
-                <pre>Invoke-WebRequest -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
+                <pre class="border border-secondary mt-3">Invoke-WebRequest -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
                 <hr>
                 <h5>2. Install Bootstrap:</h5>
                 Run the following PowerShell command on your server as Administrator:
-                <pre>.\bootstrap.ps1 -Apikey {{ deploy_token }}</pre>
+                <pre class="border border-secondary mt-3">.\bootstrap.ps1 -Apikey {{ deploy_token }}</pre>
                 Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
-                <pre>.\bootstrap.ps1 -Help</pre>
+                <pre class="border border-secondary mt-3">.\bootstrap.ps1 -Help</pre>
               </div>
             </div>
           </div>
@@ -114,13 +114,28 @@
             <div class="card ">
               <div class="p-5">
                 <h5>Docker Bootstrap</h5>
-                As an alternative to downloading and installing Bootstrap directly onto your Linux distribution, Bootstrap can be run entirely within a Docker container on any Linux distribution with Docker installed.<br />
+                As an alternative to downloading and installing Bootstrap directly onto your Linux distribution, Bootstrap can run as a Docker container. Visit <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">https://hub.docker.com/r/linuxdojo/evon-bootstrap</a> for detail about using the Docker version of Evon Bootstrap.<br />
                 <br />
-                Visit <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">https://hub.docker.com/r/linuxdojo/evon-bootstrap</a> for detail about using the Docker version of Evon Bootstrap. Docker Bootstrap will require the following environment variables to be set:
-                <pre>
-    ACCOUNT_DOMAIN={{ account_domain }}
-    EVON_DEPLOY_KEY={{ deploy_token }}
-    </pre>
+                 Use the below command to connect:
+                <pre class="border border-secondary mt-3">
+docker run \
+  -it \
+  -d \
+  --restart unless-stopped \
+  -e ACCOUNT_DOMAIN={{ account_domain }} \
+  -e EVON_DEPLOY_KEY={{ deploy_token }} \
+  --cap-add=net_admin \
+  --device=/dev/net/tun \
+  --net=host \
+  linuxdojo/evon-bootstrap
+</pre>
+								To specify a custom Evon server name and/or a custom UUID (for ensuring a fixed overlay IP address), add the following options to your <strong>docker run</strong> command:
+
+                <pre class="border border-secondary mt-3">
+  -e EVON_HOSTNAME=&lt;your_server_hostname&gt;
+  -e EVON_UUID=&lt;uuid_value&gt;
+</pre>
+
                 Note that only Docker on Linux is supported. Docker on Windows and Mac do not support the <strong>--net=host</strong> option required by Bootstrap. For more info, see <a target="_blank" href="https://docs.docker.com/network/host/">https://docs.docker.com/network/host/</a>
               </div>
             </div>

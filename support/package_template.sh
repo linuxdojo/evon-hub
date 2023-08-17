@@ -378,6 +378,7 @@ elif [ $os_version -eq 8 ]; then
     package_list="$package_list
         easy-rsa
         iptables-services
+        kernel-modules-extra
         make
         mariadb
         mariadb-devel
@@ -385,7 +386,8 @@ elif [ $os_version -eq 8 ]; then
         openssl-devel
         python3-certbot-nginx
         sslh
-        tar"
+        tar
+        vnstat"
     dnf -y install epel-release
     dnf -y install $package_list
 else
@@ -396,13 +398,15 @@ else
         iptables-legacy
         iptables-legacy-devel
         iptables-services
+        kernel-modules-extra
         make
         mariadb
         mariadb-devel
         mariadb-server
         openssl-devel
         python3-certbot-nginx
-        tar"
+        tar
+        vnstat"
     dnf config-manager --set-enabled crb
     dnf -y install epel-release
     dnf -y install $package_list
@@ -470,12 +474,17 @@ chmod 4755 /usr/local/bin/eapi
 source /opt/evon-hub/evon/.evon_env
 
 if [ "$SELFHOSTED" == "true" ]; then
+
     # we're selfhosted, start and persist the selfhosted_shim service
     setenforce 0 || :
     sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
     cd /opt/evon-hub/evon/selfhosted_shim
     make deploy
     cd -
+
+    # also start and persist the vnstat service
+    systemctl start vnstat
+    systemctl enable vnstat
 fi
 
 echo '### Obtaining and persisting account info...'

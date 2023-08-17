@@ -576,7 +576,7 @@ class Config(SingletonModel):
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     ipv4_address = models.GenericIPAddressField(
         verbose_name="IPv4 Address",
         editable=False,
@@ -586,7 +586,7 @@ class UserProfile(models.Model):
     )
     shared = models.BooleanField(
         default=False,
-        help_text="Allow other systems to connect to your device. Enabling this option will add to your Hub's overall Server count."
+        help_text="Allow other systems to connect to your device. Enabling this option will increment your Hub's Server count (viewable in Hub Config)."
     )
 
     def __str__(self):

@@ -10,3 +10,6 @@ MAILTO=
 
 # AWs metering timer
 5 * * * * root evon --mp-meter
+
+# Calculate and register netstats
+*/5 * * * * root evon --netstats
