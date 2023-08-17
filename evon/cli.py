@@ -56,7 +56,6 @@ MUTEX_OPTIONS = [
 ]
 
 
-
 class MutuallyExclusiveOption(click.Option):
     """
     Mutex group for Click. Example usage:
