@@ -303,7 +303,7 @@ class PolicyAdmin(admin.ModelAdmin):
 @admin.register(hub.models.Config)
 class ConfigAdmin(admin.ModelAdmin):
     fields = ('timezone', 'auto_update', 'auto_update_time', 'discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
-    list_display = ('config','connected_server_count','auto_update', 'auto_update_time', 'discovery_mode')
+    list_display = ('config','total_server_count','auto_update', 'auto_update_time', 'discovery_mode')
     if not EVON_VARS["selfhosted"]:
         fields = ('ec2_iam_role_status',) + fields
         readonly_fields = ('ec2_iam_role_status',)
@@ -311,11 +311,11 @@ class ConfigAdmin(admin.ModelAdmin):
     def config(self, obj=None):
         return "Edit"
 
-    def connected_server_count(self, obj=None):
+    def total_server_count(self, obj=None):
         server_count = hub.models.Server.objects.count()
         shared_count = hub.models.UserProfile.objects.filter(shared=True).count()
-        server_plural = "s" if server_count > 1 else ""
-        shared_plural = "s" if shared_count > 1 else ""
+        server_plural = "s" if server_count != 1 else ""
+        shared_plural = "s" if shared_count != 1 else ""
         return f"{server_count} Server{server_plural} + {shared_count} shared User device{shared_plural} (Total: {server_count + shared_count})"
 
     def has_delete_permission(self, request, obj=None):
