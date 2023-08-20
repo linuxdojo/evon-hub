@@ -125,10 +125,34 @@ def apply_user(user):
     """
     Takes a hub.models.User instance and creates iptables rules in the evon-user chain if the user has shared their device
     """
+    logger.info(f"Triggered firewall.apply_user() for user '{user}' with shared={user.userprofile.shared}")
     # delete iptrule first, then recreate if required
     rule_comment = f"evon-user-{user.pk}"
     delete_iptrules_by_comment("evon-user", rule_comment)
     if user.is_active and user.userprofile.shared:
+        logger.info(f"Adding user '{user}' with address '{user.userprofile.ipv4_address}' to shared pool.")
+
+        ##### iptc bugfix workaround
+        # bug: first rule in iteration sometimes doesn't get inserted, happens
+        # when rules are manually deleted using iptables command then re-added.
+        # we insert a temp ICMP rule with a uuid in the comment, then if it exists, we delete it.
+        # subsequent insertions will work.
+        tmp_chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), "evon-user")
+        dummy_rule = iptc.Rule()
+        dummy_comment = str(uuid.uuid4())
+        dummy_rule.protocol = "icmp"
+        match = iptc.Match(dummy_rule, "comment")
+        match.comment = dummy_comment
+        dummy_rule.add_match(match)
+        dummy_rule.target = iptc.Target(dummy_rule, "ACCEPT")
+        tmp_chain_handle.insert_rule(dummy_rule)
+        tmp_chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), "evon-user")
+        tmp_rule_list = [r for r in tmp_chain_handle.rules if dummy_comment in [m.comment for m in r.matches]]
+        if tmp_rule_list:
+            tmp_rule = tmp_rule_list.pop()
+            tmp_chain_handle.delete_rule(tmp_rule)
+        ##### end iptc bugfix workaround
+
         # this user has opted for their device to be visiable on the overlay network
         # we allow all hub connected devices to connect to it on any protocol/port,
         # and they must rely on their host based firewall for filtering.
@@ -152,12 +176,14 @@ def delete_iptrules_by_target_name(chain_name, target_name):
         rule_list = [r for r in chain_handle.rules if r.target.name == target_name]
         # XXX we can only delete one rule at a time, then need to regenerate rule_list. Consider toggling autocommit in iptc.
         if rule_list:
-            chain_handle.delete_rule(rule_list.pop())
+            chain_handle.delete_rule(rule_list[-1])
+        else:
+            logger.info(f"successfully deleted rule with target_name '{target_name}' from chain '{chain_name}'")
 
 
 def delete_iptrules_by_comment(chain_name, comment):
     """
-    deletes all rules matching `comment` in iptables chain with name `chain_name`
+    deletes all rules matching `comment` in iptables chain with chain_name `chain_name`
     """
     chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
     rule_list = True
@@ -165,7 +191,9 @@ def delete_iptrules_by_comment(chain_name, comment):
         rule_list = [r for r in chain_handle.rules if comment in [m.comment for m in r.matches]]
         # XXX we can only delete one rule at a time, then need to regenerate rule_list. Consider toggling autocommit in iptc.
         if rule_list:
-            chain_handle.delete_rule(rule_list.pop())
+            chain_handle.delete_rule(rule_list[-1])
+        else:
+            logger.info(f"successfully deleted rule with comment '{comment}' from chain '{chain_name}'")
 
     
 def delete_chain(chain_name):
