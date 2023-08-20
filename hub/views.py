@@ -77,6 +77,7 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (hub.permissions.HubDjangoModelPermissions,)
     http_method_names = ['get', 'post', 'patch', 'delete']
 
+
 class UserProfileDetailView(generics.RetrieveUpdateAPIView):
     """
     Retrieve or update a UserProfile
@@ -84,7 +85,7 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
     queryset = models.UserProfile.objects.all()
     serializer_class = serializers.UserProfileSerializer
     permission_classes = (hub.permissions.HubDjangoModelPermissions,)
-    http_method_names = ['get', 'post', 'patch']
+    http_method_names = ['get', 'patch']
 
 
 class GroupListView(generics.ListCreateAPIView):

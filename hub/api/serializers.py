@@ -40,7 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_userprofile_id(self, User):
-        return User.userprofile.id
+        return User.userprofile.pk
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -58,7 +58,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_ipv4_address(self, UserProfile):
-        return UserProfile.ipv4_address()
+        return UserProfile.ipv4_address
 
 
 class GroupSerializer(serializers.ModelSerializer):
