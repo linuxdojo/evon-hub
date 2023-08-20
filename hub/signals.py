@@ -75,6 +75,14 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     transaction.on_commit(partial(firewall.apply_user, instance))
 
 
+@receiver(post_save, sender=hub.models.UserProfile)
+def update_userprofile(sender, instance=None, created=False, **kwargs):
+    "update fw on userprofile change"
+
+    # update user device sharing fw rule
+    transaction.on_commit(partial(firewall.apply_user, instance.user))
+
+
 @receiver(post_save, sender=hub.models.Group)
 def upsert_group(sender, instance=None, created=False, **kwargs):
     """

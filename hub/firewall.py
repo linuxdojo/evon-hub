@@ -170,11 +170,11 @@ def delete_iptrules_by_target_name(chain_name, target_name):
     """
     deletes an iptables rule in chain `chain_name` with target `taget_name`
     """
-    chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
     rule_list = True
     while rule_list:
+        iptc.Table(iptc.Table.FILTER).refresh()
+        chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
         rule_list = [r for r in chain_handle.rules if r.target.name == target_name]
-        # XXX we can only delete one rule at a time, then need to regenerate rule_list. Consider toggling autocommit in iptc.
         if rule_list:
             chain_handle.delete_rule(rule_list[-1])
         else:
@@ -185,15 +185,15 @@ def delete_iptrules_by_comment(chain_name, comment):
     """
     deletes all rules matching `comment` in iptables chain with chain_name `chain_name`
     """
-    chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
     rule_list = True
     while rule_list:
+        iptc.Table(iptc.Table.FILTER).refresh()
+        chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
         rule_list = [r for r in chain_handle.rules if comment in [m.comment for m in r.matches]]
-        # XXX we can only delete one rule at a time, then need to regenerate rule_list. Consider toggling autocommit in iptc.
         if rule_list:
             chain_handle.delete_rule(rule_list[-1])
         else:
-            logger.info(f"successfully deleted rule with comment '{comment}' from chain '{chain_name}'")
+             logger.info(f"successfully deleted rule with comment '{comment}' from chain '{chain_name}'")
 
     
 def delete_chain(chain_name):
@@ -274,6 +274,7 @@ def delete_all(flush_only=True):
     if not flush_only:
         # delete evon-main ref in FORWARD chain
         table = iptc.Table(iptc.Table.FILTER)
+        table.refresh()
         ipt_chain = iptc.Chain(table, "FORWARD")
         for rule in ipt_chain.rules:
             if rule.target.name == "evon-main":
