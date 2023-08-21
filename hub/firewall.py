@@ -1,5 +1,6 @@
 from itertools import chain
 import uuid
+import subprocess
 
 import iptc
 
@@ -128,7 +129,7 @@ def apply_user(user):
     logger.info(f"Triggered firewall.apply_user() for user '{user}' with shared={user.userprofile.shared}")
     # delete iptrule first, then recreate if required
     rule_comment = f"evon-user-{user.pk}"
-    delete_iptrules_by_comment("evon-user", rule_comment)
+    delete_iptrules_by_comment("evon-user", rule_comment, delete_conntrack_entry=True)
     if user.is_active and user.userprofile.shared:
         logger.info(f"Adding user '{user}' with address '{user.userprofile.ipv4_address}' to shared pool.")
 
@@ -181,7 +182,7 @@ def delete_iptrules_by_target_name(chain_name, target_name):
             logger.info(f"successfully deleted rule with target_name '{target_name}' from chain '{chain_name}'")
 
 
-def delete_iptrules_by_comment(chain_name, comment):
+def delete_iptrules_by_comment(chain_name, comment, delete_conntrack_entry=False):
     """
     deletes all rules matching `comment` in iptables chain with chain_name `chain_name`
     """
@@ -191,7 +192,13 @@ def delete_iptrules_by_comment(chain_name, comment):
         chain_handle = iptc.Chain(iptc.Table(iptc.Table.FILTER), chain_name)
         rule_list = [r for r in chain_handle.rules if comment in [m.comment for m in r.matches]]
         if rule_list:
-            chain_handle.delete_rule(rule_list[-1])
+            rule_to_delete = rule_list[-1]
+            chain_handle.delete_rule(rule_to_delete)
+            if delete_conntrack_entry:
+                cmd = f"conntrack -D conntrack -d {rule_to_delete.dst.split('/')[0]}"
+                logger.info(f"running conntrack rule delete command: {cmd}")
+                rc = subprocess.call(cmd, shell=True)
+                logger.info(f"rc was: {rc}")
         else:
              logger.info(f"successfully deleted rule with comment '{comment}' from chain '{chain_name}'")
 

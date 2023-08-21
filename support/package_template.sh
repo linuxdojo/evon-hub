@@ -326,6 +326,7 @@ package_list='
     bzip2
     bzip2-devel
     certbot
+    conntrack-tools
     gcc
     git
     htop
