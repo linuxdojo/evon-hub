@@ -377,7 +377,7 @@ class Rule(models.Model):
     destination_protocol = models.CharField(
         max_length=4,
         choices=PROTOCOLS,
-        help_text="The destination protocol permitted by this Rule. For unlisted protocols, select 'Any Protocol' and filter using your Server's firewall."
+        help_text="The destination protocol permitted by this Rule. For unlisted protocols, select 'Any Protocol (ALL)' and filter using your Server's firewall."
     )
     destination_ports = models.CharField(
         max_length=256,

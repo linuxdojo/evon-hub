@@ -41,9 +41,16 @@ def get_user_count():
 
 def get_server_count():
     """
-    Returns current server count (servers + shared user devices) on the hub
+    Returns current server count
     """
-    return Server.objects.count() + UserProfile.objects.filter(shared=True).count()
+    return Server.objects.count()
+
+
+def get_shared_device_count():
+    """
+    returns current shared user devices count
+    """
+    return UserProfile.objects.filter(shared=True).count()
 
 
 def get_data_used_in_month():
@@ -88,10 +95,11 @@ def get_data_used_per_day():
     return dict(result)  # oerdered since Python 3.7
 
 
-def commit_stats(user_count, server_count, data_used_in_month, data_used_per_day):
+def commit_stats(user_count, server_count, shared_device_count, data_used_in_month, data_used_per_day):
     payload = {
         "user_count": user_count,
         "server_count": server_count,
+        "shared_device_count": shared_device_count,
         "data_used_in_month": data_used_in_month,
         "data_used_per_day": data_used_per_day,
     }
@@ -102,6 +110,7 @@ def main():
     return commit_stats(
         get_user_count(),
         get_server_count(),
+        get_shared_device_count(),
         get_data_used_in_month(),
         get_data_used_per_day(),
     )
