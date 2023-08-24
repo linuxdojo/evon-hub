@@ -132,3 +132,13 @@ def get_meters(api_url, api_key):
         headers=generate_headers(api_key)
     )
     return response.text
+
+
+def get_usage_limits(api_url, api_key):
+    url = f"{api_url}/zone/meters?usage_limits=true"
+    response = do_request(
+        url,
+        requests.get,
+        headers=generate_headers(api_key)
+    )
+    return response.text

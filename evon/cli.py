@@ -53,6 +53,7 @@ MUTEX_OPTIONS = [
     "mp_meter",
     "reset_admin_pw",
     "netstats",
+    "get_usage_limits",
 ]
 
 
@@ -305,6 +306,13 @@ def sync_pub_ipv4():
     help="Calculate and register netstats"
 )
 @click.option(
+    "--get-usage-limits",
+    cls=MutuallyExclusiveOption,
+    mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "get_usage_limits"],
+    is_flag=True,
+    help="Retrieve usage limits for this Hub instance"
+)
+@click.option(
     "--kill-server",
     type=str,
     metavar="UUID",
@@ -321,6 +329,7 @@ def main(**kwargs):
     """
     if kwargs["debug"]:
         logger.setLevel(logging.DEBUG)
+
     if kwargs["quiet"]:
         logger.handlers = [h for h in logger.handlers if "StreamHandler" not in h.__repr__()]
 
@@ -463,8 +472,7 @@ def main(**kwargs):
 
     if kwargs["sync_servers"]:
         from evon import sync_servers
-        if kwargs["debug"]:
-            logger.setLevel(logging.DEBUG)
+        kwargs["debug"] and logger.setLevel(logging.DEBUG)  # set loglevel as import may clobber it
         logger.info("syncing server connected state...")
         try:
             sync_servers.do_sync()
@@ -474,8 +482,7 @@ def main(**kwargs):
 
     if kwargs["kill_server"]:
         from evon import sync_servers
-        if kwargs["debug"]:
-            logger.setLevel(logging.DEBUG)
+        kwargs["debug"] and logger.setLevel(logging.DEBUG)  # set loglevel as import may clobber it
         uuid = kwargs["kill_server"]
         logger.info(f"Disconnecting server with uuid {uuid}:...")
         try:
@@ -486,8 +493,7 @@ def main(**kwargs):
 
     if kwargs["iam_validate"]:
         from evon import sync_mp
-        if kwargs["debug"]:
-            logger.setLevel(logging.DEBUG)
+        kwargs["debug"] and logger.setLevel(logging.DEBUG)  # set loglevel as import may clobber it
         logger.info("validating IAM Role attached to this EC2 instance...")
         try:
             response = sync_mp.validate_ec2_role(env=EVON_ENV)
@@ -502,8 +508,7 @@ def main(**kwargs):
             click.echo(json.dumps({"message": "selfhosted mode enabled, skipping AWS metering registration"}))
             return
         from evon import sync_mp
-        if kwargs["debug"]:
-            logger.setLevel(logging.DEBUG)
+        kwargs["debug"] and logger.setLevel(logging.DEBUG)  # set loglevel as import may clobber it
         logger.info("Registering meters with AWS metering API...")
         try:
             # register meters
@@ -526,14 +531,22 @@ def main(**kwargs):
             click.echo(json.dumps({"message": "selfhosted mode disabled, skipping netstats registration"}))
             return
         from evon import netstats
-        if kwargs["debug"]:
-            logger.setLevel(logging.DEBUG)
+        kwargs["debug"] and logger.setLevel(logging.DEBUG)  # set loglevel as import may clobber it
         logger.info("Calculating and registering netstats...")
         try:
             # register meters
             json_payload = json.dumps(netstats.main())
             json_payload = inject_pub_ipv4(json_payload)
+            logger.debug(f"sending payload: {json_payload}")
             response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, json_payload, usage_stats=True)
             click.echo(json.dumps(response))
         except Exception as e:
             click.echo(f'{{"status": "failed", "message": "{e}"}}')
+
+    if kwargs["get_usage_limits"]:
+        if not SELFHOSTED:
+            logger.info("This option is for selfhosted mode systems only")
+            click.echo(json.dumps({"message": "selfhosted mode disabled, skipping usage limits retrieval"}))
+            return
+        usage_limits = evon_api.get_usage_limits(EVON_API_URL, EVON_API_KEY)
+        click.echo(usage_limits)
