@@ -10,6 +10,7 @@ import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'  # noqa
 django.setup()  # noqa
 
+from evon.evon_api import get_usage_limits  # noqa
 from evon.cli import EVON_API_URL, EVON_API_KEY  # noqa
 from evon.log import get_evon_logger  # noqa
 from hub.models import User, UserProfile, Server  # noqa
@@ -95,22 +96,52 @@ def get_data_used_per_day():
     return dict(result)  # oerdered since Python 3.7
 
 
-def commit_stats(user_count, server_count, shared_device_count, data_used_in_month, data_used_per_day):
-    payload = {
-        "user_count": user_count,
-        "server_count": server_count,
-        "shared_device_count": shared_device_count,
-        "data_used_in_month": data_used_in_month,
-        "data_used_per_day": data_used_per_day,
+def apply_throttle(mbps=0):
+    if mbps:
+        logger.info(f"throttling all interfaces to {mbps}Mbps")
+        cmd = f"""for if in $(ip -br link | awk '$1 != "lo" {{print $1}}'); do /opt/evon-hub/.env/bin/tcset --device ${{if}} --rate {mbps}Mbps; done"""
+    else:
+        # unset throttles
+        logger.info("removing all bandwidth throttles")
+        cmd = """for if in $(ip -br link | awk '$1 != "lo" {print $1}'); do /opt/evon-hub/.env/bin/tcdel --device ${if} --all; done"""
+    logger.debug(f"running command: {cmd}")
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+    rc = p.wait()
+    output = p.stdout.read().decode()
+    logger.debug(f"command rc: {rc}")
+    logger.debug(f"command stdout_and_stderr: {output}")
+    return rc, output
+
+
+def main(apply_bandwidth_throttle=True):
+
+    usage_stats = {
+        "user_count": get_user_count(),
+        "server_count": get_server_count(),
+        "shared_device_count": get_shared_device_count(),
+        "data_used_in_month": get_data_used_in_month(),
+        "data_used_per_day": get_data_used_per_day(),
     }
-    return payload
 
+    if apply_bandwidth_throttle:
+        usage_limits = json.loads(get_usage_limits(EVON_API_URL, EVON_API_KEY))
+        mb_used = usage_stats["data_used_in_month"]
+        mb_limit = usage_limits.get("max_data_limit_mb")
+        throttle_mbps = usage_limits.get("target_throttle_bandwidth_mbps")
+        if mb_used >= mb_limit:
+            # bandwidth quota has been exceeded, throttle link
+            logger.info(f"Bandwidth quota of {mb_limit}MB/month exceeded by {mb_used - mb_limit}MB, throttling to {throttle_mbps}Mbps")
+        else:
+            # ensure no throttling is applied
+            logger.info(f"{mb_limit - mb_used}MB remaining of {mb_limit}MB/month bandwidth quota, ensuring throttles are inactive")
+            throttle_mbps = 0
 
-def main():
-    return commit_stats(
-        get_user_count(),
-        get_server_count(),
-        get_shared_device_count(),
-        get_data_used_in_month(),
-        get_data_used_per_day(),
-    )
+        rc, output = apply_throttle(throttle_mbps)
+        if throttle_mbps and not rc:
+            usage_stats["bandwidth_throttle_active"] = True
+        elif not rc:
+            usage_stats["bandwidth_throttle_active"] = False
+        else:
+            logger.error(f"got non-zero rc {rc} from apply_throttle with output: {output}")
+
+    return usage_stats
