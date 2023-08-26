@@ -8,8 +8,6 @@ pip install -e .
 
 cat <<EOF | eapi shell
 from django.contrib.auth import get_user_model
-import json
-import requests
 from hub import models
 User = get_user_model()  
 if not User.objects.filter(username='admin').exists():
