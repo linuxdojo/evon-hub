@@ -302,11 +302,12 @@ class PolicyAdmin(admin.ModelAdmin):
 
 @admin.register(hub.models.Config)
 class ConfigAdmin(admin.ModelAdmin):
-    fields = ('timezone', 'auto_update', 'auto_update_time', 'discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
-    list_display = ('config','total_server_count', "total_user_count",'auto_update', 'auto_update_time', 'discovery_mode')
+    fields = ('discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
+    list_display = ('config','total_server_count', "total_user_count", 'discovery_mode')
     if not EVON_VARS["selfhosted"]:
-        fields = ('ec2_iam_role_status',) + fields
+        fields = ('ec2_iam_role_status', 'timezone','auto_update', 'auto_update_time') + fields
         readonly_fields = ('ec2_iam_role_status',)
+        list_display = ('config','total_server_count', "total_user_count",'auto_update', 'auto_update_time', 'discovery_mode')
 
     def config(self, obj=None):
         return "Edit"
