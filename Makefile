@@ -2,6 +2,7 @@
 PACKAGE_NAME := evon-hub
 TARGET_USER := ec2-user
 SELFHOSTED := false
+STANDALONE := false
 #ENV := dev
 #TARGET_HOST := ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com
 #DOMAIN_PREFIX := mycompany
@@ -43,7 +44,7 @@ package: # produce package artefact ready for publishing
 	fi
 	echo Packaging...
 	# generate evon/.evon_env
-	ENV=$(ENV) SELFHOSTED=$(SELFHOSTED) support/gen_env.py
+	ENV=$(ENV) SELFHOSTED=$(SELFHOSTED) STANDALONE=$(STANDALONE) support/gen_env.py
 	# create archive
 	rm -f /tmp/evon_hub.tar.gz || :
 	tar -zcf /tmp/evon_hub.tar.gz \

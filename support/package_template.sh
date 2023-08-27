@@ -77,9 +77,13 @@ Options:
     if [ "$SELFHOSTED" == "true" ]; then
         echo "
   -a, --hwaddr HARDWARE_ID
-    Specify your HARDWARE_ID provided during registration of this selfhosted
-    Evon Hub instance.
-    This option is required.
+    Specify your HARDWARE_ID provided during pre-registration of this selfhosted
+    Evon Hub instance. Pre-registration is used by the hosted Evon Hub service at
+    https://evonhub.com which provides automatic management of DNS names for your
+    connected Servers. If this option is omitted, this Hub will be deployed as
+    a stand alone selfhosted instance, and DNS updates will need to be managed
+    by you. Refer to docs regarding Selfhosted Standalone mode at
+    https://evonhub.com/docs
 
   -i, --public-ip IPv4_ADDRESS
     If specified, set the public IPv4 address of this server to IPv4_ADDRESS,
@@ -205,21 +209,20 @@ if [ "$SELFHOSTED" == "false" ]; then
     # clear selfhosted vars if present
     public_ipv4_address=""
     hwaddr=""
+    standalone="false"
 else
     # we're running in selfhosted mode
     if [ ! "$base_build" ]; then
-        # we require hwaddr to be specified
+        # check if hwaddr was specified
         if [ -z "$hwaddr" ]; then
-            echo 'ERROR: --hwaddr option is required'
-            echo "For usage info, use --help"
-            exit 1
-        fi
-
-        # validate hwaddr
-        echo "$hwaddr" | grep -qE "$HWADDR_PATTERN"
-        if [ $? -ne 0 ]; then
-            echo "ERROR: The provided hwaddr '${domain_prefix}' is invalid."
-            exit 1
+            echo "No HARDWARE_ID provided, enabling STANDALONE mode"
+            standalone="true"
+        else
+            # validate hwaddr
+            echo "$hwaddr" | grep -qE "$HWADDR_PATTERN"
+            if [ $? -ne 0 ]; then
+                echo "ERROR: The provided hwaddr '${domain_prefix}' is invalid."
+                exit 1
         fi
 
         # validate pub ipv4 address if supplied
@@ -521,6 +524,7 @@ aws_region: ${aws_region}
 aws_az: ${aws_az}
 ec2_id: ${ec2_id}
 selfhosted: ${SELFHOSTED}
+standalone: ${STANDALONE}
 EOF
 
 echo '### Initialising DB and Evon Hub app...'

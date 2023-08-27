@@ -9,7 +9,7 @@ def apply(config):
     """
     takes in a hub.Config instance and saves out the specified update schedule crontab
     """
-    if on_al2():
+    if on_al2():  # FIXME also apply if selfhosted but not standalone
         # delete the crontab, and replace if needed
         cron = CronTab(user="evonhub")
         cron.remove_all()
