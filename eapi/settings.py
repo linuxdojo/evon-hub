@@ -120,7 +120,8 @@ JAZZMIN_SETTINGS = {
         "auditlog",
     ],
     "topmenu_links": [
-        {"name": "View API Documentation", "url": "/api", "new_window": True},
+        {"name": "📗 Evon Hub Docs", "url": "https://docs.evonhub.com", "new_window": True},
+        {"name": "📙 API Developer Docs", "url": "/api", "new_window": True},
     ],
     "icons": {
         "auditlog.logentry": "fas fa-list-alt",
