@@ -223,6 +223,7 @@ else
             if [ $? -ne 0 ]; then
                 echo "ERROR: The provided hwaddr '${domain_prefix}' is invalid."
                 exit 1
+            fi
         fi
 
         # validate pub ipv4 address if supplied
