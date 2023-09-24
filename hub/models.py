@@ -283,6 +283,7 @@ class Server(models.Model):
                 logger.warning(f"Overlay network is out of server addresses!")
         # auto-append account domain to supplied fqdn
         if not self.fqdn.endswith(EVON_VARS["account_domain"]):
+            # XXX consider not appending below and rather dynamically reading each time for easier reconfig of standalone mode's domain suffix
             self.fqdn = f"{self.fqdn}.{EVON_VARS['account_domain']}"
         # ensure fqdn is unique by adding appending index into to the first label if necessary
         desired_fqdn = self.fqdn
