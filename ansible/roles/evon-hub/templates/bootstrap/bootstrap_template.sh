@@ -48,9 +48,8 @@ function custom_section() {
 # such as adding an SSH public key to a user's authorized keys file. See below for such an example.
 # Uncomment and supply your own `ssh_pub_key` value to use it:
 
-#username=root       # use root user
-##username=$(id -un)  # or, use current user
-#ssh_pub_key='ssh-rsa AAAAB3Nza...ovI8ksEmov'  # the SSH public key to install
+#username=root       # specify the user
+#ssh_pub_key='ssh-rsa AAAAB3Nza...ovI8ksEmov'  # paste your own SSH public key to install
 #echo "Installing SSH public key to ${username}'s authorized keys file..."
 #homedir=$(getent passwd ${username} | cut -d: -f6)
 #mkdir -p ${homedir}/.ssh
