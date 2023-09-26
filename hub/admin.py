@@ -301,7 +301,7 @@ class PolicyAdmin(admin.ModelAdmin):
 
 
 @admin.register(hub.models.Config)
-class ConfigAdmin(admin.ModelAdmin):
+class ConfigAdmin(admin.ModelAdmin):  # FIXME make timezone available always, and make updates available if not standalone
     fields = ('discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
     list_display = ('config','total_server_count', "total_user_count", 'discovery_mode')
     if not EVON_VARS["selfhosted"]:
