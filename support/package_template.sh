@@ -8,14 +8,16 @@ VERSION=__VERSION__
 PY_VERSION="3.10.5"
 EVON_DOMAIN_SUFFIX=__EVON_DOMAIN_SUFFIX__
 HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+DOMAINNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?\.[a-z0-9-]{1,63}(\.[a-z0-9-]{1,63})*$'
 NON_RFC1918_IP_PATTERN='\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}\b'
 HWADDR_PATTERN='^[a-zA-Z0-9]{10}$'
 SUBNET_KEY_REGEX='^[0-9]{1,3}$'
-SELFHOSTED=__SELFHOSTED__
+HOSTED_MODE=__HOSTED_MODE__
+
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
-    if [ $SELFHOSTED == "true" ]; then
+    if [ $HOSTED_MODE != "awsmp" ]; then
         echo You must be root to run this installer.
         exit 1
     fi
@@ -36,7 +38,7 @@ function extract_payload() {
     echo -n Extracting...
     tail -n +$payload_start $src | base64 -d | gunzip | cpio -id -H tar
     rm -f $src
-    # backup virtual env if version matches
+    # backup virtual env dir if its python version matches the version that this script expects
     if [ -d /opt/evon-hub/.env ]; then 
         virtualenv_ver=$(. /opt/evon-hub/.env/bin/activate && python --version | awk '{print $NF}')
     fi
@@ -55,35 +57,37 @@ function extract_payload() {
 function show_usage() {
     echo "Usage:"
     echo "  $0 [options]"
-    echo -n "
-Options:
+    echo -e "\nOptions:"
 
+if [ "$HOSTED_MODE" == "awsmp" ]; then
+    echo -n "
   -d, --domain-prefix DOMAIN_PREFIX
-    Specify your DOMAIN_PREFIX. This Evon Hub instance will be reachable at:
-    <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}"
-    if [ "$SELFHOSTED" == "true"  ]; then
-        echo "
-    This option is required."
-    else
-        echo "
+    Specify your DOMAIN_PREFIX for this Hub instance. This Evon Hub instance
+    will be reachable at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
     Omitting this option will cause this installer to interactively prompt for
-    your domain prefix."
-    fi
-    echo "
+    your domain prefix.
+
   -s, --subnet-key SUBNET_KEY
-    Specify your SUBNET_KEY for this Evon Hub instance. Your overlay network
+    Specify your SUBNET_KEY for this Hub instance. Your overlay network
     subnet will become 100.<SUBNET_KEY>.224.0/19 where SUBNET_KEY must be
-    between 64 and 127 inclusive. Default is 111 if this option is omitted."
-    if [ "$SELFHOSTED" == "true" ]; then
-        echo "
+    between 64 and 127 inclusive. Default is 111 if this option is omitted.
+    "
+elif [ "$HOSTED_MODE" == "selfhosted" ]; then
+    echo -n "
+  -d, --domain-prefix DOMAIN_PREFIX
+    Specify your DOMAIN_PREFIX for this Hub instance. This Evon Hub instance
+    will be reachable at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
+    This option is required.
+
+  -s, --subnet-key SUBNET_KEY
+    Specify your SUBNET_KEY for this Hub instance. Your overlay network
+    subnet will become 100.<SUBNET_KEY>.224.0/19 where SUBNET_KEY must be
+    between 64 and 127 inclusive. Default is 111 if this option is omitted.
+
   -a, --hwaddr HARDWARE_ID
-    Specify your HARDWARE_ID provided during pre-registration of this selfhosted
-    Evon Hub instance. Pre-registration is used by the hosted Evon Hub service at
-    https://evonhub.com which provides automatic management of DNS names for your
-    connected Servers. If this option is omitted, this Hub will be deployed as
-    a stand alone selfhosted instance, and DNS updates will need to be managed
-    by you. Refer to docs regarding Selfhosted Standalone mode at
-    https://evonhub.com/docs
+    Specify your HARDWARE_ID provided during registration of this selfhosted
+    Evon Hub instance.
+    This option is required.
 
   -i, --public-ip IPv4_ADDRESS
     If specified, set the public IPv4 address of this server to IPv4_ADDRESS,
@@ -91,23 +95,48 @@ Options:
     for this Evon Hub at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
     Specifying this option will will save the provided IPv4_ADDRESS in the file
     \`/opt/.evon-hub.static_pub_ipv4\`. This file can be manually updated should
-    the public IPv4 Address change.  Omitting this option or deleting
+    the public IPv4 Address change.  Omitting this option or deleting the file
     \`/opt/evon-hub/.evon-hub.static_pub_ipv4\` will enable automatic detection
     of the current public IPv4 address, and the DNS record will be dynamically
     updated whenever a change is detected.
-"
-    else
-        echo ""
-    fi
+    "
+elif [ "$HOSTED_MODE" == "standalone" ]; then
+    echo -n "
+  -n, --domain-name DOMAIN_NAME
+    Specify your DOMAIN_DOMAIN for this Hub instance. This Evon Hub instance
+    will be reachable at this domain name, and connected servers will be
+    given names in this DNS zone in the form \`<hostname>.<DOMAIN_NAME>\` where
+    <hostname> is dynamically computed and optionally configurable per server.
+    DOMAIN_NAME must contain at least two labels separated by a period, eg:
+    \`example.com\`.
+    This option is required.
+
+  -s, --subnet-key SUBNET_KEY
+    Specify your SUBNET_KEY for this Hub instance. Your overlay network
+    subnet will become 100.<SUBNET_KEY>.224.0/19 where SUBNET_KEY must be
+    between 64 and 127 inclusive. Default is 111 if this option is omitted.
+
+  -i, --public-ip IPv4_ADDRESS
+    If specified, set the public IPv4 address of this server to IPv4_ADDRESS,
+    else automatically detect it. This address is used to create a DNS record
+    for this Evon Hub at: <DOMAIN_PREFIX>.${EVON_DOMAIN_SUFFIX}
+    Specifying this option will will save the provided IPv4_ADDRESS in the file
+    \`/opt/.evon-hub.static_pub_ipv4\`. This file can be manually updated should
+    the public IPv4 Address change.  Omitting this option or deleting the file
+    \`/opt/evon-hub/.evon-hub.static_pub_ipv4\` will enable automatic detection
+    of the current public IPv4 address, and the DNS record will be dynamically
+    updated whenever a change is detected.
+    "
+fi
 }
 
 # main installer
 function show_banner() {
-    if [ $SELFHOSTED == "true" ]; then
-        shbanner="Selfhosted"
+    if [ "$HOSTED_MODE" != "awsmp" ]; then
+        hmbanner=$HOSTED_MODE
     fi
     echo ''
-    echo '  __| |  |    \ \  |' ${shbanner}
+    echo '  __| |  |    \ \  |' ${hmbanner}
     echo '  _|  \  | () |  \ | Hub Installer'
     echo " ___|  _/  ___/_| _| v${VERSION}"
     echo '[ Elastic Virtual Overlay Network ]'
@@ -161,12 +190,30 @@ function is_al2() {
 }
 
 
+function assert_supported_distro() {
+    # ensure the linux distro is supported for selfhosted and standalone modes
+    declare -g os_version=0
+    proceed=false
+    if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
+        os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
+        if [[ $os_version -ne 8 || $os_version -ne 9 ]]; then
+            proceed=true
+        fi
+    fi
+    if [ "$proceed" != "true" ]; then
+        echo "Rocky Linux, AlmaLinux or equivalent distribution of version 8 or 9 is required to install Evon Hub."
+        exit 1
+    fi
+}
+
+
 # Transform long options to short ones
 for arg in "$@"; do
   shift
   case "$arg" in
     '--help')          set -- "$@" '-h'   ;;
     '--domain-prefix') set -- "$@" '-d'   ;;
+    '--domain-name')   set -- "$@" '-n'   ;;
     '--subnet-key')    set -- "$@" '-s'   ;;
     '--public-ipv4')   set -- "$@" '-i'   ;;
     '--hwaddr')        set -- "$@" '-a'   ;;
@@ -176,11 +223,12 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts ":hbd:s:i:a:" opt; do
+while getopts ":hbd:s:i:a:n:" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
     'b') base_build=true ;;
     'd') domain_prefix=$OPTARG ;;
+    'n') domain_name=$OPTARG ;;
     's') subnet_key=$OPTARG ;;
     'i') public_ipv4_address=$OPTARG ;;
     'a') hwaddr=$OPTARG ;;
@@ -199,31 +247,36 @@ if [ ${#@} -ne 0 ]; then
 fi
 
 
-# ensure we're running on AL2 if not self-hosted
-if [ "$SELFHOSTED" == "false" ]; then
-    # we're running in paid subscription mode, ensure we're on al2
+if [ "$HOSTED_MODE" == "awsmp" ]; then
+    # we're running in awsmp (AWS Marketplace) mode, ensure we're on al2
     if [ "$(is_al2)" == "false" ]; then
         echo 'Amazon Linux 2 is required. Aborting.'
         exit 1
     fi
-    # clear selfhosted vars if present
+    # clear unused vars, set hosted vars
     public_ipv4_address=""
     hwaddr=""
+    selfhosted="false"
     standalone="false"
-else
-    # we're running in selfhosted mode
+
+elif [ "$HOSTED_MODE" == "selfhosted" ]; then
+
+    # ensure the linux distro is supported
+    assert_supported_distro
+
     if [ ! "$base_build" ]; then
-        # check if hwaddr was specified
+        # we require hwaddr to be specified
         if [ -z "$hwaddr" ]; then
-            echo "No HARDWARE_ID provided, enabling STANDALONE mode"
-            standalone="true"
-        else
-            # validate hwaddr
-            echo "$hwaddr" | grep -qE "$HWADDR_PATTERN"
-            if [ $? -ne 0 ]; then
-                echo "ERROR: The provided hwaddr '${domain_prefix}' is invalid."
-                exit 1
-            fi
+            echo 'ERROR: --hwaddr option is required'
+            echo "For usage info, use --help"
+            exit 1
+        fi
+
+        # validate hwaddr
+        echo "$hwaddr" | grep -qE "$HWADDR_PATTERN"
+        if [ $? -ne 0 ]; then
+            echo "ERROR: The provided hwaddr '${hwaddr}' is invalid."
+            exit 1
         fi
 
         # validate pub ipv4 address if supplied
@@ -237,19 +290,48 @@ else
         fi
     fi
 
+    # set hosted vars
+    selfhosted="true"
+    standalone="false"
+
+elif [ "$HOSTED_MODE" == "standalone" ]; then
+
     # ensure the linux distro is supported
-    os_version=0
-    proceed=false
-    if [[ -e /etc/almalinux-release || -e /etc/rocky-release || -e /etc/centos-release || -e /etc/redhat-release ]]; then
-        os_version=$(grep -shoE '[0-9]+' /etc/redhat-release /etc/almalinux-release /etc/rocky-release /etc/centos-release | head -1)
-        if [[ $os_version -ne 8 || $os_version -ne 9 ]]; then
-            proceed=true
-        fi
-    fi
-    if [ "$proceed" != "true" ]; then
-        echo "RHEL, Rocky Linux or AlmaLinux version 8 or 9 is required to install Evon Hub."
+    assert_supported_distro
+
+    # we're running in standalone mode
+    if [ "$base_build" ]; then
+        echo 'ERROR: -b option is not supported in standalone mode.'
         exit 1
     fi
+
+    # validate and parse DOMAIN_NAME
+    if [ -z "$domain_name" ]; then
+        echo "ERROR: --domain-name option is required."
+        echo "For usage info, use --help"
+        exit 1
+    fi
+    echo "$domain_name" | grep -qE "$DOMAINNAME_REGEX"
+    if [ $? -ne 0 ]; then
+        echo "ERROR: The provided domain name '${domain_name}' was not formatted correctly (each label must conform to RFC 1123, minimum two labels are required)"
+        echo "For usage info, use --help"
+        exit 1
+    fi
+    # Extract the prefix up to the first dot
+    domain_prefix="${domain_name%%.*}"
+    # Extract the suffix after the first dot
+    EVON_DOMAIN_SUFFIX="${domain_name#*.}"
+
+    # set hosted vars
+    if [ -f /opt/.evon-hub.hwaddr ]; then
+        hwaddr="$(cat /opt/.evon-hub.hwaddr)"
+    else
+        hwaddr=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 10)
+    fi
+
+    # set hosted vars
+    selfhosted="true"
+    standalone="true"
 fi
 
 
@@ -285,11 +367,13 @@ else
             exit 1
         fi
     else
-        if [ "${SELFHOSTED}" == "true" ]; then
+        if [ "${HOSTED_MODE}" == "selfhosted" ]; then
             echo 'ERROR: --domain-prefix option is required'
             echo "For usage info, use --help"
             exit 1
         fi
+        # We arrive here if HOSTED_MODE == "awsmp" and no domain_prefix was specified.
+        # We get the domain prefix interactively from the user.
         get_domain_prefix
     fi
 
@@ -422,14 +506,22 @@ fi
 
 echo '### Installing pyenv...'
 if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
+    new_pyenv_install="true"
     git clone https://github.com/pyenv/pyenv.git /opt/pyenv
+    if [ $? -ne 0 ]; then
+        bail 1 "ERROR: could not clone pyenv git repo at https://github.com/pyenv/pyenv.git"
+    fi
+fi
+. ~/.bash_profile
+pyenv install -s ${PY_VERSION}
+if [ $? -eq 0 ] && [ "$new_pyenv_install" == "true" ]; then
     echo ' ' >> ~/.bash_profile
     echo 'export PYENV_ROOT="/opt/pyenv"' >> ~/.bash_profile
     echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
     echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
+else
+    bail 1 "ERROR: failed to install python version ${PY_VERSION} using pyenv. See above for error info."
 fi
-. ~/.bash_profile
-pyenv install -s ${PY_VERSION}
 echo Done.
 
 echo '### Building env...'
@@ -461,6 +553,7 @@ if [ "$base_build" ]; then
     exit 0
 fi
 
+# XXX the below can be improved using Django's management commands cli interface
 echo '### Deploying Evon CLI entrypoints...'
 rm -f /usr/local/bin/evon || :
 cat <<EOF > /usr/local/bin/evon
@@ -478,9 +571,9 @@ chmod 4755 /usr/local/bin/eapi
 # load evon env vars
 source /opt/evon-hub/evon/.evon_env
 
-if [ "$SELFHOSTED" == "true" ]; then
+if [ "$HOSTED_MODE" != "awsmp" ]; then
 
-    # we're selfhosted, start and persist the selfhosted_shim service
+    # we're selfhosted/standalone, start and persist the selfhosted_shim service
     setenforce 0 || :
     sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
     cd /opt/evon-hub/evon/selfhosted_shim
@@ -524,8 +617,8 @@ aws_account_id: ${aws_account_id}
 aws_region: ${aws_region}
 aws_az: ${aws_az}
 ec2_id: ${ec2_id}
-selfhosted: ${SELFHOSTED}
-standalone: ${STANDALONE}
+selfhosted: ${selfhosted}
+standalone: ${standalone}
 EOF
 
 echo '### Initialising DB and Evon Hub app...'
