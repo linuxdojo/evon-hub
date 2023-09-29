@@ -7,9 +7,11 @@ import base64
 import json
 import logging
 import os
+import subprocess
 
 import requests
 
+from eapi.settings import EVON_VARS
 from evon import log
 
 
@@ -17,8 +19,10 @@ logger = log.get_evon_logger()
 EVON_DEBUG = os.environ.get('EVON_DEBUG', '').upper() == "TRUE"
 if EVON_DEBUG:
     logger.setLevel(logging.DEBUG)
-API_URL = os.environ.get("EVON_API_URL")
+#API_URL = os.environ.get("EVON_API_URL")
 REQUESTS_TIMEOUT = 30
+STANDALONE_MODE = EVON_VARS["standalone"]
+STANDALONE_HOOK_PATH = EVON_VARS["standalone_hook_path"]
 
 
 def generate_headers(api_key):
@@ -51,20 +55,38 @@ def get_pub_ipv4():
 
 
 def do_request(url, requests_method, headers, json_payload=None, params={}):
-    request_kwargs = {
-        "headers": headers,
-    }
-    if json_payload:
-        request_kwargs["data"] = json_payload.encode("utf-8")
-    if params:
-        request_kwargs["params"] = params
-    response = None
-    try:
-        response = requests_method(url, **request_kwargs, timeout=REQUESTS_TIMEOUT)
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"{requests_method.__name__.upper()} request failed: '{e}' ")
-    return response
+    if STANDALONE_MODE:
+        logger.info(f"standalone mode enabled, calling standalone hook at path: {STANDALONE_HOOK_PATH}")
+        env = {
+            **os.environ,
+            "EVON_API_REQUEST_URL": url,
+            "EVON_API_REQUEST_METHOD": requests_method.__name__,
+            "EVON_API_HEADERS": json.dumps(headers),
+            "EVON_API_BODY": json_payload or "",
+            "EVON_API_PARAMS": json.dumps(params),
+        }
+        p = subprocess.Popen(STANDALONE_HOOK_PATH, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, close_fds=True)
+        rc = p.wait()
+        stdout = p.stdout
+        stderr = p.stderr
+        stdout = stdout and stdout.read().decode() or ""
+        stderr = stderr and stderr.read().decode() or ""
+        logger.info(f"results after executing standalone hook: rc: {rc}, stdout: {stdout}, stderr: {stderr}")
+    else:
+        request_kwargs = {
+            "headers": headers,
+        }
+        if json_payload:
+            request_kwargs["data"] = json_payload.encode("utf-8")
+        if params:
+            request_kwargs["params"] = params
+        response = None
+        try:
+            response = requests_method(url, **request_kwargs, timeout=REQUESTS_TIMEOUT)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"{requests_method.__name__.upper()} request failed: '{e}' ")
+        return response
 
 
 def get_records(api_url, api_key):

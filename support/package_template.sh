@@ -542,6 +542,11 @@ if [ "$hwaddr" ]; then
     echo -n "$hwaddr" > /opt/.evon-hub.hwaddr
 fi
 
+if [ ! -e $STANDALONE_HOOK_PATH ]; then
+    cp evon/evon_standalone_hook_example $STANDALONE_HOOK_PATH
+    chmod +x $STANDALONE_HOOK_PATH
+fi
+
 echo '### Installing Python deps...'
 . .env/bin/activate && \
     pip install pip -U && \
@@ -617,8 +622,10 @@ aws_account_id: ${aws_account_id}
 aws_region: ${aws_region}
 aws_az: ${aws_az}
 ec2_id: ${ec2_id}
+hosted_mode: ${HOSTED_MODE}
 selfhosted: ${selfhosted}
 standalone: ${standalone}
+standalone_hook_path: ${STANDALONE_HOOK_PATH}
 EOF
 
 echo '### Initialising DB and Evon Hub app...'

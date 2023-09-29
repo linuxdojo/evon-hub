@@ -21,7 +21,7 @@ def validate_hosted_mode(hosted_mode):
 
 def get_api_key(env):
     if HOSTED_MODE == "standalone":
-        return "not_applicable"
+        return ""
     elif HOSTED_MODE = "selfhosted":
         api_key_name = f"evon-{env}-api-selfhosted-apikey"
     else:
@@ -45,7 +45,7 @@ def get_domain_suffix(env):
 
 def get_api_url(env):
     if HOSTED_MODE == "standalone":
-        return "not_applicable"
+        return ""
     domain_suffix = get_domain_suffix(env)
     return f"https://api.{domain_suffix}"
 
@@ -60,8 +60,10 @@ def store_env(api_url, api_key, env):
         f'EVON_API_KEY="{api_key}"\n'
         f'EVON_ENV="{env}"\n'
         f'EVON_DOMAIN_SUFFIX="{domain_suffix}"\n'
+        f'HOSTED_MODE="{HOSTED_MODE}"\n'
         f'SELFHOSTED="{selfhosted}"\n'
         f'STANDALONE="{standalone}"\n'
+        'STANDALONE_HOOK_PATH="/opt/evon_standalone_hook"\n'
     )
     with open(env_abs_path, "w") as f:
         f.write(content)
