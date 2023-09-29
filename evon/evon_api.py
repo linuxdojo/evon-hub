@@ -19,7 +19,7 @@ logger = log.get_evon_logger()
 EVON_DEBUG = os.environ.get('EVON_DEBUG', '').upper() == "TRUE"
 if EVON_DEBUG:
     logger.setLevel(logging.DEBUG)
-#API_URL = os.environ.get("EVON_API_URL")
+# API_URL = os.environ.get("EVON_API_URL")
 REQUESTS_TIMEOUT = 30
 STANDALONE_MODE = EVON_VARS["standalone"]
 STANDALONE_HOOK_PATH = EVON_VARS["standalone_hook_path"]
@@ -59,11 +59,11 @@ def do_request(url, requests_method, headers, json_payload=None, params={}):
         logger.info(f"standalone mode enabled, calling standalone hook at path: {STANDALONE_HOOK_PATH}")
         env = {
             **os.environ,
-            "EVON_API_REQUEST_URL": url,
-            "EVON_API_REQUEST_METHOD": requests_method.__name__,
-            "EVON_API_HEADERS": json.dumps(headers),
-            "EVON_API_BODY": json_payload or "",
-            "EVON_API_PARAMS": json.dumps(params),
+            "EVON_HOOK_REQUEST_URL": url,
+            "EVON_HOOK_REQUEST_METHOD": requests_method.__name__,
+            "EVON_HOOK_HEADERS": json.dumps(headers),
+            "EVON_HOOK_BODY": json_payload or "",
+            "EVON_HOOK_PARAMS": json.dumps(params),
         }
         p = subprocess.Popen(STANDALONE_HOOK_PATH, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, close_fds=True)
         rc = p.wait()

@@ -3,13 +3,13 @@ import pytz
 
 from crontab import CronTab
 
-from hub.models import on_al2
+from eapi.settings import EVON_VARS
 
 def apply(config):
     """
     takes in a hub.Config instance and saves out the specified update schedule crontab
     """
-    if on_al2():  # FIXME also apply if selfhosted but not standalone
+    if not EVON_VARS["standalone"]:
         # delete the crontab, and replace if needed
         cron = CronTab(user="evonhub")
         cron.remove_all()
