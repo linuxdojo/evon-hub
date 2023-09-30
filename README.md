@@ -70,7 +70,7 @@ make ENV=<ENV> TARGET_HOST=<TARGET_FQDN> DOMAIN_PREFIX=<PREFIX> SUBNET_KEY=<SK> 
 
 ### Selfhosted Deploy
 
-Selfhosted mode supports creating an Evon Hub instance on a non-EC2 host that is not coupled to AWS Marketplace. It must be running EL8 or a clone (eg Rocky 8). Add `SELFHOSTED=true` to your env when running `make` to activate selfhosted mode. Omitting this env var will assume the target is an EC2 host, intended for deployment via AWS Marketplace subscription.
+Selfhosted mode supports creating an Evon Hub instance on a non-EC2 host that is not coupled to AWS Marketplace. It must be running EL8, EL9 or a clone (eg Rocky 8 or 9). Add `SELFHOSTED=true` to your env when running `make` to activate selfhosted mode. Omitting this env var will assume the target is an EC2 host, intended for deployment via AWS Marketplace subscription.
 
 ### Quick Deploy
 
