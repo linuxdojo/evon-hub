@@ -506,21 +506,25 @@ fi
 
 echo '### Installing pyenv...'
 if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
-    new_pyenv_install="true"
+    echo Cloning pyenv git repo...
+    rm -rf /opt/pyenv
     git clone https://github.com/pyenv/pyenv.git /opt/pyenv
     if [ $? -ne 0 ]; then
         bail 1 "ERROR: could not clone pyenv git repo at https://github.com/pyenv/pyenv.git"
     fi
-fi
-. ~/.bash_profile
-pyenv install -s ${PY_VERSION}
-if [ $? -eq 0 ] && [ "$new_pyenv_install" == "true" ]; then
+    echo Configuring bash_profile...
     echo ' ' >> ~/.bash_profile
     echo 'export PYENV_ROOT="/opt/pyenv"' >> ~/.bash_profile
     echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
     echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
-else
-    bail 1 "ERROR: failed to install python version ${PY_VERSION} using pyenv. See above for error info."
+fi
+if ! pyenv versions 2>&1 | grep -qE "^\s*${PY_VERSION}$"; then
+    echo "Installing Python ${PY_VERSION} (this may take a while)..."
+    . ~/.bash_profile
+    pyenv install -s ${PY_VERSION}
+    if [ $? -ne 0 ]; then
+        bail 1 "ERROR: failed to install python version ${PY_VERSION} using pyenv. See above for error info."
+    fi
 fi
 echo Done.
 
