@@ -7,4 +7,7 @@ public_ipv4: "127.0.0.1"
 aws_region: "ap-southeast-2"
 aws_az: "ap-southeast-2a"
 ec2_id: "localhost"
+hosted_mode: standalone
 selfhosted: true
+standalone: true
+standalone_hook_path: /opt/evon_standalone_hook
