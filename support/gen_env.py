@@ -22,7 +22,7 @@ def validate_hosted_mode(hosted_mode):
 def get_api_key(env):
     if HOSTED_MODE == "standalone":
         return ""
-    elif HOSTED_MODE = "selfhosted":
+    elif HOSTED_MODE == "selfhosted":
         api_key_name = f"evon-{env}-api-selfhosted-apikey"
     else:
         api_key_name = f"evon-{env}-api-apikey"
@@ -45,7 +45,7 @@ def get_domain_suffix(env):
 
 def get_api_url(env):
     if HOSTED_MODE == "standalone":
-        return ""
+        return "/api"
     domain_suffix = get_domain_suffix(env)
     return f"https://api.{domain_suffix}"
 
