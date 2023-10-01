@@ -124,7 +124,11 @@ package-all-saas: # Make both the AWS and Selfhosted SaaS installer packages
 	make HOSTED_MODE=selfhosted package
 
 package-oss: # Make the opensource standalone installer package
-	make HOSTED_MODE=standalone package
+	make ENV=prod HOSTED_MODE=standalone package
+
+package-all: # all packages
+	make package-all-saas
+	make package-oss
 
 publish: # Publish latest SaaS package to target host at file path ~/bin/evon-deploy
 	make package
