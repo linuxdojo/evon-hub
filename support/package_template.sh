@@ -518,13 +518,11 @@ if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
     echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bash_profile
     echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
 fi
-if ! pyenv versions 2>&1 | grep -qE "^\s*${PY_VERSION}$"; then
-    echo "Installing Python ${PY_VERSION} (this may take a while)..."
-    . ~/.bash_profile
-    pyenv install -s ${PY_VERSION}
-    if [ $? -ne 0 ]; then
-        bail 1 "ERROR: failed to install python version ${PY_VERSION} using pyenv. See above for error info."
-    fi
+echo "Ensuring Python ${PY_VERSION} is installed..."
+. ~/.bash_profile
+pyenv install -s ${PY_VERSION}
+if [ $? -ne 0 ]; then
+    bail 1 "ERROR: failed to install python version ${PY_VERSION} using pyenv. See above for error info."
 fi
 echo Done.
 
@@ -532,23 +530,48 @@ echo '### Building env...'
 /opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install pip -U
 /opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install virtualenv
 [ -d /opt/.evon_venv_backup ] && mv /opt/.evon_venv_backup /opt/evon-hub/.env
+
 cd /opt/evon-hub
 if [ ! -d .env  ]; then
     echo Creating new virtualenv with version: ${PY_VERSION}
     /opt/pyenv/versions/${PY_VERSION}/bin/virtualenv -p /opt/pyenv/versions/${PY_VERSION}/bin/python .env
 fi
 
+# load evon env vars
+source /opt/evon-hub/evon/.evon_env
+
 if [ "$public_ipv4_address" ]; then
+    echo "deploying static ipv4 address in /opt/.evon-hub.static_pub_ipv4"
     echo -n "$public_ipv4_address" > /opt/.evon-hub.static_pub_ipv4
 fi
 
 if [ "$hwaddr" ]; then
+    echo "deploying /opt/.evon-hub.hwaddr file"
     echo -n "$hwaddr" > /opt/.evon-hub.hwaddr
 fi
 
-if [ ! -e $STANDALONE_HOOK_PATH ]; then
-    cp evon/evon_standalone_hook_example $STANDALONE_HOOK_PATH
-    chmod +x $STANDALONE_HOOK_PATH
+echo "deploying standalone hook script at path: ${STANDALONE_HOOK_PATH}"
+standalone_hook_md5sum_path=$(dirname ${STANDALONE_HOOK_PATH})/.$(basename ${STANDALONE_HOOK_PATH}).md5sum
+if [ ! -e ${STANDALONE_HOOK_PATH} ]; then
+    # the example standalone hook script doesnt yet exist. Create it using packaged example version.
+    cp evon/evon_standalone_hook_example ${STANDALONE_HOOK_PATH}
+    chmod +x ${STANDALONE_HOOK_PATH}
+    md5sum ${STANDALONE_HOOK_PATH} > ${standalone_hook_md5sum_path}
+else
+    if [ "$(cat ${standalone_hook_md5sum_path})" == "$(md5sum ${STANDALONE_HOOK_PATH})" ]; then
+        # the example standalone hook script hasn't been modified. Remove and replace with current packaged version.
+        rm -f ${STANDALONE_HOOK_PATH}_new >/dev/null 2>&1 || :
+        rm -f ${STANDALONE_HOOK_PATH} ${standalone_hook_md5sum_path}
+        cp evon/evon_standalone_hook_example ${STANDALONE_HOOK_PATH}
+        chmod +x ${STANDALONE_HOOK_PATH}
+        md5sum ${STANDALONE_HOOK_PATH} > ${standalone_hook_md5sum_path}
+    else
+        # the example standalone hook script has been modified. Copy the new one in place with _new suffix and warn user of update
+        rm -f ${STANDALONE_HOOK_PATH}_new >/dev/null 2>&1 || :
+        cp evon/evon_standalone_hook_example ${STANDALONE_HOOK_PATH}_new
+        chmod +x ${STANDALONE_HOOK_PATH}_new
+        new_hook_script_available=true
+    fi
 fi
 
 echo '### Installing Python deps...'
@@ -577,9 +600,6 @@ EOF
 chmod 4755 /usr/local/bin/evon
 chmod 4755 /usr/local/bin/eapi
 
-# load evon env vars
-source /opt/evon-hub/evon/.evon_env
-
 if [ "$HOSTED_MODE" != "awsmp" ]; then
 
     # we're selfhosted/standalone, start and persist the selfhosted_shim service
@@ -592,6 +612,11 @@ if [ "$HOSTED_MODE" != "awsmp" ]; then
     # also start and persist the vnstat service
     systemctl start vnstat
     systemctl enable vnstat
+
+    if [ "$HOSTED_MODE" == "standalone" ]; then
+        # We're specifically in standalone mode. Prepopulate values in evon_vars.yaml for API registration
+        echo -en "---\naccount_domain: \"${domain_name}\"\nsubnet_key: ${subnet_key}\npublic_ipv4:" > /opt/evon-hub/evon_vars.yaml
+    fi
 fi
 
 echo '### Obtaining and persisting account info...'
@@ -707,6 +732,14 @@ account_domain=$(echo ${account_domain} | sed 's/"//g')
 ec2_id=$(echo ${ec2_id} | sed 's/"//g')
 echo '### Done!'
 echo ""
+if [ "$new_hook_script_available" ]; then
+    echo "========================================================================================"
+    echo "NOTE:"
+    echo "Updated standalone hook script example written to file '${STANDALONE_HOOK_PATH}_new'".
+    echo "Review changes and modify your script at path '${STANDALONE_HOOK_PATH}' if needed."
+    echo "========================================================================================"
+    echo ""
+fi
 echo "##############################################################"
 echo "              Setup and registration completed!"
 echo "  Please browse to your Evon Hub Web UI using below details:"

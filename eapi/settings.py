@@ -95,6 +95,10 @@ os.environ["XTABLES_LIBDIR"] = "/usr/lib64/xtables"
 with open(os.path.join(BASE_DIR, "evon_vars.yaml")) as f:
     EVON_VARS = yaml.safe_load(f)
 
+# append base domain to ALLOWED_HOSTS when in standalone mode
+if EVON_VARS.get("standalone"):
+    ALLOWED_HOSTS.append(f".{EVON_VARS['account_domain']}")
+
 JAZZMIN_SETTINGS = {
     "site_title": "Evon Hub",
     "site_header": "Evon Hub Admin",

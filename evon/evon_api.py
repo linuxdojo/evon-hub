@@ -9,9 +9,9 @@ import logging
 import os
 import subprocess
 
+from dotenv import dotenv_values
 import requests
 
-from eapi.settings import EVON_VARS
 from evon import log
 
 
@@ -21,8 +21,16 @@ if EVON_DEBUG:
     logger.setLevel(logging.DEBUG)
 # API_URL = os.environ.get("EVON_API_URL")
 REQUESTS_TIMEOUT = 30
-STANDALONE_MODE = EVON_VARS["standalone"]
-STANDALONE_HOOK_PATH = EVON_VARS["standalone_hook_path"]
+evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
+STANDALONE_MODE = evon_env["STANDALONE"] == "True"
+STANDALONE_HOOK_PATH = evon_env["STANDALONE_HOOK_PATH"]
+
+
+class BytesEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return obj.decode("utf-8")
+        return json.JSONEncoder.default(self, obj)
 
 
 def generate_headers(api_key):
@@ -61,17 +69,16 @@ def do_request(url, requests_method, headers, json_payload=None, params={}):
             **os.environ,
             "EVON_HOOK_REQUEST_URL": url,
             "EVON_HOOK_REQUEST_METHOD": requests_method.__name__,
-            "EVON_HOOK_HEADERS": json.dumps(headers),
+            "EVON_HOOK_HEADERS": json.dumps(headers, cls=BytesEncoder),
             "EVON_HOOK_BODY": json_payload or "",
             "EVON_HOOK_PARAMS": json.dumps(params),
         }
-        p = subprocess.Popen(STANDALONE_HOOK_PATH, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, close_fds=True)
+        p = subprocess.Popen(STANDALONE_HOOK_PATH, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, close_fds=True, encoding="utf-8")
         rc = p.wait()
-        stdout = p.stdout
-        stderr = p.stderr
-        stdout = stdout and stdout.read().decode() or ""
-        stderr = stderr and stderr.read().decode() or ""
+        stdout = p.stdout.read() or ""
+        stderr = p.stderr.read() or ""
         logger.info(f"results after executing standalone hook: rc: {rc}, stdout: {stdout}, stderr: {stderr}")
+        return stdout
     else:
         request_kwargs = {
             "headers": headers,
@@ -86,7 +93,7 @@ def do_request(url, requests_method, headers, json_payload=None, params={}):
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             logger.error(f"{requests_method.__name__.upper()} request failed: '{e}' ")
-        return response
+        return response.text
 
 
 def get_records(api_url, api_key):
@@ -96,7 +103,7 @@ def get_records(api_url, api_key):
         requests.get,
         headers=generate_headers(api_key)
     )
-    records = json.dumps(json.loads(response.text), indent=2)
+    records = json.dumps(json.loads(response), indent=2)
     return records
 
 
@@ -110,7 +117,7 @@ def set_records(api_url, api_key, json_payload, usage_stats=False):
         headers=generate_headers(api_key),
         json_payload=json_payload
     )
-    return response.text
+    return response
 
 
 def register(api_url, api_key, json_payload):
@@ -121,7 +128,7 @@ def register(api_url, api_key, json_payload):
         headers=generate_headers(api_key),
         json_payload=json_payload
     )
-    return response.text
+    return response
 
 
 def deregister(api_url, api_key, json_payload):
@@ -132,7 +139,7 @@ def deregister(api_url, api_key, json_payload):
         headers=generate_headers(api_key),
         json_payload=json_payload
     )
-    return response.text
+    return response
 
 
 def get_updates(api_url, api_key, version, selfhosted=False):
@@ -143,7 +150,7 @@ def get_updates(api_url, api_key, version, selfhosted=False):
         headers=generate_headers(api_key),
         params={"selfhosted": selfhosted}
     )
-    return response.text
+    return response
 
 
 def get_meters(api_url, api_key):
@@ -153,7 +160,7 @@ def get_meters(api_url, api_key):
         requests.get,
         headers=generate_headers(api_key)
     )
-    return response.text
+    return response
 
 
 def get_usage_limits(api_url, api_key):
@@ -163,4 +170,4 @@ def get_usage_limits(api_url, api_key):
         requests.get,
         headers=generate_headers(api_key)
     )
-    return response.text
+    return response

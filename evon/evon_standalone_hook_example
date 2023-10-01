@@ -18,7 +18,7 @@ params=$EVON_HOOK_PARAMS
 
 if [ "$endpoint" == "/api/zone/records" ]; then
 
-    if [ "$EVON_HOOK_REQUEST_METHOD" ] == "put"; then
+    if [ "$EVON_HOOK_REQUEST_METHOD" == "put" ]; then
         # This endpoint receives a JSON object in $body listing server FQDN's and their IPv4
         # addresses that are newly connected, removed, updated or unchanged. The structure is:
         #   {
@@ -57,7 +57,7 @@ if [ "$endpoint" == "/api/zone/records" ]; then
         #       "message": "success"
         #   }
 
-        account_domain=$(cat /opt/evon-hub/evon_vars.yaml | grep "account_domain:" | cut -d\" -f2)
+        account_domain=$(cat /opt/evon-hub/evon_vars.yaml | grep "account_domain:" | awk '{print $NF}' | sed 's/"//g')
         subnet_key=$(cat /opt/evon-hub/evon_vars.yaml | grep "subnet_key:" | cut -d" " -f2)
         public_ipv4=$(echo $body | jq -r '."public-ipv4"')
         message="success"
@@ -87,7 +87,7 @@ elif [ "$endpoint" == "/api/zone/register" ]; then
     #       "public_ipv4": "1.2.3.4",
     #       "message": "success"
     #   }
-    account_domain=$(cat /opt/evon-hub/evon_vars.yaml | grep "account_domain:" | cut -d\" -f2)
+    account_domain=$(cat /opt/evon-hub/evon_vars.yaml | grep "account_domain:" | awk '{print $NF}' | sed 's/"//g')
     subnet_key=$(cat /opt/evon-hub/evon_vars.yaml | grep "subnet_key:" | cut -d" " -f2)
     public_ipv4=$(echo $body | jq -r '."public-ipv4"')
     message="success"
@@ -98,11 +98,11 @@ elif [ "$endpoint" == "/api/zone/deregister" ]; then
     # Used only for SaaS deployments
     echo '{}'
 
-elif [ "$endpoint" ~= "^/api/zone/update/" ]; then
+elif [[ "$endpoint" =~ ^/api/zone/update/ ]]; then
     # This endpoint is used only by SaaS deployments for upgrading the Evon Hub app. For standalone
-    # deployments, simpy upgrade using the latest code/release in the master branch on Github.
-    # The request url starts with "/api/zone/update/" and the remainder of the string is the current
-    # version of Evon Hub.
-    echo '{}'
+    # deployments, simpy upgrade using the latest code/release in the master branch on Github, or implement
+    # your own method here. The request url starts with "/api/zone/update/" and the remainder of the string
+    # is the current version of Evon Hub.
+    echo '{"update_available":false}'
 
 fi
