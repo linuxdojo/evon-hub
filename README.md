@@ -2,97 +2,57 @@
 
 # Evon Hub
 
-Evon Hub is the core component of the Evon system, acting as the central network hub for connected servers, users and policy. It provides a web application and an API along with OpenVPN services for overlay network connectivity.
+[Evon Hub](https://evonhub.com) is an overlay network application, similar to Tailscale but built using OpenVPN. It uses a hub-spoke topology, with the software in this repository acting as the hub. It includes a web interface and API, and allows any device running OpenVPN to connect as a server or as a client. Servers and clients obtain static IPv4 addresses on the overlay network on the 100.x.y.x (CGNAT) address space, and can obtain unique public domain names. The hub allows rules and policies to be created that govern which servers and services can be reached by users and other servers on the overlay network. The transport used is SSL over TCP/443, allowing systems to access the hub via commonly open channels, including via web proxy servers.
 
-* Evon Hub in hosted mode must be deployed on an AWS EC2 instance running Amazon Linux 2.
-* Evon Hub in standalone mode must be deployed to a host running EL8 or EL9 (eg. Rocky/AlmaLinux versions 8 or 9)
+## Installation
+
+There are 3 modes of installation:
+
+1. Opensource community version (fully functional, no limitations), see "Quick Start" below
+1. Hosted SaaS, via [https://evonhub.com](https://evonhub.com)
+1. Hosted SaaS, via [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-xgpcsmkmv3sny)
+
+## Quick Start
+
+* Clone this repository
+* Create and activate a Python 3.10.5 virtual environment
+* Run the following command to build the installer package:
+```
+make package-oss
+```
+This will create a file named `evon-hub-standalone_<version>.sh`
+* Create a fresh Rocky/AlmaLinux 9 VPS instance with a public IPv4 address, and assign a domain name to it, eg "hub.example.com"
+* Ensure the following protocols/ports are allowed inbound:
+  * tcp/22
+  * tcp/80
+  * tcp/443
+  * udp/1194
+* Copy the installer file to the VPS and run it with command (substituting your domain name)
+```
+sudo bash evon-hub-standalone_<version>.sh --domain-name hub.example.com
+```
+The installation will take several minutes, with instructions printed at the end for accessing your hub.
+
+### Optional: Setup Automatic DNS entries for connected servers
+
+Each connected server obtains a static IPv4 address on the 100.x.y.z network subnet.
+
+Servers can also obtain unique DNS names in the format `<hostname>.hub.example.com` using the domain name in the above example. This feature is automatically setup on hosted SaaS deployments, and can be setup in the opensource community version by editing the file `/opt/evon_standalone_hook` and adding code to update your own DNS zone for your chosen domain.
+
+## Local Development
+
+Local development assumes you are running a recent Linux distribution.
+
+* Create and activate a virtualenv using Python 3.10.5
+* run `make setup-local`
+* start the development webserver by running `make runserver`. The web UI can then be reached by browsing to [http://localhost:8001](http://localhost:8001). The default login credentials for the development server are `admin/admin`.
+
+## Documentation
+
+Documentation, FAQ and other info can be obtained via [https//evonhub.com](https//evonhub.com)
 
 ## License
 
 The software in this repository is released under the  GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007.
 
 See file `LICENSE.txt`  for details.
-
-## Local Development
-
-* Create and activate a virtualenv using Python 3.10.5
-* run `make setup-local`
-
-## Deployment
-
-### Arguments Reference
-
-The below invocations make reference to these arguments:
-
-* `<ENV>` is one of `dev`, `staging` or `prod`
-* `<TARGET_FQDN>` is the FQDN of the target instance to which you have SSH access to the `ec2-user` or a user with full sudo access using public key authentication.
-* `<PREFIX>` is the first label of the new Hub FQDN, which will become `<PREFIX>.<ENV>.evon.link`. `<ENV>` is omitted for prod.
-* `<SK>` is the subnet key. It must be between 64 and 127 inclusive. The overlay subnet for the deployed Hub becomes `100.<SUBNET_KEY>.224.0/19`
-
-### Publishing installer only
-
-To copy the Evon Hub installer script to a remote instance, run the below command. Resultant package will be at path `~/bin/evon-deploy` which is assumed to be in the target user's `$PATH`. Once published, the script must subsequently be run on the Hub via SSH.
-```
-make ENV=<ENV> TARGET_HOST=<TARGET_FQDN> publish
-```
-
-### Publishing an updated version of Evon Hub for customers
-
-Deployments are able to udpate/autoupdate themselves. To publish an update, run
-```
-make ENV=<env> publish-update
-```
-This will put the package in S3, ready to be picked up by deployments during next auto/manual update run.
-
-
-### Building an EC2 instance ready for converting to an AMI or other image
-
-| :memo: If not selfhosted, the target EC2 must be freshly installed in the `us-east-1` region |
-|----------------------------------------------------------------------------------------------|
-
-```
-make ENV=<ENV> TARGET_HOST=<TARGET_FQDN> deploy-base
-```
-Once done, if not selfhosted, manually export the EC2's EBS device as an AMI. For the related procedure, refer to [EVON AWS Marketplace Integration docs](https://linuxdojo.atlassian.net/wiki/spaces/EVON/pages/138379265/AWS+Marketplace+Integration)
-
-### Deploy to Staging Environment for AWS Marketplace deployments
-
-* subscribe and deploy Evon Hub from AWS Marketplace
-* use `make ENV=staging TARGET_HOST=<TARGET_FQDN> publish` to upload latest deploy script
-* ssh to the EC2 isntance and run `evon-deploy` as the ec2-user
-
-### Deploying to a test EC2 instance (any region)
-
-For development purposes, to copy and also run the Evon Hub installer script on a remote EC2 instance in one command, run:
-```
-make ENV=<ENV> TARGET_HOST=<TARGET_FQDN> DOMAIN_PREFIX=<PREFIX> SUBNET_KEY=<SK> deploy-test
-```
-
-### Selfhosted Deploy
-
-Selfhosted mode supports creating an Evon Hub instance on a non-EC2 host that is not coupled to AWS Marketplace. It must be running EL8, EL9 or a clone (eg Rocky 8 or 9). Add `SELFHOSTED=true` to your env when running `make` to activate selfhosted mode. Omitting this env var will assume the target is an EC2 host, intended for deployment via AWS Marketplace subscription.
-
-### Quick Deploy
-
-This is a convenience target for developers to quickly sync local project elements to remote dev instance. It requires that root ssh with pub key auth has been setup.
-
-### Example
-
-Example publish and deploy:
-```
-make ENV=dev TARGET_HOST=ec2-13-236-148-138.ap-southeast-2.compute.amazonaws.com RUN_INSTALLER=true DOMAIN_PREFIX=mycompany SUBNET_KEY=111 deploy-test
-```
-
-Deployment durations:
-* A publish and deploy on a fresh t2.micro EC2 instance takes approximately 12 mins.
-* Subsequent publish and deploy operations take approximately 2 mins on the same system.
-
-## Usage
-
-Once published and deployed, the Hub WebUI can be reached at `https://<PREFIX>.<env>.evon.link` (`<env>` is ommited if `prod`).
-
-Default Web UI login credentials are:
-| | |
-|--------|----------------------------|
-|Username| admin                      |
-|Password| `<Instance ID of Hub>`     |
