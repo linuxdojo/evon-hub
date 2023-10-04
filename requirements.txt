@@ -87,7 +87,7 @@ toml==0.10.2
 traitlets==5.3.0
 typing_extensions==4.7.1
 uritemplate==4.1.1
-urllib3==1.26.12
+urllib3==1.26.17
 uvicorn==0.20.0
 wcwidth==0.2.5
 zipp==3.8.1
