@@ -311,6 +311,7 @@ class ConfigAdmin(admin.ModelAdmin):
     else:  # awsmp mode
         fields = ('ec2_iam_role_status', 'timezone','auto_update', 'auto_update_time', 'discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
         list_display = ('config','total_server_count', "total_user_count",'auto_update', 'auto_update_time', 'discovery_mode')
+        readonly_fields = ('ec2_iam_role_status',)
 
     def config(self, obj=None):
         return "Edit"
