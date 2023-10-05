@@ -49,7 +49,7 @@ Local development assumes you are running a recent Linux distribution.
 
 ## Documentation
 
-Documentation, FAQ and other info can be obtained via [https//evonhub.com](https//evonhub.com)
+Documentation can be found at [https://docs.evonhub.com](https://docs.evonhub.com)
 
 ## License
 

@@ -34,7 +34,7 @@ evon_env = dotenv_values(os.path.join(os.path.dirname(__file__), ".evon_env"))
 EVON_API_KEY = evon_env["EVON_API_KEY"]
 EVON_API_URL = evon_env["EVON_API_URL"]
 EVON_DOMAIN_SUFFIX = evon_env["EVON_DOMAIN_SUFFIX"]
-SELFHOSTED = evon_env["SELFHOSTED"] == "true"
+SELFHOSTED = evon_env["SELFHOSTED"].lower() == "true"
 EVON_ENV = evon_env["EVON_ENV"]
 MUTEX_OPTIONS = [
     "get_inventory",
