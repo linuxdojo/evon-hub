@@ -5,7 +5,14 @@
 .select2-results__option {
   color: gray;
 }
-
+button, a {
+  scale: 1;
+  transition: 0.5s;
+  transition-timing-function: ease-in-out;
+}
+button:hover, a:hover{
+  scale: 2;
+}
 .dark-mode .navbar-white {
   background-color: #aeaeae;
   color: #1f2d3d;
