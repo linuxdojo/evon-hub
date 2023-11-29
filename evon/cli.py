@@ -232,7 +232,7 @@ def sync_pub_ipv4():
     cls=MutuallyExclusiveOption,
     mutually_exclusive=[o for o in MUTEX_OPTIONS if o != "register"],
     metavar="JSON",
-    help="Register new account. Speficy JSON in the following format: "
+    help="Register new account. Specify JSON in the following format: "
           """'{"domain-prefix":"mycompany","subnet-key":"111"}'. """
           f'Your hub will be reachable at <domain-prefix>.{EVON_DOMAIN_SUFFIX}. '
           'Your overlay network subnet will be 100.<subnet-key>.224.0/19 where '

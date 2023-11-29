@@ -261,7 +261,7 @@ class BootstrapViewSet(ViewSet):
     def linux(self, *args, **kwargs):
         """
         Download the `bootstrap.sh` installer for connecting remote Linux systems to this overlay network.
-        Requesting user must be a superuser or the "depoloyer" user.
+        Requesting user must be a superuser or the "deployer" user.
         """
         bootstrap_filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bootstrap.sh")
         bootstrap_filename = os.path.basename(bootstrap_filepath)
@@ -282,7 +282,7 @@ class BootstrapViewSet(ViewSet):
     def windows(self, *args, **kwargs):
         """
         Download the `bootstrap.ps1` installer for connecting remote Windows systems to this overlay network.
-        Requesting user must be a superuser or the "depoloyer" user.
+        Requesting user must be a superuser or the "deployer" user.
         """
         bootstrap_filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bootstrap.ps1")
         bootstrap_filename = os.path.basename(bootstrap_filepath)
@@ -302,7 +302,7 @@ class BootstrapViewSet(ViewSet):
     def decrypt(self, request, format=None):
         """
         Decrypt the encrypted payload located within the `bootstrap` installer scripts and return its cleartext. This function is used internally by the `bootstrap` scripts.
-        Requesting user must be a superuser or the "depoloyer" user.
+        Requesting user must be a superuser or the "deployer" user.
         """
         uploaded_content = request.data["data"].read()
         iid_url = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
