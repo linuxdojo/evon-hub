@@ -1,11 +1,19 @@
 .select2-container--default .select2-selection--multiple .select2-selection__choice {
-    color: #000;
+  color: #000;
 }
 
 .select2-results__option {
   color: gray;
 }
-
+.nav-item {
+  scale: 1;
+  transition: 0.1s;
+  transition-timing-function: ease-in-out;
+}
+.nav-item:hover{
+  scale: 1.05;
+  display:inline-block;
+}
 .dark-mode .navbar-white {
   background-color: #aeaeae;
   color: #1f2d3d;
@@ -36,5 +44,5 @@
 }
 
 .accent-primary .btn-link:hover, .accent-primary .nav-tabs .nav-link:hover, .accent-primary a:not(.dropdown-item):not(.btn-app):not(.nav-link):not(.brand-link):not(.page-link):not(.btn):hover {
-    color: #00bd6f;
+  color: #00bd6f;
 }
