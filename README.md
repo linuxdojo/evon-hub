@@ -53,6 +53,6 @@ Documentation can be found at [https://docs.evonhub.com](https://docs.evonhub.co
 
 ## License
 
-The software in this repository is released under the  GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007.
+The software in this repository is released under the GNU GPLv3.
 
 See file `LICENSE.txt`  for details.
