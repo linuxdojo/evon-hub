@@ -2,7 +2,7 @@
   <div class="card card-primary card-outline">
     <div class="card-body">
       <div id="content-main" class="col-12">
-        Evon Bootsrap is a script that connects a server to your Hub.<br />
+        Evon Bootsrap is a script that connects a Server to your Hub.<br />
         <br />
         <ul>
           <li>The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user or a superuser is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below instructions include your token for your convenience.</li>
@@ -31,6 +31,11 @@
           <li class="nav-item">
             <a class="nav-link" data-toggle="pill" role="tab" aria-controls="docker-tab" aria-selected="false" href="#docker-tab">
               Using Docker
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="pill" role="tab" aria-controls="openvpn-tab" aria-selected="false" href="#openvpn-tab">
+              Using OpenVPN
             </a>
           </li>
         </ul>
@@ -114,6 +119,7 @@
             <div class="card ">
               <div class="p-5">
                 <h5>Docker Bootstrap</h5>
+                <br />
                 As an alternative to downloading and installing Bootstrap directly onto your Linux distribution, Bootstrap can run as a Docker container. Visit <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">https://hub.docker.com/r/linuxdojo/evon-bootstrap</a> for detail about using the Docker version of Evon Bootstrap.<br />
                 <br />
                  Use the below command to connect:
@@ -140,6 +146,34 @@ docker run \
               </div>
             </div>
           </div>
+
+          <div id="openvpn-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="openvpn-tab">
+            <div class="card ">
+              <div class="p-5">
+                <h5>OpenVPN Config for connecting a Server</h5>
+                <br />
+                As an alternative to using the Bootstrap script, you can download the raw OpenVPN client configuration file to connect any system or device that runs OpenVPN to your Hub as a Server below:<br />
+                <br />
+                <strong>WARNING:
+                It is highly recommended that you disable Discovery Mode and use the UUID White List feature in your Evon Hub's <a href="/hub/config/1/change/">configuration</a> before using this config file to nullify the risk of rogue servers joining your hub if this file leaks.
+                </strong>
+                <br />
+                <br />
+                <span>Direct download link: <a href="/api/bootstrap/raw">openvpn_client-evon_server.conf</a></span>
+                <br />
+                <br />
+                <strong>Or using curl:</strong><br />
+                <pre class="border border-secondary mt-3">curl -s 'https://{{ account_domain }}/api/bootstrap/raw' -H 'Authorization: Token {{ deploy_token }}' > openvpn_client-evon_server.conf</pre>
+                <hr>
+                Instructions describing usage are included as comments inside the configuration file, including how to set it up to traverse a proxy server if required.
+                <br />
+
+              </div>
+            </div>
+          </div>
+
+
+
         </div>
       </div>
     </div>

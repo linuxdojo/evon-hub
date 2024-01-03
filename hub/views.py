@@ -293,6 +293,29 @@ class BootstrapViewSet(ViewSet):
         return response
 
     @extend_schema(
+        operation_id="bootstrap_retrieve_raw",
+        responses={
+            (200, 'application/octet-stream'): OpenApiTypes.BINARY
+        }
+    )
+    @action(methods=['get'], detail=False, renderer_classes=(BinaryFileRenderer,))
+    def raw(self, *args, **kwargs):
+        """
+        Download the raw `openvpn_client-evon_server.conf` file, a clear text OpenVPN client config file, for connecting any remote system that can run OpenVPN to this overlay network as a Server.
+        It is recommended to use the Linux/Windows Bootstrap installers rather than this raw OpenVPN config file where possible as anyone who posesses this file can conenct a server to this Hub if Discovery Mode is enabled.
+        Should you download this config file, to mitigate risk it is recommended that you disable Discovery Mode and use the White List feature in your Hub's configuration.
+        Requesting user must be a superuser or the "deployer" user.
+        """
+        filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "openvpn_client-evon_server.conf")
+        bootstrap_filename = os.path.basename(filepath)
+        f = open(filepath, "rb")
+        response = FileResponse(f, content_type='application/octet-stream')
+        response['Content-Length'] = os.path.getsize(filepath)
+        response['Content-Disposition'] = f'attachment; filename="{bootstrap_filename}"'
+        return response
+
+
+    @extend_schema(
         operation_id="bootstrap_decrypt",
         responses={
             (200, 'application/octet-stream'): OpenApiTypes.BINARY
@@ -333,7 +356,7 @@ class BootstrapViewSet(ViewSet):
             }
             status = "400"
             return Response(response, status=status)
-        dec_filename = os.path.basename(dec_filepath)
+        #dec_filename = os.path.basename(dec_filepath)
         f = open(dec_filepath, "rb")
         response = FileResponse(f, content_type='application/octet-stream')
         response['Content-Length'] = os.path.getsize(dec_filepath)
