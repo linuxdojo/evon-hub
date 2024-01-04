@@ -5,6 +5,7 @@
         Evon Bootsrap is a script that connects a Server to your Hub.<br />
         <br />
         <ul>
+          <li>Servers obtain a static IPv4 address and a unique domain name in the form <span class="font-weight-bold" style="font-family: monospace">&lt;hostname&gt;.{{ account_domain }}</span>, and can be specified as sources and destinations in Rules/Policies.</li>
           <li>The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user or a superuser is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below instructions include your token for your convenience.</li>
           <li>You can connect servers that are behind a web proxy. See below for details.</li>
         </ul>
@@ -60,7 +61,7 @@
                 </ul>
                 Distro not listed? Try Bootstrap anyway as many derivative distro's are known to work, or simply deploy Bootstrap using Docker, see "Using Docker" tab above.
                 <hr>
-                <h5>1. Download Bootstrap:</h5>
+                <h5 class="p-3 mb-2 bg-primary text-white">1. Download Bootstrap:</h5>
                 <div class="ml-3">
                   <br />
                   <span>Direct download link: <a href="/api/bootstrap/linux">bootstrap.sh</a></span>
@@ -70,14 +71,14 @@
                   <pre class="border border-secondary mt-3">curl -s 'https://{{ account_domain }}/api/bootstrap/linux' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
                   <hr>
                 </div>
-                <h5>2. Install Bootstrap:</h5>
+                <h5 class="p-3 mb-2 bg-primary text-white">2. Install Bootstrap:</h5>
                 <div class="ml-3">
                   Run the following command as root on your server:
                   <pre class="border border-secondary mt-3">EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
                   Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
                   <pre class="border border-secondary mt-3">./bootstrap.sh --help</pre>
                 </div>
-                <h5>3. (Optional) Customising Bootstrap:</h5>
+                <h5 class="p-3 mb-2 bg-primary text-white">3. (Optional) Customising Bootstrap:</h5>
                 <div class="ml-3">
                   The source code of bootstrap.sh contains a custom section near the top of the file that can be edited and used to execute arbitrary commands during install time. A typical operation is to install a common SSH public key into a user's authorized_keys file so that you can easily SSH to your servers the moment they come online in Evon. Example code exists for adding an SSH public key for your convenience, including explanatory comments.
                 </div>
@@ -97,7 +98,7 @@
                   <li>Windows Server 2016 or higher</li>
                 </ul>
                 <hr>
-                <h5>1. Download Bootstrap:</h5>
+                <h5 class="p-3 mb-2 bg-primary text-white">1. Download Bootstrap:</h5>
                 <strong>Direct download:</strong><br />
                 <br />
                 <span>&nbsp; &nbsp; Direct download link: <a href="/api/bootstrap/windows">bootstrap.ps1</a></span>
@@ -106,7 +107,7 @@
                 <strong>Using PowerShell:</strong><br />
                 <pre class="border border-secondary mt-3">Invoke-WebRequest -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
                 <hr>
-                <h5>2. Install Bootstrap:</h5>
+                <h5 class="p-3 mb-2 bg-primary text-white">2. Install Bootstrap:</h5>
                 Run the following PowerShell command on your server as Administrator:
                 <pre class="border border-secondary mt-3">.\bootstrap.ps1 -Apikey {{ deploy_token }}</pre>
                 Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
@@ -118,7 +119,7 @@
           <div id="docker-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="docker-tab">
             <div class="card ">
               <div class="p-5">
-                <h5>Docker Bootstrap</h5>
+                <h5 class="p-3 mb-2 bg-primary text-white">Using Docker Bootstrap</h5>
                 <br />
                 As an alternative to downloading and installing Bootstrap directly onto your Linux distribution, Bootstrap can run as a Docker container. Visit <a href="https://hub.docker.com/r/linuxdojo/evon-bootstrap" target="_blank">https://hub.docker.com/r/linuxdojo/evon-bootstrap</a> for detail about using the Docker version of Evon Bootstrap.<br />
                 <br />
@@ -150,16 +151,17 @@ docker run \
           <div id="openvpn-tab" class="tab-pane fade" role="tabpanel" aria-labelledby="openvpn-tab">
             <div class="card ">
               <div class="p-5">
-                <h5>OpenVPN Config for connecting a Server</h5>
+                <h5 class="p-3 mb-2 bg-primary text-white">Using OpenVPN Config for Connecting a Server</h5>
                 <br />
                 As an alternative to using the Bootstrap script, you can download the raw OpenVPN client configuration file to connect any system or device that runs OpenVPN to your Hub as a Server below:<br />
                 <br />
-                <strong>WARNING:
-                It is highly recommended that you disable Discovery Mode and use the UUID White List feature in your Evon Hub's <a href="/hub/config/1/change/">configuration</a> before using this config file to nullify the risk of rogue servers joining your hub if this file leaks.
-                </strong>
+                <span class="text-warning font-weight-bold">
+                  WARNING: It is highly recommended that you disable Discovery Mode and use the UUID White List feature in your Evon Hub's <a href="/hub/config/1/change/">configuration</a>
+                  when using this raw configuration file. Unlike the Linux and Windows bootstrap scripts, the secrets in this config file are not encrypted.
+                </span>
                 <br />
                 <br />
-                <span>Direct download link: <a href="/api/bootstrap/raw">openvpn_client-evon_server.conf</a></span>
+                <span class="font-weight-bold">Direct download link: <a href="/api/bootstrap/raw">openvpn_client-evon_server.conf</a></span>
                 <br />
                 <br />
                 <strong>Or using curl:</strong><br />
@@ -171,8 +173,6 @@ docker run \
               </div>
             </div>
           </div>
-
-
 
         </div>
       </div>

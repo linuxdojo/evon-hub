@@ -3,25 +3,30 @@
     <div class="card-body">
       <div id="content-main" class="col-12">
         This page describes how you and others can connect to your Evon Hub from any device to access systems on your overlay network and share connectivity to your own device.<br />
+        <br />
+        <ul>
+          <li>Clients obtain a static IPv4 address only, and can be specified as sources in Rules but not as destinations in Policies.</li>
+          <li>To allow other systems to connect to your device on the overlay network, enable the <strong>Device Settings 🠊 Shared</strong> option in your <a href="/auth/user/{{ user.id }}/change/#device-settings-tab">user profile</a>.</li>
+        </ul>
       </div>
     </div>
     <div class="card-header">
-      Download Configuration File
+      <h5 class="p-3 mb-2 bg-primary text-white">Download Configuration File</h5>
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
-        First, download the OpenVPN client configuration file here: <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>. This file contains standard OpenVPN configuration. Simply import it into your OpenVPN client of choice. Note:<br />
+        First, download the OpenVPN client configuration file here: <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>.<br />
+        <br />
+        This file contains standard OpenVPN configuration. Simply import it into your OpenVPN client of choice.<br />
         <br />
         <ul>
           <li>As a user, you'll connect to this Hub using the standard OpenVPN protocol and port of UDP/1194</li>
-          <li>You'll obtain a static IP address on the overlay network.</li>
-          <li>To share access to your device, enable the <strong>Device Settings 🠊 Shared</strong> option in your <a href="/auth/user/{{ user.id }}/change/#device-settings-tab">user profile</a>.</li>
         </ul>
       </div>
     </div>
 
     <div class="card-header">
-      Setup OpenVPN
+      <h5 class="p-3 mb-2 bg-primary text-white">Setup OpenVPN</h5>
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
@@ -115,14 +120,14 @@
       </div>
     </div>
     <div class="card-header">
-      Listing Servers on the Hub
+      <h5 class="p-3 mb-2 bg-primary text-white">Listing Servers on the Hub</h5>
     </div>
     <div class="card-body">
       <div id="content-main" class="col-12">
         You can obtain a list of servers to which you're permitted to connect (subject to Policy defined by an admin) either via the <a href="/hub/server">Servers</a> menu option in this Web UI or via the <a href="/api/#tag/server" target="_blank">Evon Hub API</a>.<br/>
         {% if user.is_superuser  %}
         <br/>
-        When listing servers via the API, superusers (like yourself) will obtain a list of <strong>all</strong> servers, whereas non-superusers will only see a list of servers that they're permitted to access via a Policy. As such, superuser API requests will include an `accessible` boolean property on each listed server object that indicates whether or not they're permitted connect to it based on Policy. See the <a href="/api/#tag/server" target="_blank">API Documentation</a> for further detail.<br/>
+        When listing servers via the API, superusers (like yourself) will obtain a list of <strong>all</strong> servers, whereas non-superusers will only see a list of servers that they're permitted to access via a Policy. As such, superuser API responses from the list server endpoint will include an `accessible` boolean property on each listed server object that indicates whether or not they're permitted connect to it based on Policy. See the <a href="/api/#tag/server" target="_blank">API Documentation</a> for further detail.<br/>
         {% endif %}
         <br/>
         Example scripts are provided below for listing your servers via the API. These examples include your <a href="/authtoken/tokenproxy/">Authentication Token</a> in clear text, therefore care should be taken to keep these scripts private if used as is.<br />
