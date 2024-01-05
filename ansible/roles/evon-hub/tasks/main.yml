@@ -468,6 +468,11 @@
         src: bootstrap/bootstrap_template.ps1
         dest: /opt/evon-hub/bootstrap.ps1
 
+    - name: create raw openvpn server config
+      ansible.builtin.template:
+        src: bootstrap/openvpn_client_raw.conf
+        dest: /opt/evon-hub/openvpn_client-evon_server.conf
+
     - name: create openvpn user client config
       ansible.builtin.template:
         src: openvpn/client/client.ovpn
