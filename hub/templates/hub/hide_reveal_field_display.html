@@ -1,0 +1,39 @@
+<div>
+  <kbd>
+    <span id="custom_field">{{ field }}</span>
+  </kbd>
+  <button onclick="event.preventDefault(); toggleText('custom_field', 'custom_field_icon');" style="border: none; background: none; cursor: pointer;">
+    <i id="custom_field_icon" class='fa fa-eye'></i>
+  </button>
+</div>
+
+<script>
+  let originalText = '';
+  let isHidden = true;
+
+  function setupTextHiding(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      originalText = element.innerText;
+      element.innerText = '*'.repeat(originalText.length);
+    }
+  }
+
+  function toggleText(elementId, iconId) {
+    const element = document.getElementById(elementId);
+    const icon = document.getElementById(iconId);
+    if (element) {
+      if (isHidden) {
+        element.innerText = originalText;
+        icon.classList.replace("fa-eye", "fa-eye-slash");
+      } else {
+        element.innerText = '*'.repeat(originalText.length);
+        icon.classList.replace("fa-eye-slash", "fa-eye");
+      }
+      isHidden = !isHidden;
+    }
+  }
+
+  setupTextHiding('custom_field')
+</script>
+
