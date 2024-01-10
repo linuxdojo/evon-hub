@@ -3,23 +3,20 @@ from textwrap import dedent
 
 from django.contrib import admin
 from django.contrib import messages
-from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
-from django.db import models
-from django.forms import ModelForm
-from django.forms.widgets import Select
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.forms import ModelForm, TextInput
+from django.http import HttpResponseRedirect
 from django.template import Context
 from django.template import Template
+from django.template.loader import render_to_string
 from django.urls import path
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from rest_framework.authtoken.admin import TokenAdmin 
-from rest_framework.authtoken.models import Token, TokenProxy
-from solo.admin import SingletonModelAdmin
+from rest_framework.authtoken.models import TokenProxy
 
 from eapi.settings import EVON_VARS, BASE_DIR, JAZZMIN_SETTINGS, EVON_HUB_CONFIG
 import hub.models
@@ -53,8 +50,28 @@ def linkify(obj, prepend_icon=True):
 admin.site.unregister(TokenProxy)
 @admin.register(TokenProxy)
 class HubTokenAdmin(TokenAdmin):
+    readonly_fields = ["key"]
     search_fields = ["key", "created"]
     list_filter = ["user"]
+    list_display = ('view_change_link', 'user', 'created')
+    description = dedent("""
+        To rotate a Token, delete it and re-create one for this user.
+    """)
+
+    def view_change_link(self, obj):
+        if obj.pk:
+            url = reverse('admin:%s_%s_change' % (obj._meta.app_label,  obj._meta.model_name),  args=[obj.pk] )
+            return format_html('<a href="{}">view/change</a>', url)
+        return "view/change"
+
+    view_change_link.short_description = 'Key'
+
+    def token_custom_display(self, obj):
+        # Custom display logic for the 'uuid' field
+        context = {'field': obj.key}
+        return mark_safe(render_to_string('hub/hide_reveal_field_display.html', context))
+
+    token_custom_display.short_description = 'Key'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -85,6 +102,17 @@ class HubTokenAdmin(TokenAdmin):
         "only show the logged in user if non-superuser"
         if not request.user.is_superuser:
             return {"user": request.user}
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        for index, fieldset in enumerate(fieldsets):
+            if fieldset[0] == None:
+                fieldsets[index] = (None, {'fields': ['token_custom_display', 'user']})
+                break
+        return fieldsets
+
+    def get_readonly_fields(self, request, obj=None):
+        return ['token_custom_display', *self.readonly_fields]
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         "hide all but the logged in user as choices when creating a new token as a non-superuser"
@@ -132,7 +160,7 @@ class OVPNClientAdmin(admin.ModelAdmin):
         if not user_auth_token:
             messages.info(
                 request,
-                f"Your user has no auth token. If you wish to use the API, please go to the Tokens menu option and add one for yourself."
+                "Your user has no auth token. If you wish to use the API, please go to the Tokens menu option and add one for yourself."
             )
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
@@ -191,7 +219,7 @@ class BootstrapAdmin(admin.ModelAdmin):
         if not deployer_auth_token:
             messages.info(
                 request,
-                f"The 'deployer' user has no auth token. If you wish to use the API, please go to the Tokens menu option and add a token for the 'deployer' user."
+                "The 'deployer' user has no auth token. If you wish to use the API, please go to the Tokens menu option and add a token for the 'deployer' user."
             )
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
@@ -341,12 +369,31 @@ class ConfigAdmin(admin.ModelAdmin):
         return super().changeform_view(request, object_id, form_url, extra_context)
 
 
+class RevealUUIDWidget(TextInput):
+    template_name = 'hub/widgets/reveal_uuid.html'
+
+    def __init__(self, attrs=None):
+        super().__init__(attrs)
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget']['type'] = 'password'  # Initially hide the value
+        return context
+
+
 @admin.register(hub.models.Server)
 class ServerAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'fqdn','ipv4_address', 'connected', 'disconnected_since', 'last_seen')
-    list_display = ['fqdn', 'uuid', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen', 'groups']
+    list_display = ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen', 'groups']
     search_fields = ["fqdn", "ipv4_address", "uuid", "disconnected_since"]
     list_filter = ["connected", "server_groups"]
+
+    def uuid_custom_display(self, obj):
+        # Custom display logic for the 'uuid' field
+        context = {'field': obj.uuid}
+        return mark_safe(render_to_string('hub/hide_reveal_field_display.html', context))
+
+    uuid_custom_display.short_description = 'UUID'
 
     def has_view_permission(self, request, obj=None):
         return True
@@ -364,7 +411,7 @@ class ServerAdmin(admin.ModelAdmin):
         list_display = super().get_list_display(request).copy()
         if not request.user.is_superuser:
             list_display.remove("groups")
-            list_display.remove("uuid")
+            #list_display.remove("uuid")
         return list_display
 
     def get_fieldsets(self, request, obj=None):
@@ -372,12 +419,19 @@ class ServerAdmin(admin.ModelAdmin):
         Hide server_groups and uuid fields from non-superusers
         """
         fieldsets = super().get_fieldsets(request, obj)
-        if not request.user.is_superuser:
-            for index, fieldset in enumerate(fieldsets):
-                if fieldset[0] == None:
+        for index, fieldset in enumerate(fieldsets):
+            if fieldset[0] == None:
+                if request.user.is_superuser:
+                    fieldsets[index] = (None, {'fields': ['server_groups', 'uuid_custom_display', 'fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
+                else:
                     fieldsets[index] = (None, {'fields': ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
-                    break
+                break
         return fieldsets
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return ['uuid_custom_display', *self.readonly_fields]
+        return self.readonly_fields
 
     def get_queryset(self, request):
         if request.user.is_superuser:
