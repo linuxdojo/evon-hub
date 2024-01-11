@@ -2,6 +2,7 @@ from functools import partial
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.admin.models import LogEntry
 from django.contrib.auth import authenticate
 from django.contrib.auth.signals import user_logged_in
 from django.core.exceptions import PermissionDenied
@@ -43,6 +44,17 @@ def pre_save_user(sender, instance, **kwargs):
         instance.is_superuser = False
         instance.is_staff = False
         instance.active = True
+
+
+@receiver(pre_save, sender=LogEntry)
+def modify_log_entry(sender, instance, created=False, **kwargs):
+    """Filter api token values from log entries"""
+
+    try:
+        if instance.content_type.app_label == "authtoken":
+            instance.object_repr = "authtoken changed"
+    except Exception as e:
+        logger.warning(f"Unexpected exception during presave receive handling of LogEntry object: {e}")
 
 
 ###############################

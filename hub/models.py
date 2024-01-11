@@ -2,7 +2,6 @@ from itertools import chain
 import datetime
 import ipaddress
 import json
-import os
 import re
 
 from django.contrib.auth.models import User, Group
