@@ -1,11 +1,12 @@
 <div>
   <kbd>
-    <span id="custom_field">{{ field }}</span>
+    <span id="custom_field">{{ field_value }}</span>
   </kbd>
   <button onclick="event.preventDefault(); toggleText('custom_field', 'custom_field_icon');" style="border: none; background: none; cursor: pointer;">
     <i id="custom_field_icon" class='fa fa-eye'></i>
   </button>
 </div>
+<div class="help-block">{{ field_helptext }}</div>
 
 <script>
   let originalText = '';

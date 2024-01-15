@@ -68,7 +68,11 @@ class HubTokenAdmin(TokenAdmin):
 
     def token_custom_display(self, obj):
         # Custom display logic for the 'uuid' field
-        context = {'field': obj.key}
+        obj.passkey = ""
+        context = {
+            'field_value': obj.key,
+            'field_helptext': obj._meta.get_field('key').help_text,
+        }
         return mark_safe(render_to_string('hub/hide_reveal_field_display.html', context))
 
     token_custom_display.short_description = 'Key'
@@ -99,7 +103,7 @@ class HubTokenAdmin(TokenAdmin):
         return True
 
     def get_changeform_initial_data(self, request):
-        "only show the logged in user if non-superuser"
+        "only provide the logged in user's own token in the list view if non-superuser"
         if not request.user.is_superuser:
             return {"user": request.user}
 
@@ -107,25 +111,42 @@ class HubTokenAdmin(TokenAdmin):
         fieldsets = super().get_fieldsets(request, obj)
         for index, fieldset in enumerate(fieldsets):
             if fieldset[0] == None:
-                fieldsets[index] = (None, {'fields': ['token_custom_display', 'user']})
+                if obj is None:
+                    # this is the "add" case
+                    fieldsets[index] = (None, {'fields': ['user']})
+                else:
+                    # this is the "change" case
+                    fieldsets[index] = (None, {'fields': ['token_custom_display', 'user']})
                 break
         return fieldsets
 
     def get_readonly_fields(self, request, obj=None):
-        return ['token_custom_display', *self.readonly_fields]
+        ro_fields = ['token_custom_display', *self.readonly_fields]
+        if obj:
+            return ro_fields + ['user']
+        else:
+            return ro_fields
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         "hide all but the logged in user as choices when creating a new token as a non-superuser"
         request = kwargs.get("request")
-        if not request:
-            return super().formfield_for_dbfield(db_field, **kwargs)
         formfield = super().formfield_for_dbfield(db_field, **kwargs)
-        if not request.user.is_superuser:
+        if not request:
+            return formfield
+        if request.user.is_superuser:
+            try:
+                owner = [c for c in formfield.choices if c[1] == hub.models.User.objects.get(id=request.resolver_match.kwargs.get('object_id')).username]
+            except hub.models.User.DoesNotExist:
+                owner = []
+            formfield.choices = [c for c in formfield.choices if c[1] in [u.username for u in hub.models.User.objects.all() if not hasattr(u, "auth_token")]] + owner
+        else:
             formfield.choices = (c for c in formfield.choices if c[1] == request.user.username)
         return formfield
 
     def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
         extra_context = extra_context or {}
+        if object_id:
+            extra_context['show_save'] = False
         extra_context['show_save_and_continue'] = False
         extra_context['show_save_and_add_another'] = False
         return super().changeform_view(request, object_id, form_url, extra_context)
@@ -390,7 +411,10 @@ class ServerAdmin(admin.ModelAdmin):
 
     def uuid_custom_display(self, obj):
         # Custom display logic for the 'uuid' field
-        context = {'field': obj.uuid}
+        context = {
+            'field_value': obj.uuid,
+            'field_helptext': obj._meta.get_field('uuid').help_text,
+        }
         return mark_safe(render_to_string('hub/hide_reveal_field_display.html', context))
 
     uuid_custom_display.short_description = 'UUID'
@@ -422,7 +446,7 @@ class ServerAdmin(admin.ModelAdmin):
         for index, fieldset in enumerate(fieldsets):
             if fieldset[0] == None:
                 if request.user.is_superuser:
-                    fieldsets[index] = (None, {'fields': ['server_groups', 'uuid_custom_display', 'fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
+                    fieldsets[index] = (None, {'fields': ['server_groups', 'uuid_custom_display', "passkey", 'fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
                 else:
                     fieldsets[index] = (None, {'fields': ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
                 break

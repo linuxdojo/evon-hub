@@ -2,14 +2,19 @@ from itertools import chain
 import datetime
 import ipaddress
 import json
+import random
 import re
+import string
+import uuid
 
+from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.dispatch.dispatcher import receiver
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from solo.models import SingletonModel
 import humanfriendly
@@ -19,7 +24,7 @@ from eapi.settings import EVON_VARS
 from evon import evon_api
 from evon.cli import EVON_API_URL, EVON_API_KEY, inject_pub_ipv4
 from evon.log import get_evon_logger
-from hub.exceptions import OutOfAddresses
+from hub.exceptions import OutOfAddresses, PasskeyError
 
 
 ##### Setup globals
@@ -49,12 +54,10 @@ def vpn_ipv4_addresses(for_users=False):
     return client_addresses
 
 
-def on_al2():
-    try:
-        with open("/etc/os-release") as f:
-            return "Amazon Linux" in f.read()
-    except:
-        return False
+def generate_random_string(length=32):
+    characters = string.ascii_letters + string.digits
+    secure_random = random.SystemRandom()  # Use the system's source for better quality randomness
+    return ''.join(secure_random.choice(characters) for _ in range(length))
 
 
 ##### Model Validators
@@ -176,10 +179,20 @@ class Server(models.Model):
         max_length=36,
         unique=True,
         validators=[RegexValidator(regex=UUID_PATTERN)],
-        help_text=("This value is set on line 1 of the evon.uuid file on your connected server. "
+        help_text=("This uuid value must be set on line 1 of the evon.uuid file on your connected server. "
                    "A unique static IPv4 address is auto-assigned to any new UUID values seen by the Hub. "
                    "Visible only to superusers."
         ),
+    )
+    passkey = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        help_text=("This passkey value must be set after the first colon character on line 2 of the evon.uuid file "
+                   "on your connected server in the format &lt;hostname&gt;:&lt;passkey&gt;. "
+                   "The raw passkey is not stored and there is no way to retrieve it, but it can be changed. "
+                   "Leave blank to keep the existing passkey unchanged. Changable ony by superusers."
+        )
     )
     # Max fqdn length is 1004 according to RFC, but max mariadb unique varchar is 255
     fqdn = models.CharField(
@@ -188,7 +201,8 @@ class Server(models.Model):
         unique=True,
         validators=[EvonFQDNValidator],
         editable=False,
-        help_text=("This value is set using line 2 of the evon.uuid file on your connected server. "
+        help_text=("This fqdn value is derived using the <hostname> component of line 2 of the evon.uuid file"
+                   "on your connected server in the format <hostname>:<passkey>."
                    "An index number may be automatically appended if needed for uniqueness to prevent "
                    "duplicate FQDN's. To change this value, edit your evon.uuid file and restart "
                    "OpenVPN on your endpoint server."
@@ -201,7 +215,7 @@ class Server(models.Model):
         validators=[EvonIPV4Validator],
         help_text="This value is auto-assigned and is static for the UUID used by this Server."
     )
-    # connected and disconnected_since will be auto-updated by mapper.py
+    # connected and disconnected_since will be auto-updated by the openvpn connect/disconnect scripts in evon/openvpn_scripts/
     connected = models.BooleanField(
         default=False,
         editable=False,
@@ -212,7 +226,7 @@ class Server(models.Model):
         blank=True,
         null=True,
         editable=False,
-        help_text="This value is set only when a server is detected as not connected.",
+        help_text="This value is set only when a previously connected server is disconnected for any reason.",
     )
     server_groups = models.ManyToManyField(
         ServerGroup,
@@ -230,6 +244,8 @@ class Server(models.Model):
 
     def last_seen(self):
         if not self.disconnected_since:
+            if not self.connected:
+                return "never"
             return "now"
         else:
             delta = timezone.now() - self.disconnected_since
@@ -267,9 +283,18 @@ class Server(models.Model):
         )
         return user in users_with_access
 
+    def encrypt_passkey(self, raw_passkey):
+        return make_password(raw_passkey)
+
+    def validate_passkey(self, raw_passkey):
+        if not self.passkey:
+            logger.warning(f"no passkey set for server: {self}")
+            return False
+        return check_password(raw_passkey, self.passkey)
+
     def save(self, *args, dev_mode=False, **kwargs):
         # force dev mode if we're not on an AL2 EC2 instance
-        if not on_al2():
+        if EVON_VARS["standalone"]:
             dev_mode = True
         # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
@@ -310,7 +335,11 @@ class Server(models.Model):
                 logger.info(f"set_records request: {payload}")
                 response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
                 logger.info(f"set_records reponse: {response}")
+        elif not self.connected and not self.disconnected_since:
+            # this server has been registered but has never connected
+            pass
         else:
+            # this server was connected but has not disconnected
             self.disconnected_since = timezone.now()
             # update dns, remove record
             payload = {
@@ -326,9 +355,27 @@ class Server(models.Model):
                 logger.info(f"set_records request: {payload}")
                 response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
                 logger.info(f"set_records reponse: {response}")
+        if self._state.adding and not self._state.db:
+            # model instance is new
+            if not self.uuid:
+                # create a uuid if not provided
+                logger.info(f"creating new uuid registration for first seen server: {self}")
+                self.uuid = uuid.uuid4()
+            if not self.passkey:
+                logger.info(f"creating new passkey for first seen server: {self}")
+                # create initial passkey if not provided, and store it in an ephemeral property on self named passkey_cleartext
+                passkey_cleartext = generate_random_string()
+                self.passkey = self.encrypt_passkey(passkey_cleartext)
+        elif self.passkey and not self.passkey.startswith('pbkdf2_sha256$'):
+            # ensure key is hashed if provided as cleartext
+            self.passkey = self.encrypt_passkey(self.passkey)
+        # TODO enforce complex passkey
         # validate and save
         self.full_clean()
         super().save(*args, **kwargs)
+        # provide the autogenerated cleartext password in return response
+        if "passkey_cleartext" in locals():
+            return passkey_cleartext
 
 
 class Rule(models.Model):
@@ -592,7 +639,7 @@ class UserProfile(models.Model):
     def __str__(self):
         return "Profile"
 
-    def save(self, *args, dev_mode=False, **kwargs):
+    def save(self, *args, **kwargs):
         # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
             for ipv4_addr in vpn_ipv4_addresses(for_users=True):
