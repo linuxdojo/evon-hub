@@ -60,6 +60,25 @@ def generate_random_string(length=32):
     return ''.join(secure_random.choice(characters) for _ in range(length))
 
 
+def validate_new_passkey(new_passkey):
+    """
+    Return (True, "ok") iff new_passkey contains 32 chars, at least 8 of which are unique, and is not used
+    as a passkey on another Server, else return (False, "some error message").
+    """
+    characters = string.ascii_letters + string.digits
+    result = True
+    message = "ok"
+    for c in new_passkey:
+        if c not in characters or \
+                len(new_passkey) != 32 or \
+                len(set(new_passkey)) < 8:
+                # FIXME below commented as it takes 250ms to validate one password, consider using process pool concurrency as workload is cpu bound
+                #not any([s.validate_passkey(new_passkey) for s in Server.objects.all()]) or \
+            result = False
+            message = "Passkey must contain 32 alphanumeric characters, of which at least 8 are unique"
+    return result, message
+
+
 ##### Model Validators
 
 def EvonIPV4Validator(value, for_users=False):
@@ -175,11 +194,11 @@ class ServerGroup(models.Model):
 class Server(models.Model):
     uuid = models.CharField(
         verbose_name="UUID",
-        editable=False,
+        #editable=False,
         max_length=36,
         unique=True,
         validators=[RegexValidator(regex=UUID_PATTERN)],
-        help_text=("This uuid value must be set on line 1 of the evon.uuid file on your connected server. "
+        help_text=("This UUID value must be set on line 1 of the evon.uuid file on your connected server. "
                    "A unique static IPv4 address is auto-assigned to any new UUID values seen by the Hub. "
                    "Visible only to superusers."
         ),
@@ -188,7 +207,7 @@ class Server(models.Model):
         max_length=128,
         blank=True,
         null=True,
-        help_text=("This passkey value must be set after the first colon character on line 2 of the evon.uuid file "
+        help_text=("This passkey value must be set in the &lt;passkey&gt; component on line 2 of the evon.uuid file "
                    "on your connected server in the format &lt;hostname&gt;:&lt;passkey&gt;. "
                    "The raw passkey is not stored and there is no way to retrieve it, but it can be changed. "
                    "Leave blank to keep the existing passkey unchanged. Changable ony by superusers."
@@ -200,9 +219,9 @@ class Server(models.Model):
         max_length=255,
         unique=True,
         validators=[EvonFQDNValidator],
-        editable=False,
-        help_text=("This fqdn value is derived using the <hostname> component of line 2 of the evon.uuid file"
-                   "on your connected server in the format <hostname>:<passkey>."
+        #editable=False,
+        help_text=("This fqdn value is derived using the &lt;hostname&gt; component of line 2 of the evon.uuid file "
+                   "on your connected server in the format &lt;hostname&gt;:&lt;passkey&gt;. "
                    "An index number may be automatically appended if needed for uniqueness to prevent "
                    "duplicate FQDN's. To change this value, edit your evon.uuid file and restart "
                    "OpenVPN on your endpoint server."
@@ -287,10 +306,43 @@ class Server(models.Model):
         return make_password(raw_passkey)
 
     def validate_passkey(self, raw_passkey):
+        """
+        compares a provided passkey with the stored hash, returning True if it matches
+        """
         if not self.passkey:
             logger.warning(f"no passkey set for server: {self}")
             return False
         return check_password(raw_passkey, self.passkey)
+
+    def clean(self):
+        if self._state.adding and not self._state.db:
+            # model instance is new
+            if not self.uuid:
+                # create a uuid if not provided
+                logger.info(f"creating new uuid registration for first seen server: {self}")
+                self.uuid = uuid.uuid4()
+            if not self.passkey:
+                logger.info(f"creating new passkey for first seen server: {self}")
+                # create initial passkey if not provided, and store it in an ephemeral property on self named passkey_cleartext
+                passkey_cleartext = generate_random_string()
+                self.passkey = self.encrypt_passkey(passkey_cleartext)
+            else:
+                # they provided a passkey on creation, ensure it meets complexity requirements
+                result, message = validate_new_passkey(self.passkey)
+                if not result:
+                    logger.info(f"invalid new passkey provided for first seen server: {self}")
+                    raise ValidationError({"passkey": message})
+        elif self.passkey and not self.passkey.startswith('pbkdf2_sha256$'):
+            # an update passkey was passed in during an update, enforce complex passkey
+            result, message = validate_new_passkey(self.passkey)
+            if not result:
+                logger.info(f"invalid new passkey provided for existing server: {self}")
+                raise ValidationError({"passkey": message})
+            # ensure key is hashed if provided as cleartext
+            self.passkey = self.encrypt_passkey(self.passkey)
+        elif not self.passkey:
+            # an empty passkey was provided duriong an update, use the previous value
+            self.passkey = Server.objects.get(pk=self.pk).passkey
 
     def save(self, *args, dev_mode=False, **kwargs):
         # force dev mode if we're not on an AL2 EC2 instance
@@ -355,21 +407,6 @@ class Server(models.Model):
                 logger.info(f"set_records request: {payload}")
                 response = evon_api.set_records(EVON_API_URL, EVON_API_KEY, payload)
                 logger.info(f"set_records reponse: {response}")
-        if self._state.adding and not self._state.db:
-            # model instance is new
-            if not self.uuid:
-                # create a uuid if not provided
-                logger.info(f"creating new uuid registration for first seen server: {self}")
-                self.uuid = uuid.uuid4()
-            if not self.passkey:
-                logger.info(f"creating new passkey for first seen server: {self}")
-                # create initial passkey if not provided, and store it in an ephemeral property on self named passkey_cleartext
-                passkey_cleartext = generate_random_string()
-                self.passkey = self.encrypt_passkey(passkey_cleartext)
-        elif self.passkey and not self.passkey.startswith('pbkdf2_sha256$'):
-            # ensure key is hashed if provided as cleartext
-            self.passkey = self.encrypt_passkey(self.passkey)
-        # TODO enforce complex passkey
         # validate and save
         self.full_clean()
         super().save(*args, **kwargs)

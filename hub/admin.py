@@ -1,21 +1,20 @@
 import os
 from textwrap import dedent
+import uuid
 
-from django.contrib import admin
-from django.contrib import messages
+from django import forms
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm, TextInput
 from django.http import HttpResponseRedirect
-from django.template import Context
-from django.template import Template
+from django.template import Context, Template
 from django.template.loader import render_to_string
-from django.urls import path
-from django.urls import reverse
+from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from rest_framework.authtoken.admin import TokenAdmin 
+from rest_framework.authtoken.admin import TokenAdmin
 from rest_framework.authtoken.models import TokenProxy
 
 from eapi.settings import EVON_VARS, BASE_DIR, JAZZMIN_SETTINGS, EVON_HUB_CONFIG
@@ -45,6 +44,13 @@ def linkify(obj, prepend_icon=True):
         icon = JAZZMIN_SETTINGS["icons"][f"{app_label}.{model_name}"]
         label = format_html(f'<i class="{icon}"></i> {label}')
     return format_html('<a href="{}">{}</a>', link_url, label)
+
+
+class CustomTextInput(forms.TextInput):
+    def __init__(self, *args, attrs={}, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        super().__init__(*args, **kwargs)
+        self.attrs = attrs
 
 
 admin.site.unregister(TokenProxy)
@@ -123,8 +129,10 @@ class HubTokenAdmin(TokenAdmin):
     def get_readonly_fields(self, request, obj=None):
         ro_fields = ['token_custom_display', *self.readonly_fields]
         if obj:
-            return ro_fields + ['user']
+            # this is the "change" case
+            return ro_fields + ['user']  # show user but make immutable
         else:
+            # this is the "add" case
             return ro_fields
 
     def formfield_for_dbfield(self, db_field, **kwargs):
@@ -404,10 +412,13 @@ class RevealUUIDWidget(TextInput):
 
 @admin.register(hub.models.Server)
 class ServerAdmin(admin.ModelAdmin):
-    readonly_fields = ('uuid', 'fqdn','ipv4_address', 'connected', 'disconnected_since', 'last_seen')
+    readonly_fields = ('ipv4_address', 'connected', 'disconnected_since', 'last_seen')
     list_display = ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen', 'groups']
     search_fields = ["fqdn", "ipv4_address", "uuid", "disconnected_since"]
     list_filter = ["connected", "server_groups"]
+
+    class Media:
+        js = ('/static/server.js',)
 
     def uuid_custom_display(self, obj):
         # Custom display logic for the 'uuid' field
@@ -423,7 +434,11 @@ class ServerAdmin(admin.ModelAdmin):
         return True
 
     def has_add_permission(self, request, obj=None):
-        return False
+        # only superusers can add a server
+        if request.user.is_superuser:
+            return True
+        else:
+            return False
 
     def has_module_permission(self, request, obj=None):
         return True
@@ -438,6 +453,21 @@ class ServerAdmin(admin.ModelAdmin):
             #list_display.remove("uuid")
         return list_display
 
+    def get_changeform_initial_data(self, request):
+        initial_data = super().get_changeform_initial_data(request)
+        initial_data['passkey'] = hub.models.generate_random_string()
+        initial_data['uuid'] = uuid.uuid4()
+        return initial_data
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        if db_field.name == 'passkey':
+            kwargs['widget'] = CustomTextInput(attrs={"readonly": True, "style": "width: 25em;"})
+        elif db_field.name == 'uuid':
+            kwargs['widget'] = CustomTextInput(attrs={"readonly": True, "style": "width: 25em;"})
+        elif db_field.name == 'fqdn':
+            kwargs['widget'] = CustomTextInput(attrs={"placeholder": "<hostname>", "style": "width: 10em;", "account_domain": EVON_VARS["account_domain"]})
+        return super().formfield_for_dbfield(db_field, **kwargs)
+
     def get_fieldsets(self, request, obj=None):
         """
         Hide server_groups and uuid fields from non-superusers
@@ -445,19 +475,32 @@ class ServerAdmin(admin.ModelAdmin):
         fieldsets = super().get_fieldsets(request, obj)
         for index, fieldset in enumerate(fieldsets):
             if fieldset[0] == None:
-                if request.user.is_superuser:
-                    fieldsets[index] = (None, {'fields': ['server_groups', 'uuid_custom_display', "passkey", 'fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
+                if obj is None:
+                    # this is the "add" case
+                    fieldsets[index] = (None, {'fields': ['fqdn', 'uuid', 'passkey', 'server_groups']})
                 else:
-                    fieldsets[index] = (None, {'fields': ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
+                    # this is the "change" case
+                    obj.passkey = ""
+                    if request.user.is_superuser:
+                        fieldsets[index] = (None, {'fields': ['fqdn', 'uuid_custom_display', "passkey", 'server_groups', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
+                    else:
+                        fieldsets[index] = (None, {'fields': ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen']})
                 break
         return fieldsets
 
     def get_readonly_fields(self, request, obj=None):
-        if request.user.is_superuser:
-            return ['uuid_custom_display', *self.readonly_fields]
-        return self.readonly_fields
+        if obj:
+            # this is the "change" case
+            if request.user.is_superuser:
+                return ['uuid_custom_display', 'fqdn', 'uuid', *self.readonly_fields]
+            else:
+                return ['fqdn', 'uuid', *self.readonly_fields]
+        else:
+            # this is the "add" case
+            return [*self.readonly_fields]
 
     def get_queryset(self, request):
+        # only list servers that the user has access to via rules/policies if not a superuser
         if request.user.is_superuser:
             return hub.models.Server.objects.all()
         allowed_servers = [s.pk for s in hub.models.Server.objects.all() if s.user_has_access(request.user)]
