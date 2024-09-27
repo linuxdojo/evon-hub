@@ -1,14 +1,29 @@
 #!/bin/bash
 
 # This is an example/reference implementation for the standalone hook script called by the Evon app when
-# in Standalone mode. This script is called by evon-hub/evon/evon_api.py when STANDALONE mode is enabled.
-# It mimics the API responses provided by the Evon cloud API used to manage customer registartions and
-# creates/destroys individual server DNS records as they connect to and disconnect from this Hub.
+# in Standalone mode. This script is called by `evon-hub/evon/evon_api.py` when STANDALONE mode is enabled.
+# It mimics the API responses provided by the Evon SaaS API used to manage customer registartions and,
+# most importantly, creates/updates/deletes individual DNS records as systems join and leave the Hub.
 #
 # This script can be writted in any language. Inputs are provided using environment variables as shown
-# in the below BASH script, and responses must be in JSON, simply printed to stdout. The script will
+# in the below BASH script.Responses must be in JSON, simply printed to stdout. This script will
 # be executed as the "evonhub" user which is a low privilege user created during installation.
+#
+# Te example below includes code to update records in a pre-created Route53 zone in AWS, but you can
+# modify it to support any DNS server that can be controlled programatically.
 
+
+# If you're using AWS Route53 for DNS, create a zone, for example 'example.com' and create an A record therein
+# called `hub.example.com` that points to your EvonHub server's public IP address. Then, create an IAM user
+# with an API Key and Secret, and update the below 3 values. When running `evon-hub-standalone_<ver>.sh` on
+# your server, specify option `--domain-name hub.example.com`. Systems that you connect to your hub will
+# obtain the address `<hostname>.hub.example.com`. This is all you will need to get working using Route53.
+export AWS_ACCESS_KEY_ID="your_access_key_id"
+export AWS_SECRET_ACCESS_KEY="your_secret_access_key"
+AWS_HOSTED_ZONE_ID="your_route53_zone_id"
+
+
+# variables provided during runtime by the Hub app.
 endpoint=$EVON_HOOK_REQUEST_URL
 method=$EVON_HOOK_REQUEST_METHOD
 headers=$EVON_HOOK_HEADERS
@@ -16,9 +31,78 @@ body=$EVON_HOOK_BODY
 params=$EVON_HOOK_PARAMS
 
 
+# logger function
+function logit() {
+    [ -z "$@" ] ||  logger -t evon_standalone_hook "$@"
+}
+
+
+# function to create/update a DNS record. This example uses Route53, however you can replace it with your own.
+function create_or_update_record() {
+    local domain=$1
+    local ip=$2
+    if [[ -z "$domain" || -z "$ip" ]]; then
+        logit "create_or_update_record() Skipping empty domain or IP"
+        return
+    fi
+    logit "Creating/Updating A record for $domain with IP $ip"
+    aws route53 change-resource-record-sets --hosted-zone-id "$AWS_HOSTED_ZONE_ID" --change-batch '{
+        "Comment": "Creating or updating A record",
+        "Changes": [
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "'"$domain"'",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [
+                        {
+                            "Value": "'"$ip"'"
+                        }
+                    ]
+                }
+            }
+        ]
+    }'
+}
+
+
+# function to delete a DNS record. This example uses Route53, however you can replace it with your own.
+function delete_record() {
+    local domain=$1
+    local ip=$2
+    if [[ -z "$domain" || -z "$ip" ]]; then
+        logit "delete_record() Skipping empty domain or IP"
+        return
+    fi
+    logit "Deleting A record for $domain with IP $ip"
+    aws route53 change-resource-record-sets --hosted-zone-id "$AWS_HOSTED_ZONE_ID" --change-batch '{
+        "Comment": "Deleting A record",
+        "Changes": [
+            {
+                "Action": "DELETE",
+                "ResourceRecordSet": {
+                    "Name": "'"$domain"'",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [
+                        {
+                            "Value": "'"$ip"'"
+                        }
+                    ]
+                }
+            }
+        ]
+    }'
+}
+
+
+logit "evon_standalone_hook starting..."
+
 if [ "$endpoint" == "/api/zone/records" ]; then
 
     if [ "$EVON_HOOK_REQUEST_METHOD" == "put" ]; then
+        logit "Got PUT /api/zone/records with body: $body"
         # This endpoint receives a JSON object in $body listing server FQDN's and their IPv4
         # addresses that are newly connected, removed, updated or unchanged. The structure is:
         #   {
@@ -60,6 +144,40 @@ if [ "$endpoint" == "/api/zone/records" ]; then
         #
         # The value of `subnet_key` is whatever was chosen during registartion (default is "111", see below)
 
+        # Create new records
+        if [[ -n "$new_records" ]]; then
+            while IFS= read -r line; do
+                domain=$(echo "$line" | cut -d' ' -f1)
+                ip=$(echo "$line" | cut -d' ' -f2)
+                create_or_update_record "$domain" "$ip"
+            done <<< "$new_records"
+        else
+            logit "No new records to process."
+        fi
+
+        # Update records
+        if [[ -n "$updated_records" ]]; then
+            while IFS= read -r line; do
+                domain=$(echo "$line" | cut -d' ' -f1)
+                ip=$(echo "$line" | cut -d' ' -f2)
+                create_or_update_record "$domain" "$ip"
+            done <<< "$updated_records"
+        else
+            logit "No updated records to process."
+        fi
+
+        # Delete removed records
+        if [[ -n "$removed_records" ]]; then
+            while IFS= read -r line; do
+                domain=$(echo "$line" | cut -d' ' -f1)
+                ip=$(echo "$line" | cut -d' ' -f2)
+                delete_record "$domain" "$ip"
+            done <<< "$removed_records"
+        else
+            logit "No removed records to process."
+        fi
+
+        # create and print response JSON to stdout
         account_domain=$(cat /opt/evon-hub/evon_vars.yaml | grep "account_domain:" | awk '{print $NF}' | sed 's/"//g')
         subnet_key=$(cat /opt/evon-hub/evon_vars.yaml | grep "subnet_key:" | cut -d" " -f2)
         public_ipv4=$(echo $body | jq -r '."public-ipv4"')
@@ -67,17 +185,21 @@ if [ "$endpoint" == "/api/zone/records" ]; then
         echo "{\"account_domain\":\"${account_domain}\",\"subnet_key\":\"${subnet_key}\",\"public_ipv4\":\"${public_ipv4}\",\"message\":\"${message}\"}"
 
     elif [ "$EVON_HOOK_REQUEST_METHOD" == "get" ]; then
+        logit "Got GET /api/zone/records"
         # This endpoint retunrs all current server A records and their values, eg:
         #   {
         #     "server1.example.com": "100.111.224.6",
         #     "server2.example.com": "100.111.224.10"
         #   }
         # Use your own code to enumerate these records from your DNS zone and return them.
+        #
+        # create and print response JSON to stdout
         echo "{}"
 
     fi
 
 elif [ "$endpoint" == "/api/zone/register" ]; then
+    logit "Got $EVON_HOOK_REQUEST_METHOD /api/zone/register"
     # This endpoint is used to register a new SaaS deployment and to set the initial A record for the
     # base account domain. The IPv4 address to use to create/update the A record is in key named
     # "public-ipv4" in the JSON object in $body. Implement your own way to create/update this DNS record,
@@ -101,6 +223,8 @@ elif [ "$endpoint" == "/api/zone/register" ]; then
     #       "public_ipv4": "1.2.3.4",
     #       "message": "success"
     #   }
+    #
+    # create and print response JSON to stdout
     account_domain=$(cat /opt/evon-hub/evon_vars.yaml | grep "account_domain:" | awk '{print $NF}' | sed 's/"//g')
     subnet_key=$(cat /opt/evon-hub/evon_vars.yaml | grep "subnet_key:" | cut -d" " -f2)
     public_ipv4=$(echo $body | jq -r '."public-ipv4"')
@@ -110,13 +234,18 @@ elif [ "$endpoint" == "/api/zone/register" ]; then
 
 elif [ "$endpoint" == "/api/zone/deregister" ]; then
     # Used only for SaaS deployments
+    logit "Got $EVON_HOOK_REQUEST_METHOD /api/zone/deregister"
+    # create and print response JSON to stdout
     echo '{}'
 
 elif [[ "$endpoint" =~ ^/api/zone/update/ ]]; then
+    logit "Got $EVON_HOOK_REQUEST_METHOD /api/zone/update"
     # This endpoint is used only by SaaS deployments for upgrading the Evon Hub app. For standalone
     # deployments, simpy upgrade using the latest code/release in the master branch on Github, or implement
     # your own method here. The request url starts with "/api/zone/update/" and the remainder of the string
     # is the current version of Evon Hub.
+    #
+    # create and print response JSON to stdout
     echo '{"update_available":false}'
 
 fi
