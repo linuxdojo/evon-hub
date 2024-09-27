@@ -9,6 +9,8 @@ openvpn*.conf.inc
 
 # Package artefacts
 evon-hub*.sh
+evon-hub-selfhosted_*.*
+evon-hub-standalone_*.*
 _build/
 eapi/static/
 temp/

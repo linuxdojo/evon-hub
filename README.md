@@ -14,15 +14,7 @@ There are 3 modes of installation:
 
 ## Quick Start
 
-* Clone this repository on your development workstation.
-* Create and activate a Python 3.10.5 virtual environment.
-> [!NOTE]  
-> You may need a tool like pyenv to first install Python 3.10.5, but, if you're cloning the code on your target EvonHub server rather than on your development workstation, make sure that pyenv installs Python 3.10.5 in, for example, `/opt/pyenv` rather than default location of `~/.pyenv`, else the low priveleged user that runs the evonhub service can't reach into the user's home to access Python. Then create your virtualenv in `./.env` in the cloned Evonhub repo, and activate it before continuing.
-* Run the following command to build the installer package:
-```
-make package-oss
-```
-This will create an installer file named `evon-hub-standalone_<version>.sh`.
+* Obtain the lastest release from [Releases](https://github.com/linuxdojo/evon-hub/releases).
 * Create a fresh Rocky/AlmaLinux 9 VPS instance with a public IPv4 address, and assign a domain name to it, eg "hub.example.com"
 * Ensure the following protocols/ports are allowed inbound:
   * tcp/22 (for your remote shell/management only, using a high port and/or source IP address filtering is recommended)
@@ -45,9 +37,20 @@ Connected servers can also obtain unique DNS names in the format `<hostname>.hub
 
 Local development assumes you are running a recent Linux distribution if you wish to run the EvonHub app locally on your development machine.
 
+* Clone this repository on your development workstation.
 * Create and activate a virtualenv using Python 3.10.5
 * run `make setup-local`
 * start the development webserver by running `make runserver`. The web UI can then be reached by browsing to [http://localhost:8001](http://localhost:8001). The default login credentials for the development server are `admin/admin`.
+
+### Building your own installer file
+
+> [!NOTE]
+> You may need a tool like pyenv to first install Python 3.10.5, but, if you're cloning the code on your target EvonHub server rather than on your development workstation, make sure that pyenv installs Python 3.10.5 in, for example, `/opt/pyenv` rather than default location of `~/.pyenv`, else the low priveleged user that runs the evonhub service can't reach into the user's home to access Python. Then create your virtualenv in `./.env` in the cloned Evonhub repo, and activate it before continuing.
+* Run the following command to build the installer package:
+```
+make package-oss
+```
+This will create an installer file named `evon-hub-standalone_<version>.sh`.
 
 ## Documentation
 
