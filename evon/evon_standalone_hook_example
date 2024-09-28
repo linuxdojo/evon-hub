@@ -17,7 +17,8 @@
 # called `hub.example.com` that points to your EvonHub server's public IP address. Then, create an IAM user
 # with an API Key and Secret, and update the below 3 values. When running `evon-hub-standalone_<ver>.sh` on
 # your server, specify option `--domain-name hub.example.com`. Systems that you connect to your hub will
-# obtain the address `<hostname>.hub.example.com`. This is all you will need to get working using Route53.
+# obtain the address `<hostname>.hub.example.com`. This, and availability of the `aws` and `jq` command
+# is all you will need to get working using Route53.
 export AWS_ACCESS_KEY_ID="your_access_key_id"
 export AWS_SECRET_ACCESS_KEY="your_secret_access_key"
 AWS_HOSTED_ZONE_ID="your_route53_zone_id"
@@ -143,6 +144,11 @@ if [ "$endpoint" == "/api/zone/records" ]; then
         #   }
         #
         # The value of `subnet_key` is whatever was chosen during registartion (default is "111", see below)
+
+        # Extracting the changes from the JSON using jq
+        new_records=$(echo "$body" | jq -r '.changes.new | to_entries[]? | "\(.key) \(.value)"')
+        updated_records=$(echo "$body" | jq -r '.changes.updated | to_entries[]? | "\(.key) \(.value)"')
+        removed_records=$(echo "$body" | jq -r '.changes.removed | to_entries[]? | "\(.key) \(.value)"')
 
         # Create new records
         if [[ -n "$new_records" ]]; then
