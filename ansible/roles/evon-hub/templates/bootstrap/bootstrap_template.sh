@@ -724,9 +724,11 @@ EOF
 
         if [ "$os" == "alpine" ]; then
             uname -r | grep -q windows && touch /run/openrc/softlevel
+            #TODO add `respawn_timeout=5` to /etc/init.d/openvpn to restart on failure
             rc-update add openvpn default
             rc-service openvpn start
         elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
+            #TODO consider how to restart service on failure on these old sysvinit systems if required
             chkconfig openvpn on
             service openvpn stop || :
             service openvpn start

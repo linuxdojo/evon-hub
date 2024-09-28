@@ -246,10 +246,13 @@ elif [ "$endpoint" == "/api/zone/deregister" ]; then
 
 elif [[ "$endpoint" =~ ^/api/zone/update/ ]]; then
     logit "Got $EVON_HOOK_REQUEST_METHOD /api/zone/update"
-    # This endpoint is used only by SaaS deployments for upgrading the Evon Hub app. For standalone
-    # deployments, simpy upgrade using the latest code/release in the master branch on Github, or implement
-    # your own method here. The request url starts with "/api/zone/update/" and the remainder of the string
-    # is the current version of Evon Hub.
+    # This endpoint is used for upgrading the Evon Hub app. Implement your own method here to check
+    # for new releases on Github. The request url starts with "/api/zone/update/" and the remainder
+    # of the string is the current version of Evon Hub.
+    #
+    # If a newer release is available to the current installed version, download it and invoke the
+    # installer with the same --domain-name <arg> as was originally used to setup the hub, which is
+    # availabe in YAML file at path `/opt/evon-hub/evon_vars.yaml` at key `account_domain`.
     #
     # create and print response JSON to stdout
     echo '{"update_available":false}'
