@@ -719,7 +719,7 @@ EOF
     fi
 
     if [ "$evon_nostart" != "true" ]; then
-            ##### Start and persist OpenVPN Client service
+        ##### Start and persist OpenVPN Client service
         echo "Starting OpenVPN Client service..."
 
         if [ "$os" == "alpine" ]; then
@@ -735,6 +735,17 @@ EOF
             if [ "$os" == "opensuse" ]; then
                 service_name="openvpn@evon"
             fi
+            # add unit file override to always restart on error
+            override_dir="/etc/systemd/system/${service_name}@evon.service.d"
+            override_file="$override_dir/override.conf"
+            mkdir -p "$override_dir"
+cat <<EOF > "$override_file"
+[Service]
+Restart=always
+RestartSec=5
+EOF
+            systemctl daemon-reload
+            # estart and persist the evon client service
             systemctl enable $service_name
             systemctl stop $service_name || :
             systemctl start $service_name
