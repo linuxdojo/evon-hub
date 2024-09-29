@@ -103,6 +103,7 @@ function delete_record() {
 
 
 logit "evon_standalone_hook starting..."
+logit "env: endpoint='$endpoint' method='$method' headers='$headers' body='$body' params='$params'"
 
 if [ "$endpoint" == "/api/zone/records" ]; then
 
@@ -197,38 +198,46 @@ if [ "$endpoint" == "/api/zone/records" ]; then
         logit "Got GET /api/zone/records"
         # This endpoint retunrs all current server A records and their values, eg:
         #   {
-        #     "server1.example.com": "100.111.224.6",
-        #     "server2.example.com": "100.111.224.10"
+        #     "server1.example.com.": "100.111.224.6",
+        #     "server2.example.com.": "100.111.224.10"
         #   }
-        # Use your own code to enumerate these records from your DNS zone and return them.
+        #
+        # NOTE: the trailing dot is required in the FQDN's above!
+        #
+        # Use your own code to enumerate these records from your DNS zone and return them to stdout in the above format.
 
         # Below is a working example using AWS cli and Route53, with pagination support. You can use it or replace with your own.
         all_records="[]"
-        next_token=null
+        next_token=""
         while true; do
-            if [ "$next_token" == "null" ]; then
-                result=$(aws route53 list-resource-record-sets --hosted-zone-id "$AWS_HOSTED_ZONE_ID" --query "ResourceRecordSets[?Type == 'A']" --output json)
+            if [ -z "$next_token" ]; then
+                result=$(aws route53 list-resource-record-sets --hosted-zone-id "$AWS_HOSTED_ZONE_ID" --output json)
             else
-                result=$(aws route53 list-resource-record-sets --hosted-zone-id "$AWS_HOSTED_ZONE_ID" --query "ResourceRecordSets[?Type == 'A']" --starting-token "$next_token" --output json)
+                result=$(aws route53 list-resource-record-sets --hosted-zone-id "$AWS_HOSTED_ZONE_ID" --starting-token "$next_token" --output json)
             fi
             # Append new results to all_records
-            all_records=$(echo "$all_records" "$result" | jq -s 'add')
+            records=$(echo "$result" | jq '.ResourceRecordSets | map(select(.Type == "A"))')
+            all_records=$(echo "$all_records" "$records" | jq -s 'add' | jq -r tostring)
             # Check for NextToken and break the loop if there are no more pages
-            next_token=$(echo "$result" | jq -r '.NextToken // null')
-            if [ "$next_token" == "null" ]; then
+            next_token=$(echo "$result" | jq -r '.NextToken // empty')
+            if [ -z "$next_token" ]; then
+                logit "fetched last page of record sets."
                 break
+            else
+                logit "fetching next page of record sets..."
             fi
         done
-        # Use jq to filter and format the output, omitting the A record for $account_domain
+        # Use jq to filter and format the output, adding a trailing dot to the FQDNs, and omitting the A record for $account_domain
         output=$(echo "$all_records" | jq -r --arg account_domain "$account_domain" '
             reduce .[] as $item ({};
                 if ($item.Name | rtrimstr(".") == $account_domain)
                 then .
-                else .[$item.Name | rtrimstr(".")] = $item.ResourceRecords[0].Value
+                else .[$item.Name | rtrimstr(".") + "."] = $item.ResourceRecords[0].Value
                 end
             )
-        ')
+        ' | jq -r tostring)
         # create and print response JSON to stdout
+        logit "current inventory: ${output}"
         echo "${output}"
 
     fi
