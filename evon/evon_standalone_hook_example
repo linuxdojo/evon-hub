@@ -35,7 +35,7 @@ params=$EVON_HOOK_PARAMS
 
 # grab globals from /opt/evon-hub/evon_vars.yaml
 account_domain=$(cat /opt/evon-hub/evon_vars.yaml | grep "account_domain:" | awk '{print $NF}' | sed 's/"//g')
-subnet_key=$(cat /opt/evon-hub/evon_vars.yaml | grep "subnet_key:" | cut -d" " -f2)
+subnet_key=$(cat /opt/evon-hub/evon_vars.yaml | grep "subnet_key:" | cut -d" " -f2 | sed 's/"//g')
 
 # logger function
 function logit() {
