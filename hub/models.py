@@ -15,7 +15,7 @@ from solo.models import SingletonModel
 import humanfriendly
 import pytz
 
-from eapi.settings import EVON_VARS
+from eapi.settings import EVON_VARS, DEBUG
 from evon import evon_api
 from evon.cli import EVON_API_URL, EVON_API_KEY, inject_pub_ipv4
 from evon.log import get_evon_logger
@@ -47,14 +47,6 @@ def vpn_ipv4_addresses(for_users=False):
     evon_network = ipaddress.ip_network(evon_subnet)
     client_addresses = [format(s[2]) for s in evon_network.subnets(new_prefix=30)][1:]
     return client_addresses
-
-
-def on_al2():
-    try:
-        with open("/etc/os-release") as f:
-            return "Amazon Linux" in f.read()
-    except:
-        return False
 
 
 ##### Model Validators
@@ -269,7 +261,7 @@ class Server(models.Model):
 
     def save(self, *args, dev_mode=False, **kwargs):
         # force dev mode if we're not on an AL2 EC2 instance
-        if not on_al2():
+        if DEBUG:
             dev_mode = True
         # dhcp-style ipv4_address assignment
         if not self.ipv4_address:
