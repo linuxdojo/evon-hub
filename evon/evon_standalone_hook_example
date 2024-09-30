@@ -293,6 +293,7 @@ elif [[ "$endpoint" =~ ^/api/zone/update/ ]]; then
     # availabe in YAML file at path `/opt/evon-hub/evon_vars.yaml` at key `account_domain`.
     #
     # create and print response JSON to stdout
-    echo '{"update_available":false}'
+    current_version=$(echo $endpoint | sed 's/\/api\/zone\/update\///g')
+    echo "{\"update_available\":false,\"message\":\"This Hub is at version $version. Check for updates manually by visiting https://github.com/linuxdojo/evon-hub/releases\"}"
 
 fi
