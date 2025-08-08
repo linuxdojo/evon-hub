@@ -769,7 +769,8 @@ EOF
         if [ "$success" != "1" ]; then
             echo -e "\n"
             echo "Error: Unable to contact the Evon Hub VPN peer address at ${EVON_HUB_PEER}."
-            echo "Please check syslog and the OpenVPN config in ${ovpn_conf_dir} and re-run this script"
+            echo "Is Discovery Mode disabled on your hub? If so, you may need to whitelist this server's UUID at: https://${ACCOUNT_DOMAIN}/hub/config/1/change/"
+            echo "Otherwise, please check syslog and the OpenVPN config in ${ovpn_conf_dir} and re-run this script"
             exit 1
         fi
         #### print status
