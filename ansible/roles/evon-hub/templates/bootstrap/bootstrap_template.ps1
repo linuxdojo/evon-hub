@@ -300,6 +300,7 @@ if ( $ping_result -eq "success" ) {
 }
 else {
     write-host "Error: Unable to contact the Evon Hub VPN peer address at $evon_hub_peer."
-    write-host "Please check the OpenVPN log in $pf_dir\OpenVPN\log\evon.log and the configuration files in $ovpn_conf_dir"
+    write-host "Is Discovery Mode disabled on your hub? If so, you may need to whitelist this server's UUID at: https://$ACCOUNT_DOMAIN/hub/config/1/change/"
+    write-host "Otherwise, please check the OpenVPN log in $pf_dir\OpenVPN\log\evon.log and the configuration files in $ovpn_conf_dir"
     exit 1
 }
