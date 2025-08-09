@@ -331,7 +331,7 @@ class PolicyAdmin(admin.ModelAdmin):
 @admin.register(hub.models.Config)
 class ConfigAdmin(admin.ModelAdmin):
     if EVON_VARS["standalone"]:
-        fields = ('discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
+        fields = ('timezone', 'discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
         list_display = ('config','total_server_count', "total_user_count", 'discovery_mode')
     elif EVON_VARS["selfhosted"]:
         fields = ('timezone','auto_update', 'auto_update_time', 'discovery_mode', 'uuid_blacklist', 'uuid_whitelist')
