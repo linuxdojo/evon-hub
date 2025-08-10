@@ -96,9 +96,8 @@ package: # Produce installer package artefact ready for publishing
 		eapi \
 		evon \
 		hub \
-		manage.py \
 		requirements.txt \
-		setup.py \
+		pyproject.toml \
 		version.txt \
 		LICENSE.txt
 	# Generate output package filename
