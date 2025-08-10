@@ -12,6 +12,7 @@ import pwd
 if os.getuid() and pwd.getpwuid(os.getuid())[0] == "openvpn":
     os.execl("/usr/bin/sudo", "-i", sys.argv[0], os.environ["common_name"])
 
+import evon
 import django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'eapi.settings'
 django.setup()
