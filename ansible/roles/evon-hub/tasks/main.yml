@@ -266,6 +266,9 @@
       - "/opt/evon-hub/evon/openvpn_scripts/server_connect.py"
       - "/opt/evon-hub/evon/openvpn_scripts/server_disconnect.py"
 
+#- name: build the auth-script-openvpn plugin
+  #TODO CONTINUE HERE
+
 
 ### Setup Evon Hub app
 
@@ -359,39 +362,96 @@
 
 ### Setup CertBot
 
-- name: check if certbot already configured
-  ansible.builtin.lineinfile:
-    path: /etc/nginx/conf.d/evon.conf
-    regexp: 'managed by Certbot'
+- name: remove self-signed ssl config if not skipping certbot
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/evon_selfsigned-ssl.conf
     state: absent
-  check_mode: yes
-  changed_when: false
-  register: certbot_config
+  when: not (skip_certbot_on_failure | default(false) | bool)
 
-- name: deploy certbot
-  ansible.builtin.shell: certbot run -d {{ account_domain }} --nginx -n --agree-tos --email root@{{ account_domain }}
-  when: not certbot_config.found
-  register: certbot_deploy
+- name: Setup CertBot with error handling
+  block:
 
-- name: setup certbot auto renewal
-  ansible.builtin.copy:
-    src: cron.d/certbot
-    dest: /etc/cron.d/certbot
-  when: certbot_deploy.changed
-  
-- name: configure nginx bind port
-  ansible.builtin.replace:
-    path: /etc/nginx/conf.d/evon.conf
-    regexp: '443'
-    replace: '1443'
-  when: certbot_deploy.changed
+    - name: check if certbot already configured
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/conf.d/evon.conf
+        regexp: 'managed by Certbot'
+        state: absent
+      check_mode: yes
+      changed_when: false
+      register: certbot_config
 
-- name: restart nginx after certbot deploy
-  ansible.builtin.service:
-    name: nginx
-    state: restarted
-  when: certbot_deploy.changed
+    - name: deploy certbot
+      ansible.builtin.shell: certbot run -d {{ account_domain }} --nginx -n --agree-tos --email root@{{ account_domain }}
+      when: not certbot_config.found
+      register: certbot_deploy
 
+    - name: setup certbot auto renewal
+      ansible.builtin.copy:
+        src: cron.d/certbot
+        dest: /etc/cron.d/certbot
+
+    - name: configure nginx bind port
+      ansible.builtin.replace:
+        path: /etc/nginx/conf.d/evon.conf
+        regexp: '443'
+        replace: '1443'
+      when: certbot_deploy.changed
+
+    - name: restart nginx after certbot deploy
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+      when: certbot_deploy.changed
+
+  rescue:
+
+    - name: Fail playbook if skip_certbot_on_failure is not set
+      ansible.builtin.fail:
+        msg: "CertBot setup failed and skip_certbot_on_failure is not enabled. Stopping playbook. See logs for failure details."
+      when: not (skip_certbot_on_failure | default(false) | bool)
+
+    - name: Continue playbook using self-signed certificate if CertBot setup failed
+      ansible.builtin.debug:
+        msg: "CertBot setup failed but continuing playbook using self-signed cert due to skip_certbot_on_failure=true."
+      when: skip_certbot_on_failure | default(false) | bool
+
+    - name: create self-signed ssl directory
+      ansible.builtin.file:
+        path: /etc/nginx/ssl
+        state: directory
+        mode: '0700'
+
+    - name: check if self-signed certificate exists
+      ansible.builtin.stat:
+        path: /etc/nginx/ssl/{{ account_domain }}.crt
+      register: self_signed_cert
+
+    - name: (re)generate self-signed certificate
+      ansible.builtin.shell: |
+        openssl req -x509 -nodes -days 36500 -newkey rsa:2048 \
+          -keyout /etc/nginx/ssl/{{ account_domain }}.key \
+          -out /etc/nginx/ssl/{{ account_domain }}.crt \
+          -subj "/C=US/ST=State/L=City/O=Organization/CN={{ account_domain }}"
+      when: not self_signed_cert.stat.exists
+      register: self_signed_cert_create
+
+    - name: create self-signed ssl nginx config
+      ansible.builtin.template:
+        src: nginx/evon_selfsigned-ssl.conf
+        dest: /etc/nginx/conf.d/evon_selfsigned-ssl.conf
+      register: self_signed_config
+
+    - name: remove stock evon.conf nginx config
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/evon.conf
+        state: absent
+      when: skip_certbot_on_failure | default(false) | bool
+
+    - name: restart nginx after self-signed certificate setup
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+      when: self_signed_config.changed or self_signed_cert_create.changed
 
  ### Setup motd
 

@@ -13,6 +13,7 @@ NON_RFC1918_IP_PATTERN='\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:2
 HWADDR_PATTERN='^[a-zA-Z0-9]{10}$'
 SUBNET_KEY_REGEX='^[0-9]{1,3}$'
 HOSTED_MODE=__HOSTED_MODE__
+export skip_certbot_on_failure=false
 
 
 # ensure we're running as root
@@ -71,7 +72,7 @@ if [ "$HOSTED_MODE" == "awsmp" ]; then
     Specify your SUBNET_KEY for this Hub instance. Your overlay network
     subnet will become 100.<SUBNET_KEY>.224.0/19 where SUBNET_KEY must be
     between 64 and 127 inclusive. Default is 111 if this option is omitted.
-    "
+"
 elif [ "$HOSTED_MODE" == "selfhosted" ]; then
     echo -n "
   -d, --domain-prefix DOMAIN_PREFIX
@@ -99,7 +100,7 @@ elif [ "$HOSTED_MODE" == "selfhosted" ]; then
     \`/opt/evon-hub/.evon-hub.static_pub_ipv4\` will enable automatic detection
     of the current public IPv4 address, and the DNS record will be dynamically
     updated whenever a change is detected.
-    "
+"
 elif [ "$HOSTED_MODE" == "standalone" ]; then
     echo -n "
   -n, --domain-name DOMAIN_NAME
@@ -126,7 +127,12 @@ elif [ "$HOSTED_MODE" == "standalone" ]; then
     \`/opt/evon-hub/.evon-hub.static_pub_ipv4\` will enable automatic detection
     of the current public IPv4 address, and the DNS record will be dynamically
     updated whenever a change is detected.
-    "
+
+  -k, --skip-certbot
+    If specified, tolerate errors during setup of Certbot managed Let's Encrypt
+    certificate on this Hub, and setup a self-signed certificate instead. Default
+    behaviour is to fail hard if Certbot setup fails when this option is omitted.
+"
 fi
 }
 
@@ -217,13 +223,14 @@ for arg in "$@"; do
     '--subnet-key')    set -- "$@" '-s'   ;;
     '--public-ipv4')   set -- "$@" '-i'   ;;
     '--hwaddr')        set -- "$@" '-a'   ;;
+    '--skip-certbot')  set -- "$@" '-k'   ;;
     *)                 set -- "$@" "$arg" ;;
   esac
 done
 
 # Parse short options
 OPTIND=1
-while getopts ":hbd:s:i:a:n:" opt; do
+while getopts ":hbkd:s:i:a:n:" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
     'b') base_build=true ;;
@@ -232,6 +239,7 @@ while getopts ":hbd:s:i:a:n:" opt; do
     's') subnet_key=$OPTARG ;;
     'i') public_ipv4_address=$OPTARG ;;
     'a') hwaddr=$OPTARG ;;
+    'k') export skip_certbot_on_failure=true ;;
     '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
   esac
 done
@@ -410,6 +418,7 @@ echo "### Installing version: ${VERSION}"
 extract_payload
 
 echo '### Installing dependencies...'
+set -e
 package_list='
     bzip2
     bzip2-devel
@@ -430,6 +439,7 @@ package_list='
     net-tools
     nginx
     openvpn
+    openvpn-devel
     patch
     readline-devel
     sqlite-devel
@@ -503,6 +513,7 @@ else
         http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el9/sslh-1.21c-6.fc38.x86_64.rpm \
         http://evon-supplemental.s3.ap-southeast-2.amazonaws.com/el9/easy-rsa-3.1.5-1.fc38.noarch.rpm
 fi
+set +e
 
 echo '### Installing pyenv...'
 if ! grep -q "PYENV_ROOT" ~/.bash_profile; then
@@ -527,8 +538,8 @@ fi
 echo Done.
 
 echo '### Building env...'
-/opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install pip -U
-/opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install virtualenv
+/opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install pip -U --root-user-action=ignore
+/opt/pyenv/versions/${PY_VERSION}/bin/python -m pip install virtualenv --root-user-action=ignore
 [ -d /opt/.evon_venv_backup ] && mv /opt/.evon_venv_backup /opt/evon-hub/.env
 
 cd /opt/evon-hub
@@ -577,7 +588,8 @@ fi
 echo '### Installing Python deps...'
 . .env/bin/activate && \
     pip install pip -U && \
-    pip install -r requirements.txt && \
+    pip install pip-tools && \
+    pip-sync requirements.txt && \
     pip install -e . && \
 
 if [ "$base_build" ]; then
