@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evon"
+dynamic = ["version"]
+
+[project.scripts]
+evon = "evon.cli:main"
+eapi = "evon.manage:main"
+
+[tool.setuptools]
+packages = ["evon"]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {file = "version.txt"}
