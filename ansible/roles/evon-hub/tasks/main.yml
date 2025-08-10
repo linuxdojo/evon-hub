@@ -340,6 +340,11 @@
     dest: /etc/nginx/conf.d/evon.conf.pre_certbot
   register: configure_nginx
 
+- name: remove self-signed ssl config
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/evon_selfsigned-ssl.conf
+    state: absent
+
 - name: deploy nginx configuration
   ansible.builtin.shell: cp /etc/nginx/conf.d/evon.conf.pre_certbot /etc/nginx/conf.d/evon.conf
   when: configure_nginx.changed
@@ -361,12 +366,6 @@
 
 
 ### Setup CertBot
-
-- name: remove self-signed ssl config if not skipping certbot
-  ansible.builtin.file:
-    path: /etc/nginx/conf.d/evon_selfsigned-ssl.conf
-    state: absent
-  when: not (skip_certbot_on_failure | default(false) | bool)
 
 - name: Setup CertBot with error handling
   block:
