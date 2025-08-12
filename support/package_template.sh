@@ -278,12 +278,12 @@ elif [ "$previous_cert_type" ] && [ "$cert_type" != "$previous_cert_type" ]; the
     echo "    ,.,.,.,.,"
     echo "    :WARNING: "
     echo "    '\`'\`'\`'\`'"
-    echo "    You have changed --cert-type/-t from its previous value of $previous_cert_type to $cert_type."
+        echo "    You have changed --cert-type/-t from its previous value of '$previous_cert_type' to '$cert_type'."
     echo "    If you continue, you will need to reconnect ALL connected servers to this Hub using a new bootstrap script,"
     echo "    as the newly generated certificate created by this operation will be used by OpenVPN."
     echo ""
-    attempts=10
-    echo -n "    Hit ctrl-c now to cancel, else continuing in 10 seconds"
+    attempts=20
+    echo -n "    Hit ctrl-c now to cancel, else continuing in $attempts seconds"
     while [ $attempts -gt 0 ]; do
         attempts=$((attempts-1))
         echo -n "."
