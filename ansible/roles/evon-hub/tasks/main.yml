@@ -197,6 +197,52 @@
 
 ### setup OpenVPN
 
+# Setup OpenVPN Async Auth Script PLugin
+
+- name: Create temporary directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: _auth_script
+  register: temp_dir
+
+- name: Copy and extract auth-script-openvpn archive
+  ansible.builtin.unarchive:
+    src: openvpn/openvpn_defer_auth_v1.0.0.tar.gz
+    dest: "{{ temp_dir.path }}"
+
+- name: Run make to build the plugin
+  ansible.builtin.command:
+    cmd: make
+    chdir: "{{ temp_dir.path }}/openvpn_defer_auth-1.0.0"
+
+- name: Check if existing plugin differs from compiled version
+  ansible.builtin.stat:
+    path: /usr/lib64/openvpn/plugins/openvpn_defer_auth.so
+    checksum_algorithm: sha256
+  register: existing_plugin
+
+- name: Get checksum of compiled plugin
+  ansible.builtin.stat:
+    path: "{{ temp_dir.path }}/openvpn_defer_auth-1.0.0/openvpn_defer_auth.so"
+    checksum_algorithm: sha256
+  register: compiled_plugin
+
+- name: Copy plugin to OpenVPN plugins directory
+  ansible.builtin.copy:
+    src: "{{ temp_dir.path }}/openvpn_defer_auth-1.0.0/openvpn_defer_auth.so"
+    dest: /usr/lib64/openvpn/plugins/openvpn_defer_auth.so
+    mode: '0755'
+    remote_src: yes
+  when:
+    - not existing_plugin.stat.exists or existing_plugin.stat.checksum != compiled_plugin.stat.checksum
+
+- name: Clean up temporary directory
+  ansible.builtin.file:
+    path: "{{ temp_dir.path }}"
+    state: absent
+
+# Setup OpenVPN
+
 - name: create ccd dir
   ansible.builtin.file:
     path: /etc/openvpn/ccd
@@ -265,9 +311,6 @@
       - "/opt/evon-hub/evon/openvpn_scripts/server_auth.py"
       - "/opt/evon-hub/evon/openvpn_scripts/server_connect.py"
       - "/opt/evon-hub/evon/openvpn_scripts/server_disconnect.py"
-
-#- name: build the auth-script-openvpn plugin
-  #TODO CONTINUE HERE
 
 
 ### Setup Evon Hub app
