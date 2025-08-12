@@ -340,35 +340,31 @@
     dest: /etc/nginx/conf.d/evon.conf.pre_certbot
   register: configure_nginx
 
-- name: remove self-signed ssl config
-  ansible.builtin.file:
-    path: /etc/nginx/conf.d/evon_selfsigned-ssl.conf
-    state: absent
-
-- name: deploy nginx configuration
-  ansible.builtin.shell: cp /etc/nginx/conf.d/evon.conf.pre_certbot /etc/nginx/conf.d/evon.conf
-  when: configure_nginx.changed
-  register: deploy_nginx
-
-- name: restart nginx
-  ansible.builtin.service:
-    name: nginx
-    state: restarted
-    enabled: true
-  when: deploy_nginx.changed
-
 - name: persist nginx service
   ansible.builtin.service:
     name: nginx
     enabled: true
-    state: started
-  when: not deploy_nginx.changed
 
 
-### Setup CertBot
+### Setup NginX with CertBot
 
-- name: Setup CertBot with error handling
+- name: setup nginx with certbot managed certificate
+  when: cert_type == "certbot"
   block:
+
+    - name: remove self-signed nginx configuration if present
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/evon_selfsigned-ssl.conf
+        state: absent
+
+    - name: check if certbot nginx config exists
+      ansible.builtin.stat:
+        path: /etc/nginx/evon.conf
+      register: certbot_nginx_config
+
+    - name: deploy certbot nginx configuration
+      ansible.builtin.shell: cp /etc/nginx/conf.d/evon.conf.pre_certbot /etc/nginx/conf.d/evon.conf
+      when: configure_nginx.changed or not certbot_nginx_config.stat.exists
 
     - name: check if certbot already configured
       ansible.builtin.lineinfile:
@@ -402,17 +398,14 @@
         state: restarted
       when: certbot_deploy.changed
 
-  rescue:
+- name: setup nginx with self-signed certificate
+  when: cert_type == "selfsigned"
+  block:
 
-    - name: Fail playbook if skip_certbot_on_failure is not set
-      ansible.builtin.fail:
-        msg: "CertBot setup failed and skip_certbot_on_failure is not enabled. Stopping playbook. See logs for failure details."
-      when: not (skip_certbot_on_failure | default(false) | bool)
-
-    - name: Continue playbook using self-signed certificate if CertBot setup failed
-      ansible.builtin.debug:
-        msg: "CertBot setup failed but continuing playbook using self-signed cert due to skip_certbot_on_failure=true."
-      when: skip_certbot_on_failure | default(false) | bool
+    - name: remove certbot nginx configuration if present
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/evon.conf
+        state: absent
 
     - name: create self-signed ssl directory
       ansible.builtin.file:
@@ -440,17 +433,12 @@
         dest: /etc/nginx/conf.d/evon_selfsigned-ssl.conf
       register: self_signed_config
 
-    - name: remove stock evon.conf nginx config
-      ansible.builtin.file:
-        path: /etc/nginx/conf.d/evon.conf
-        state: absent
-      when: skip_certbot_on_failure | default(false) | bool
-
     - name: restart nginx after self-signed certificate setup
       ansible.builtin.service:
         name: nginx
         state: restarted
       when: self_signed_config.changed or self_signed_cert_create.changed
+
 
  ### Setup motd
 

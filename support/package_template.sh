@@ -13,7 +13,6 @@ NON_RFC1918_IP_PATTERN='\b(?!10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)(?:2
 HWADDR_PATTERN='^[a-zA-Z0-9]{10}$'
 SUBNET_KEY_REGEX='^[0-9]{1,3}$'
 HOSTED_MODE=__HOSTED_MODE__
-export skip_certbot_on_failure=false
 
 
 # ensure we're running as root
@@ -24,6 +23,16 @@ if [ $(id -u) != 0 ]; then
     fi
     # replace self process owner with root
     exec sudo $0 $@
+fi
+
+# set cert_type from evon_vars.yaml if present
+unset previous_cert_type
+export cert_type="certbot"
+if [ -f /opt/evon-hub/evon_vars.yaml ]; then
+    previous_cert_type="$(cat /opt/evon-hub/evon_vars.yaml | grep cert_type | awk -F": " '{print $NF}')"
+    if [ "$previous_cert_type" ]; then
+        export cert_type=$previous_cert_type
+    fi
 fi
 
 # define payload extractor
@@ -128,10 +137,17 @@ elif [ "$HOSTED_MODE" == "standalone" ]; then
     of the current public IPv4 address, and the DNS record will be dynamically
     updated whenever a change is detected.
 
-  -k, --skip-certbot
-    If specified, tolerate errors during setup of Certbot managed Let's Encrypt
-    certificate on this Hub, and setup a self-signed certificate instead. Default
-    behaviour is to fail hard if Certbot setup fails when this option is omitted.
+  -t, --cert-type [certbot|selfsigned]
+    Default: certbot
+    Use a CertBot/Let's Encrtypt CA managed certificate, or generate a self-signed.
+    This certificate is used for the Web UI, REST API and OpenVPN. The last
+    provided value is remembered for future runs of this installer if this option
+    is subsequently omitted. This system must be internet facing if certbot is
+    selected.
+    *** WARNING ***
+    If you swap between certbot managed and self-signed certificates, in subsequent
+    runs of this installer, then any servers currently connected to this hub will
+    need to be reconnected using an updated bootstrap script!
 "
 fi
 }
@@ -223,14 +239,14 @@ for arg in "$@"; do
     '--subnet-key')    set -- "$@" '-s'   ;;
     '--public-ipv4')   set -- "$@" '-i'   ;;
     '--hwaddr')        set -- "$@" '-a'   ;;
-    '--skip-certbot')  set -- "$@" '-k'   ;;
+    '--cert-type')     set -- "$@" '-t'   ;;
     *)                 set -- "$@" "$arg" ;;
   esac
 done
 
 # Parse short options
 OPTIND=1
-while getopts ":hbkd:s:i:a:n:" opt; do
+while getopts ":hbt:d:s:i:a:n:" opt; do
   case "$opt" in
     'h') show_banner; show_usage; exit 0 ;;
     'b') base_build=true ;;
@@ -239,7 +255,8 @@ while getopts ":hbkd:s:i:a:n:" opt; do
     's') subnet_key=$OPTARG ;;
     'i') public_ipv4_address=$OPTARG ;;
     'a') hwaddr=$OPTARG ;;
-    'k') export skip_certbot_on_failure=true ;;
+    't') export cert_type=$OPTARG ;;
+    ':') echo -e "ERROR: Option -$OPTARG requires an argument.\nFor usage info, use --help"; exit 1 ;;
     '?') echo -e "ERROR: Bad option -$OPTARG.\nFor usage info, use --help"; exit 1 ;;
   esac
 done
@@ -254,6 +271,26 @@ if [ ${#@} -ne 0 ]; then
     exit 1
 fi
 
+if [ "$cert_type" != 'certbot' ] && [ "$cert_type" != "selfsigned" ]; then
+    echo "--cert-type/-t option must be set to either 'certbot' or 'selfsigned'"
+    exit 1
+elif [ "$previous_cert_type" ] && [ "$cert_type" != "$previous_cert_type" ]; then
+    echo "    ,.,.,.,.,"
+    echo "    :WARNING: "
+    echo "    '\`'\`'\`'\`'"
+    echo "    You have changed --cert-type/-t from its previous value of $previous_cert_type to $cert_type."
+    echo "    If you continue, you will need to reconnect ALL connected servers to this Hub using a new bootstrap script,"
+    echo "    as the newly generated certificate created by this operation will be used by OpenVPN."
+    echo ""
+    attempts=10
+    echo -n "    Hit ctrl-c now to cancel, else continuing in 10 seconds"
+    while [ $attempts -gt 0 ]; do
+        attempts=$((attempts-1))
+        echo -n "."
+        sleep 1
+    done
+    echo ""
+fi
 
 if [ "$HOSTED_MODE" == "awsmp" ]; then
     # we're running in awsmp (AWS Marketplace) mode, ensure we're on al2
@@ -413,6 +450,8 @@ else
     trap end EXIT
 fi
 
+
+echo Configured to use cert_type: $cert_type
 
 echo "### Installing version: ${VERSION}"
 extract_payload
@@ -667,6 +706,7 @@ hosted_mode: ${HOSTED_MODE}
 selfhosted: ${selfhosted}
 standalone: ${standalone}
 standalone_hook_path: ${STANDALONE_HOOK_PATH}
+cert_type: ${cert_type}
 EOF
 
 echo '### Initialising DB and Evon Hub app...'
