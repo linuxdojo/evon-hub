@@ -745,6 +745,7 @@ cat <<EOF > "$override_file"
 [Service]
 Restart=always
 RestartSec=5
+StartLimitIntervalSec=0
 EOF
             systemctl daemon-reload
             # estart and persist the evon client service

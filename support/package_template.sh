@@ -477,9 +477,11 @@ package_list='
     mlocate
     net-tools
     nginx
+    openssh
     openvpn
     openvpn-devel
     patch
+    python3-rpm
     readline-devel
     sqlite-devel
     tk-devel

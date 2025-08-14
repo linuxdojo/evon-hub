@@ -22,6 +22,16 @@
     reload: yes
 
 
+### Install/update packages
+
+- name: Install required base packages
+  package:
+    name:
+      - openssh
+    state: latest
+    update_cache: yes
+
+
 ### Setup sslh
 
 - name: check if sslh config file is modified
