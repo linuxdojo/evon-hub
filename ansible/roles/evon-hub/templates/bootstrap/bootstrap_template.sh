@@ -738,7 +738,7 @@ EOF
                 service_name="openvpn@evon"
             fi
             # add unit file override to always restart on error
-            override_dir="/etc/systemd/system/${service_name}@evon.service.d"
+            override_dir="/etc/systemd/system/${service_name}.service.d"
             override_file="$override_dir/override.conf"
             mkdir -p "$override_dir"
 cat <<EOF > "$override_file"
@@ -746,6 +746,7 @@ cat <<EOF > "$override_file"
 Restart=always
 RestartSec=5
 StartLimitIntervalSec=0
+StartLimitBurst=0
 EOF
             systemctl daemon-reload
             # estart and persist the evon client service
