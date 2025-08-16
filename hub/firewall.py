@@ -7,13 +7,14 @@ import iptc
 from eapi.settings import EVON_HUB_CONFIG
 from eapi.settings import EVON_VARS
 from evon.log import get_evon_logger
-from evon.job_queue import dedupe_job
+from evon.job_queue import dedupe_job, async_job
 import hub.models
 
 
 logger = get_evon_logger()
 
 
+@async_job
 def apply_rule(rule):
     """
     Takes a hub.models.Rule instance and creates an iptables chain with rules reflecting the object properties
@@ -72,6 +73,7 @@ def apply_rule(rule):
             iptc_chain.insert_rule(rule)
 
 
+@async_job
 def apply_policy(policy):
     """
     Takes a hub.models.Policy instance and creates iptables rules in the evon-policy chain reflecting the object properties
