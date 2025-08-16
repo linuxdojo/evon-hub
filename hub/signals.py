@@ -207,8 +207,14 @@ def delete_object(sender, instance=None, **kwargs):
     if isinstance(instance, hub.models.Server):
         transaction.on_commit(firewall.kill_orphan_servers)
 
-    # just re-init if a user, group, server, servergroup, etc is deleted
-    transaction.on_commit(firewall.init)
+
+    if isinstance(instance, hub.models.User):
+        transaction.on_commit(firewall.delete_user, instance)
+
+    # just re-init if a group or servergroup are deleted
+    object_types = [hub.models.ServerGroup, hub.models.Group]
+    if any([isinstance(instance, ot) for ot in object_types]):
+        transaction.on_commit(firewall.init)
 
 
 ###############################

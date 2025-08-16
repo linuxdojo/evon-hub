@@ -7,6 +7,7 @@ import iptc
 from eapi.settings import EVON_HUB_CONFIG
 from eapi.settings import EVON_VARS
 from evon.log import get_evon_logger
+from evon.job_queue import dedupe_job
 import hub.models
 
 
@@ -122,14 +123,21 @@ def apply_policy(policy):
             ipt_chain.insert_rule(rule)
 
 
+def delete_user(user):
+    """
+    Takes a hub.models.User instance and deletes iptables rules in the evon-user chain
+    """
+    rule_comment = f"evon-user-{user.pk}"
+    delete_iptrules_by_comment("evon-user", rule_comment, delete_conntrack_entry=True)
+
+
 def apply_user(user):
     """
     Takes a hub.models.User instance and creates iptables rules in the evon-user chain if the user has shared their device
     """
     logger.info(f"Triggered firewall.apply_user() for user '{user}' with shared={user.userprofile.shared}")
     # delete iptrule first, then recreate if required
-    rule_comment = f"evon-user-{user.pk}"
-    delete_iptrules_by_comment("evon-user", rule_comment, delete_conntrack_entry=True)
+    delete_user(user)
     if user.is_active and user.userprofile.shared:
         logger.info(f"Adding user '{user}' with address '{user.userprofile.ipv4_address}' to shared pool.")
 
@@ -334,6 +342,7 @@ def kill_inactive_users(extra_user=None):
     vpn.disconnect()
 
 
+@dedupe_job('firewall-init')
 def init(full=True):
     """
     Initialise iptables chains for evon Rules and Policies.
