@@ -7,6 +7,7 @@ import iptc
 from eapi.settings import EVON_HUB_CONFIG
 from eapi.settings import EVON_VARS
 from evon.log import get_evon_logger
+from evon.job_queue import dedupe_job
 import hub.models
 
 
@@ -341,6 +342,7 @@ def kill_inactive_users(extra_user=None):
     vpn.disconnect()
 
 
+@dedupe_job('firewall-init')
 def init(full=True):
     """
     Initialise iptables chains for evon Rules and Policies.
