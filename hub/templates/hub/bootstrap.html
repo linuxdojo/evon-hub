@@ -9,6 +9,10 @@
           <li>The API Token associated with the <a href="/auth/user/{{ deployer_uid }}/change/">deployer</a> user or a superuser is required when both downloading and installing Bootstrap and can be managed <a href="/authtoken/tokenproxy/">here</a>. The below instructions include your token for your convenience.</li>
           <li>You can connect servers that are behind a web proxy. See below for details.</li>
         </ul>
+        {% if cert_type == "selfsigned" %}
+        <h5>Selfsigned Certificate Mode Detected</h5>
+        The below invocations include options (<i>-k</i> for curl, <i>-SkipCertificateCheck</i> for Invoke-WebRequest) to ignore SSL/TLS Certificate checks as this Hub was configured to use a self-signed certificate when deployed. Feel free to omit these options if your systems trust the certificate installed on this Hub at path <i>/etc/nginx/ssl/</i>.
+        {% endif %}
       </div>
     </div>
     <div class="card-header">
@@ -68,7 +72,7 @@
                   <br />
                   <br />
                   <strong>Or using curl:</strong><br />
-                  <pre class="border border-secondary mt-3">curl -s 'https://{{ account_domain }}/api/bootstrap/linux' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
+                  <pre class="border border-secondary mt-3">curl -{% if cert_type == "selfsigned" %}k{% endif %}s 'https://{{ account_domain }}/api/bootstrap/linux' -H 'Authorization: Token {{ deploy_token }}' > bootstrap.sh; chmod +x bootstrap.sh</pre>
                   <hr>
                 </div>
                 <h5 class="p-3 mb-2 bg-primary text-white">2. Install Bootstrap:</h5>
@@ -105,7 +109,7 @@
                 <br />
                 <br />
                 <strong>Using PowerShell:</strong><br />
-                <pre class="border border-secondary mt-3">Invoke-WebRequest -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
+                <pre class="border border-secondary mt-3">Invoke-WebRequest {% if cert_type == "selfsigned" %}-SkipCertificateCheck{% endif %} -Uri 'https://{{ account_domain }}/api/bootstrap/windows' -Headers @{"Authorization"="Token {{ deploy_token }}"} -Outfile bootstrap.ps1</pre>
                 <hr>
                 <h5 class="p-3 mb-2 bg-primary text-white">2. Install Bootstrap:</h5>
                 Run the following PowerShell command on your server as Administrator:

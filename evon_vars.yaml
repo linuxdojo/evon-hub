@@ -11,3 +11,4 @@ hosted_mode: standalone
 selfhosted: true
 standalone: true
 standalone_hook_path: /opt/evon_standalone_hook
+cert_type: selfsigned

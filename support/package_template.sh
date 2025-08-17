@@ -606,12 +606,15 @@ echo "deploying standalone hook script at path: ${STANDALONE_HOOK_PATH}"
 standalone_hook_md5sum_path=$(dirname ${STANDALONE_HOOK_PATH})/.$(basename ${STANDALONE_HOOK_PATH}).md5sum
 if [ ! -e ${STANDALONE_HOOK_PATH} ]; then
     # the example standalone hook script doesnt yet exist. Create it using packaged example version.
+    echo "Deploying example standalone hook script to: ${STANDALONE_HOOK_PATH}"
     cp evon/evon_standalone_hook_example ${STANDALONE_HOOK_PATH}
     chmod +x ${STANDALONE_HOOK_PATH}
     md5sum ${STANDALONE_HOOK_PATH} > ${standalone_hook_md5sum_path}
 else
-    if [ "$(cat ${standalone_hook_md5sum_path})" == "$(md5sum ${STANDALONE_HOOK_PATH})" ]; then
+    # standalone hook does exist. determine if it is stock example, or modified
+    if [ "$(cat ${standalone_hook_md5sum_path} | cut -d' ' -f1)" == "$(md5sum ${STANDALONE_HOOK_PATH} | cut -d' ' -f1)" ]; then
         # the example standalone hook script hasn't been modified. Remove and replace with current packaged version.
+        echo "Deploying updated example standalone hook script to: ${STANDALONE_HOOK_PATH}"
         rm -f ${STANDALONE_HOOK_PATH}_new >/dev/null 2>&1 || :
         rm -f ${STANDALONE_HOOK_PATH} ${standalone_hook_md5sum_path}
         cp evon/evon_standalone_hook_example ${STANDALONE_HOOK_PATH}
@@ -619,6 +622,7 @@ else
         md5sum ${STANDALONE_HOOK_PATH} > ${standalone_hook_md5sum_path}
     else
         # the example standalone hook script has been modified. Copy the new one in place with _new suffix and warn user of update
+        echo "Detected changes to the standalone hook script at '${STANDALONE_HOOK_PATH}'. Deploying updated example script to: ${STANDALONE_HOOK_PATH}_new "
         rm -f ${STANDALONE_HOOK_PATH}_new >/dev/null 2>&1 || :
         cp evon/evon_standalone_hook_example ${STANDALONE_HOOK_PATH}_new
         chmod +x ${STANDALONE_HOOK_PATH}_new
