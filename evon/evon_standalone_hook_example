@@ -109,7 +109,7 @@ logit "env: endpoint='$endpoint' method='$method' headers='$headers' body='$body
 if [ ! $(which aws >/dev/null 2>&1) ]; then
     echo "ERROR: This script requires the 'aws' command to be present and configured on this system."
     echo "       To fix this issue, edit file: $0"
-    exit 1
+    exit 0
 fi
 
 if [ "$endpoint" == "/api/zone/records" ]; then
