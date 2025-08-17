@@ -311,8 +311,8 @@ function show_banner() {
 function uninstall() {
     echo Stoppping and unpersisting OpenVPN connection to Evon Hub...
     if [ "$os" == "alpine" ]; then
-        rc-update del openvpn default
-        rc-service openvpn stop
+        rc-service openvpn-evon stop
+        rc-update del openvpn-evon default
     elif [[ "$os" == "centos" && "$os_version" -eq 6 ]]; then
         service openvpn stop
         chkconfig openvpn off
@@ -332,12 +332,14 @@ function uninstall() {
         echo Removing file: $f
         rm -f "$f"
     done
-    if [ "$os" == "alpine" ] && [ -h /etc/openvpn/openvpn.conf ]; then
+    if [ "$os" == "alpine" ]; then
         symlink_target=$(readlink /etc/openvpn/openvpn.conf)
-        if [ "$symlink_target" == "/etc/openvpn/evon.conf" ]; then
-            echo Removing file: /etc/openvpn/openvpn.conf
-            rm -f /etc/openvpn/evon.conf
-        fi
+        echo Removing files...
+        rm -f \
+            /etc/openvpn/evon.conf \
+            /etc/openvpn/evon_extra.conf.inc \
+            /etc/openvpn/evon_secrets.conf.inc \
+            /etc/init.d/openvpn-evon
     fi
     if [ -e /etc/openvpn/evon.uuid ]; then
         echo "NOTE: Not removing file /etc/openvpn/evon.uuid - please delete it manually if you're sure it is not needed."
@@ -656,18 +658,50 @@ if [ "$installed" != "1" ]; then
     # copy core config files to their proper locations
     echo Deploying Openvpn config...
     cp --remove-destination $tmpdir/openvpn_client.conf ${ovpn_conf_dir}/evon.conf
+
+
     if [ "$os" == "alpine" ]; then
-        if [ -e /etc/openvpn/openvpn.conf ]; then
-            symlink_target=$(readlink /etc/openvpn/openvpn.conf)
-            if [ "$symlink_target" != "/etc/openvpn/evon.conf" ]; then
-                echo "ERROR: /etc/openvpn/openvpn.conf already exists."
-                echo "There seems to be existing OpenVPN configuration on this server. Rename or remove /etc/openvpn/openvpn.conf and re-run this installer."
-                exit 1
-            fi
-        else
-            ln -s /etc/openvpn/evon.conf /etc/openvpn/openvpn.conf
+            # Create a custom supervised service for persistent connection
+            cat <<'ALPINE_SERVICE_EOF' > /etc/init.d/openvpn-evon
+#!/sbin/openrc-run
+
+name="OpenVPN Evon Client"
+supervisor=supervise-daemon
+command="/usr/sbin/openvpn"
+command_args="--config /etc/openvpn/evon.conf --suppress-timestamps --nobind"
+pidfile="/run/openvpn-evon.pid"
+command_background=no
+directory="/etc/openvpn"
+
+# Restart settings - never give up
+respawn_delay=5
+respawn_max=0
+
+depend() {
+    need net
+    after firewall
+}
+
+start_pre() {
+    # Ensure TUN/TAP device is available
+    if [ ! -e /dev/net/tun ]; then
+        if ! modprobe tun; then
+            eerror "TUN/TAP support is not available in this kernel"
+            return 1
         fi
     fi
+
+    # Check if config file exists
+    if [ ! -f /etc/openvpn/evon.conf ]; then
+        eerror "OpenVPN config file /etc/openvpn/evon.conf not found"
+        return 1
+    fi
+}
+ALPINE_SERVICE_EOF
+            chmod +x /etc/init.d/openvpn-evon
+    fi
+
+    # copy in openvpn secrets config
     cp --remove-destination $tmpdir/openvpn_secrets.conf ${ovpn_conf_dir}/evon_secrets.conf.inc
 
     # setup extra config file
@@ -724,11 +758,11 @@ EOF
 
         if [ "$os" == "alpine" ]; then
             uname -r | grep -q windows && touch /run/openrc/softlevel
-            #TODO add `respawn_timeout=5` to /etc/init.d/openvpn to restart on failure
-            rc-update add openvpn default
-            rc-service openvpn start
+            rc-update add openvpn-evon default
+            rc-service openvpn-evon stop 2>/dev/null || :
+            rc-service openvpn-evon start
         elif [[ ( "$os" == "centos" && $os_version -eq 6  ) ]]; then
-            #TODO consider how to restart service on failure on these old sysvinit systems if required
+            #XXX consider how to restart service on failure on these old sysvinit systems if required
             chkconfig openvpn on
             service openvpn stop || :
             service openvpn start
