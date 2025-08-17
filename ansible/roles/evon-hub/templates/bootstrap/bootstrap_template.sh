@@ -73,6 +73,7 @@ ACCOUNT_DOMAIN="{{ account_domain }}"
 SUBNET_KEY="{{ subnet_key }}"
 UUID_REGEX='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 HOSTNAME_REGEX='^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+CERT_TYPE="{{ cert_type }}"
 
 # ensure we're running as root
 if [ $(id -u) != 0 ]; then
@@ -188,7 +189,7 @@ function extract_payload() {
 
 # curl function wrapper
 function curl_wrapper() {
-    if [[ "$os" == "centos" && "$os_version" -eq 6 ]]; then
+    if [[ "$os" == "centos" && "$os_version" -eq 6 ]] || [ "${CERT_TYPE}" == "selfsigned" ]; then
         curl_extra_arg="-k"
     fi
     OUTPUT_FILE=$(mktemp)

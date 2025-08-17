@@ -165,7 +165,7 @@ docker run \
                 <br />
                 <br />
                 <strong>Or using curl:</strong><br />
-                <pre class="border border-secondary mt-3">curl -s 'https://{{ account_domain }}/api/bootstrap/raw' -H 'Authorization: Token {{ deploy_token }}' > openvpn_client-evon_server.conf</pre>
+                <pre class="border border-secondary mt-3">curl -{% if cert_type == "selfsigned" %}k{% endif %}s 'https://{{ account_domain }}/api/bootstrap/raw' -H 'Authorization: Token {{ deploy_token }}' > openvpn_client-evon_server.conf</pre>
                 <hr>
                 Instructions describing usage are included as comments inside the configuration file, including how to set it up to traverse a proxy server if required.
                 <br />

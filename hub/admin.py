@@ -223,6 +223,7 @@ class BootstrapAdmin(admin.ModelAdmin):
             )
         custom_context = {
             "account_domain": EVON_VARS["account_domain"],
+            "cert_type": EVON_VARS["cert_type"],
             "deploy_token": deployer_auth_token or "<deployer_user_auth_token>",
             "deployer_uid": User.objects.get(username="deployer").pk,
         }

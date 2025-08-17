@@ -18,6 +18,7 @@ $subnet_key = "{{ subnet_key }}"
 $evon_hub_peer = "100.$subnet_key.224.1"
 $pf_dir = ([System.Environment]::GetEnvironmentVariable('ProgramFiles'))
 $ovpn_conf_dir = "$pf_dir\OpenVPN\config-auto"
+$cert_type = "{{ cert_type }}"
 $extra_config_default="
 # Place extra OpenVPN config in here. To configure OpenVPN to use a proxy server,
 # uncomment and edit the lines starting with ; below, and replace the parameters
@@ -95,7 +96,17 @@ function DecryptSecret {
     ) -join $LF
     $url = "https://$account_domain/api/bootstrap/decrypt"
     $headers = @{"Authorization" = "Token $Apikey"}
-    $response = (Invoke-RestMethod -Uri $url -Headers $headers -Method Post -ContentType "multipart/form-data; boundary=`"$boundary`"" -Body $bodyLines)
+    $params = @{
+        Uri = $url
+        Headers = $headers
+        Method = 'Post'
+        ContentType = "multipart/form-data; boundary=`"$boundary`""
+        Body = $bodyLines
+    }
+    if ($cert_type -eq "selfsigned") {
+        $params.SkipCertificateCheck = $true
+    }
+    $response = Invoke-RestMethod @params
     return $response
 }
 
