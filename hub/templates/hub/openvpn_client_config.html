@@ -158,28 +158,27 @@
                 Note that the <strong>curl</strong>, <strong>jq</strong> and <strong>sed</strong> commands are required by the below script.
                 <pre class="border border-secondary mt-3">
 #!/bin/bash
-
 url="https://{{ account_domain }}/api/server"
 auth_token="{{ auth_token }}"
-
-echo -e "IPv4           \t State\t FQDN"
-while [ "${url}" != "null" ]; do
-    response=$(curl -s "${url}" -H "Authorization: Token ${auth_token}")
-    echo ${response} | \
-        jq -rM '.results[] | .ipv4_address + " " + (.connected|tostring) + " " + .fqdn' | \
-            sed 's/ /\t /g' | sed 's/true/up/g' | sed 's/false/down/g'
-    url=$(echo $response | jq -r '.next')
+printf "%-17s %-6s %s\n" "IPv4" "State" "FQDN"
+while [ "$url" != "null" ]; do
+    response=$(curl -s "$url" -H "Authorization: Token $auth_token")
+    echo "$response" | jq -r '.results[] | "\(.ipv4_address) \(if .connected then "up" else "down" end) \(.fqdn)"' | \
+    while read -r ip state fqdn; do
+        printf "%-17s %-6s %s\n" "$ip" "$state" "$fqdn"
+    done
+    url=$(echo "$response" | jq -r '.next')
 done</pre>
                 <hr>
                 <h5>Example Usage:</h5>
                 <pre class="border border-secondary mt-3">
 $ chmod +x list_servers.sh
 $ ./list_servers.sh
-IPv4             State   FQDN
-100.111.224.6    up      webserver.example.com.{{ account_domain }}
-100.111.224.10   up      appserver.{{ account_domain }}
-100.111.224.14   down    test.example.com.{{ account_domain }}
-100.111.224.18   up      fileserver.{{ account_domain }}
+IPv4              State  FQDN
+100.111.224.6     up     webserver.example.com.{{ account_domain }}
+100.111.224.10    up     appserver.{{ account_domain }}
+100.111.224.14    down   test.example.com.{{ account_domain }}
+100.111.224.18    up     fileserver.{{ account_domain }}
 $</pre>
               </div>
             </div>
@@ -191,16 +190,15 @@ $</pre>
                 <h5>list_servers.ps1</h5>
                 <pre class="border border-secondary mt-3">
 #!/usr/bin/pwsh
-
 $url = "https://{{ account_domain }}/api/server"
 $auth_token = "{{ auth_token }}"
-
-write-host "IPv4           `t State`t FQDN"
-while ( $url -ne $null ) {
+Write-Host ("{0,-17} {1,-6} {2}" -f "IPv4", "State", "FQDN")
+while ($url -ne $null) {
     $response = Invoke-RestMethod -Uri $url -Headers @{"Authorization" = "Token $auth_token"}
-    foreach ( $server in $response.results ) {
+    foreach ($server in $response.results) {
         $state = if ($server.connected) {"up"} else {"down"}
-        write-host $server.ipv4_address `t $state `t $server.fqdn
+        Write-Host ("{0,-17} {1,-6} {2}" -f $server.ipv4_address, $state, $server.fqdn)
+        #write-host $server.ipv4_address `t $state `t $server.fqdn
     }
     $url = $response.next
 }</pre>
@@ -209,10 +207,10 @@ while ( $url -ne $null ) {
                 <pre class="border border-secondary mt-3">
 PS C:\scripts> .\list_servers.ps1
 IPv4             State   FQDN
-100.111.224.6    up      webserver.example.com.{{ account_domain }}
-100.111.224.10   up      appserver.{{ account_domain }}
-100.111.224.14   down    test.example.com.{{ account_domain }}
-100.111.224.18   up      fileserver.{{ account_domain }}
+100.111.224.6     up     webserver.example.com.{{ account_domain }}
+100.111.224.10    up     appserver.{{ account_domain }}
+100.111.224.14    down   test.example.com.{{ account_domain }}
+100.111.224.18    up     fileserver.{{ account_domain }}
 PS C:\scripts></pre>
               </div>
             </div>
@@ -225,29 +223,26 @@ PS C:\scripts></pre>
                   Note that the <strong>requests</strong> library is required by the below script. 
                 <pre class="border border-secondary mt-3">
 #!/usr/bin/env python
-
 import requests
-
 url="https://{{ account_domain }}/api/server"
 auth_token="{{ auth_token }}"
-
-print("IPv4           \t State\t FQDN")
+print(f"{'IPv4 Address':&lt;17} {'State':&lt;6} {'FQDN'}")
 while url:
-    data = requests.get(url, headers={"Authorization": f"Token {auth_token}"}).json()
-    for server in data['results']:
-        state = "up" if server["connected"] else "down"
-        print(f"{server['ipv4_address']} \t {state} \t {server['fqdn']}")
-    url = data["next"]</pre>
+    data = requests.get(url, headers={"Authorization": f"Token {auth_token}"}, timeout=10).json()
+    for s in data['results']:
+        state = "up" if s["connected"] else "down"
+        print(f"{s['ipv4_address']:&lt;17} {state:&lt;6} {s['fqdn']}")
+    url = data.get("next")</pre>
                 <hr>
                 <h5>Example Usage:</h5>
                 <pre class="border border-secondary mt-3">
 $ pip install --user requests
 $ python list_servers.py
-IPv4             State   FQDN
-100.111.224.6    up      webserver.example.com.{{ account_domain }}
-100.111.224.10   up      appserver.{{ account_domain }}
-100.111.224.14   down    test.example.com.{{ account_domain }}
-100.111.224.18   up      fileserver.{{ account_domain }}
+IPv4              State   FQDN
+100.111.224.6     up     webserver.example.com.{{ account_domain }}
+100.111.224.10    up     appserver.{{ account_domain }}
+100.111.224.14    down   test.example.com.{{ account_domain }}
+100.111.224.18    up     fileserver.{{ account_domain }}
 $</pre>
               </div>
             </div>
