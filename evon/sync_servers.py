@@ -59,8 +59,8 @@ def do_sync():
                 logger.debug(f"leaving connected as False for server {server.fqdn}")
 
     # refresh dns
-    current_records = {k[:k.rfind(".")]: v for k, v in json.loads(evon_api.get_records(EVON_API_URL, EVON_API_KEY)).items()}
-    current_clients = {Server.objects.get(ipv4_address=ip_addr).fqdn: ip_addr for ip_addr in vpn_clients.keys()}
+    current_records = {k[:k.rfind(".")].lower(): v for k, v in json.loads(evon_api.get_records(EVON_API_URL, EVON_API_KEY)).items()}
+    current_clients = {Server.objects.get(ipv4_address=ip_addr).fqdn.lower(): ip_addr for ip_addr in vpn_clients.keys()}
     new = {}
     removed = {}
     updated = {}
