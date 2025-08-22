@@ -61,3 +61,8 @@
 .navbar-nav .nav-link:hover {
   color: rgba(255, 255, 255, 0.7) !important;
 }
+
+.djn-checkbox-select-all {
+  padding-right: 0 !important;
+  width: auto;
+}
