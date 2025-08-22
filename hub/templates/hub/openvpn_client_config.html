@@ -2,11 +2,13 @@
   <div class="card card-primary card-outline">
     <div class="card-body">
       <div id="content-main" class="col-12">
-        This page describes how you and others can connect to your Evon Hub from any device to access systems on your overlay network and share connectivity to your own device.<br />
+        This page describes how you can connect to your Evon Hub to access systems on your overlay network.<br />
         <br />
         <ul>
-          <li>Clients obtain a static IPv4 address only, and can be specified as sources in Rules but not as destinations in Policies.</li>
+          <li>You'll obtain a static IPv4 address on the overlay network.</li>
+          {% if user.is_superuser  %}
           <li>To allow other systems to connect to your device on the overlay network, enable the <strong>Device Settings 🠊 Shared</strong> option in your <a href="/auth/user/{{ user.id }}/change/#device-settings-tab">user profile</a>.</li>
+          {% endif %}
         </ul>
       </div>
     </div>
@@ -17,7 +19,7 @@
       <div id="content-main" class="col-12">
         First, download the OpenVPN client configuration file here: <strong><a href="/api/ovpnclient/download">EvonHub.ovpn</a></strong>.<br />
         <br />
-        This file contains standard OpenVPN configuration. Simply import it into your OpenVPN client of choice.<br />
+        This file contains standard OpenVPN configuration. Simply import it into your OpenVPN client of choice. See below for details.<br />
         <br />
         <ul>
           <li>As a user, you'll connect to this Hub using the standard OpenVPN protocol and port of UDP/1194</li>
