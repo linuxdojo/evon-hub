@@ -15,9 +15,7 @@
         {% endif %}
       </div>
     </div>
-    <div class="card-header">
-      Download and Install
-    </div>
+    <h5 class="p-3 mb-2 bg-primary text-white">Download and Install</h5>
 
     <div class="card-body">
       <div id="content-main" class="col-12">
@@ -77,6 +75,7 @@
                 </div>
                 <h5 class="p-3 mb-2 bg-primary text-white">2. Install Bootstrap:</h5>
                 <div class="ml-3">
+                  <br />
                   Run the following command as root on your server:
                   <pre class="border border-secondary mt-3">EVON_DEPLOY_KEY={{ deploy_token }} ./bootstrap.sh --install</pre>
                   Note: Your server needs to be able to connect to <strong>{{ account_domain }}</strong> on TCP/443 either directly or via a HTTPS proxy for Bootstrap to run successfully. For help regarding proxy setup, as well as uninstallation and other options, run command:
@@ -84,6 +83,7 @@
                 </div>
                 <h5 class="p-3 mb-2 bg-primary text-white">3. (Optional) Customising Bootstrap:</h5>
                 <div class="ml-3">
+                  <br />
                   The source code of bootstrap.sh contains a custom section near the top of the file that can be edited and used to execute arbitrary commands during install time. A typical operation is to install a common SSH public key into a user's authorized_keys file so that you can easily SSH to your servers the moment they come online in Evon. Example code exists for adding an SSH public key for your convenience, including explanatory comments.
                 </div>
               </div>
