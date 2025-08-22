@@ -387,7 +387,7 @@ class ServerAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'fqdn','ipv4_address', 'connected', 'disconnected_since', 'last_seen')
     list_display = ['fqdn', 'ipv4_address', 'connected', 'disconnected_since', 'last_seen', 'groups']
     search_fields = ["fqdn", "ipv4_address", "uuid", "disconnected_since"]
-    list_filter = ["connected", "server_groups"]
+    list_filter = ["connected"]
 
     def uuid_custom_display(self, obj):
         # Custom display logic for the 'uuid' field
@@ -414,6 +414,15 @@ class ServerAdmin(admin.ModelAdmin):
             list_display.remove("groups")
             #list_display.remove("uuid")
         return list_display
+
+    def get_list_filter(self, request):
+        """
+        Hide server_groups filter from non-superusers
+        """
+        if request.user.is_superuser:
+            return ["connected", "server_groups"]
+        else:
+            return ["connected"]
 
     def get_fieldsets(self, request, obj=None):
         """
