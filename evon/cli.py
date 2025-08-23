@@ -417,7 +417,7 @@ def main(**kwargs):
             r = requests.get(result["presigned_url"])
             logger.info("Upgrading to new version...")
             if SELFHOSTED:
-                installer_path = "/tmp/evon-deploy"
+                installer_path = "/root/bin/evon-deploy"
             else:
                 installer_path = "/home/ec2-user/bin/evon-deploy"
             with open(installer_path, "wb") as f:
