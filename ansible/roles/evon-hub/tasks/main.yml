@@ -24,12 +24,12 @@
 
 ### Install/update packages
 
-- name: Install required base packages
-  package:
-    name:
-      - openssh
-    state: latest
-    update_cache: yes
+#- name: Install required base packages
+#  package:
+#    name:
+#      - openssh
+#    state: latest
+#    update_cache: yes
 
 
 ### Setup sslh
