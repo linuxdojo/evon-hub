@@ -56,7 +56,7 @@ function custom_section() {
 #chmod 700 ${homedir}/.ssh
 #touch ${homedir}/.ssh/authorized_keys
 #chmod 600 ${homedir}/.ssh/authorized_keys
-#grep -q "${ssh_pubkey}" ${homedir}/.ssh/authorized_keys || echo -e "\n${ssh_pubkey}" >> ${homedir}/.ssh/authorized_keys
+#grep -q "${ssh_pub_key}" ${homedir}/.ssh/authorized_keys || echo -e "\n${ssh_pubkey}" >> ${homedir}/.ssh/authorized_keys
 #echo Done.
 
 #################################################
