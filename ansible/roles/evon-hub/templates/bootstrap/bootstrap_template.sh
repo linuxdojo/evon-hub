@@ -782,6 +782,7 @@ Restart=always
 RestartSec=5
 StartLimitIntervalSec=0
 StartLimitBurst=0
+RestartForceExitStatus=0
 EOF
             systemctl daemon-reload
             # estart and persist the evon client service
